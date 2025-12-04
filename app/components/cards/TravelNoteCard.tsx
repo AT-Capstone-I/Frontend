@@ -2,55 +2,59 @@
 
 import styled from "styled-components";
 
+// Figma Design: 작성 중인 여행 노트 카드
 const Card = styled.div`
+  display: flex;
+  flex-direction: column;
   flex-shrink: 0;
-  width: 85px;
-  text-align: center;
+  width: 74px;
+  gap: 4px;
+  align-items: flex-start;
   cursor: pointer;
 
-  &:hover img {
-    transform: scale(1.05);
-  }
-
   @media (min-width: 768px) {
-    width: 100px;
+    width: 90px;
   }
 
   @media (min-width: 1024px) {
-    width: 110px;
+    width: 100px;
   }
 `;
 
-const CardImage = styled.img`
-  width: 85px;
-  height: 85px;
+const CardImageWrapper = styled.div`
+  width: 100%;
+  aspect-ratio: 1;
   border-radius: 12px;
+  overflow: hidden;
+  background-color: var(--greyscale-200);
+`;
+
+const CardImage = styled.img`
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  margin-bottom: 8px;
   transition: transform 0.2s ease;
 
-  @media (min-width: 768px) {
-    width: 100px;
-    height: 100px;
-  }
-
-  @media (min-width: 1024px) {
-    width: 110px;
-    height: 110px;
+  ${Card}:hover & {
+    transform: scale(1.05);
   }
 `;
 
 const CardTitle = styled.p`
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-primary);
+  width: 100%;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: -0.042px;
+  color: var(--greyscale-900);
+  text-align: center;
 
   @media (min-width: 768px) {
-    font-size: 13px;
+    font-size: 15px;
   }
 
   @media (min-width: 1024px) {
-    font-size: 14px;
+    font-size: 16px;
   }
 `;
 
@@ -62,7 +66,9 @@ interface TravelNoteCardProps {
 export default function TravelNoteCard({ title, image }: TravelNoteCardProps) {
   return (
     <Card>
-      <CardImage src={image} alt={title} />
+      <CardImageWrapper>
+        <CardImage src={image} alt={title} />
+      </CardImageWrapper>
       <CardTitle>{title}</CardTitle>
     </Card>
   );

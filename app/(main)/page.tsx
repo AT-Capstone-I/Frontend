@@ -11,34 +11,38 @@ import {
   PopularPlaceCard,
 } from "@/app/components";
 
-// Styled Components
+// Styled Components - Figma Design System 적용
 const MainContent = styled.main`
   padding-bottom: 80px;
-  background-color: var(--background);
+  background-color: var(--greyscale-000);
 `;
 
 const RecommendationMessage = styled.div`
-  padding: 20px 20px 24px;
-  background-color: var(--primary-color);
+  padding: 28px 20px 24px;
+  background-color: var(--greyscale-000);
 
   p {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 13px;
-    margin-bottom: 4px;
+    color: var(--greyscale-1100);
+    font-size: 18px;
+    font-weight: 400;
+    line-height: 1.4;
+    letter-spacing: -0.108px;
+    margin-bottom: 2px;
   }
 
   h2 {
-    color: #ffffff;
-    font-size: 18px;
+    color: var(--greyscale-1100);
+    font-size: 20px;
     font-weight: 600;
     line-height: 1.4;
+    letter-spacing: -0.12px;
   }
 
   @media (min-width: 768px) {
-    padding: 28px 40px 32px;
+    padding: 36px 40px 32px;
 
     p {
-      font-size: 15px;
+      font-size: 20px;
     }
 
     h2 {
@@ -47,27 +51,27 @@ const RecommendationMessage = styled.div`
   }
 
   @media (min-width: 1024px) {
-    padding: 36px 60px 40px;
+    padding: 44px 60px 40px;
 
     p {
-      font-size: 17px;
+      font-size: 22px;
     }
 
     h2 {
-      font-size: 30px;
+      font-size: 28px;
     }
   }
 `;
 
 const Section = styled.section`
-  padding: 16px 20px;
+  padding: 12px 20px;
 
   @media (min-width: 768px) {
-    padding: 20px 40px;
+    padding: 16px 40px;
   }
 
   @media (min-width: 1024px) {
-    padding: 28px 60px;
+    padding: 20px 60px;
   }
 `;
 
@@ -79,55 +83,61 @@ const SectionHeader = styled.div`
 `;
 
 const SectionTitle = styled.h3`
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
-  color: var(--text-primary);
+  line-height: 1.4;
+  letter-spacing: -0.096px;
+  color: var(--greyscale-1100);
 
   @media (min-width: 768px) {
-    font-size: 17px;
+    font-size: 18px;
   }
 
   @media (min-width: 1024px) {
-    font-size: 19px;
+    font-size: 20px;
   }
 `;
 
 const SectionMore = styled.button`
-  font-size: 12px;
-  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.039px;
+  color: var(--greyscale-800);
   background: none;
   border: none;
   cursor: pointer;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: var(--primary-500);
+  }
 
   @media (min-width: 1024px) {
-    font-size: 13px;
+    font-size: 14px;
   }
 `;
 
-const PlaceCardGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+const PlaceCardScroll = styled.div`
+  display: flex;
+  gap: 13px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 
-  @media (min-width: 768px) {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
+  &::-webkit-scrollbar {
+    display: none;
   }
 
   @media (min-width: 1024px) {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
-  }
-
-  @media (min-width: 1440px) {
-    grid-template-columns: repeat(5, 1fr);
-    gap: 24px;
+    gap: 16px;
   }
 `;
 
 const HorizontalScroll = styled.div`
   display: flex;
-  gap: 12px;
+  gap: 13px;
   overflow-x: auto;
   padding-bottom: 4px;
   -webkit-overflow-scrolling: touch;
@@ -174,16 +184,19 @@ const popularPlaces = [
   {
     id: 1,
     title: "인기 장소",
+    description: "주소가 들어갑니다.",
     image: "https://images.unsplash.com/photo-1517154421773-0529f29ea451?w=300&h=200&fit=crop",
   },
   {
     id: 2,
     title: "인기 장소",
+    description: "주소가 들어갑니다.",
     image: "https://images.unsplash.com/photo-1538485399081-7191377e8241?w=300&h=200&fit=crop",
   },
   {
     id: 3,
     title: "인기 장소",
+    description: "주소가 들어갑니다.",
     image: "https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=300&h=200&fit=crop",
   },
 ];
@@ -253,7 +266,7 @@ export default function HomePage() {
                 <SectionTitle>장소 추천</SectionTitle>
                 <SectionMore>추천 받기</SectionMore>
               </SectionHeader>
-              <PlaceCardGrid>
+              <PlaceCardScroll>
                 {placeRecommendations.map((place) => (
                   <PlaceCard
                     key={place.id}
@@ -262,7 +275,7 @@ export default function HomePage() {
                     image={place.image}
                   />
                 ))}
-              </PlaceCardGrid>
+              </PlaceCardScroll>
             </Section>
 
             <Section>
@@ -274,7 +287,9 @@ export default function HomePage() {
                 {popularPlaces.map((place) => (
                   <PopularPlaceCard
                     key={place.id}
+                    id={place.id}
                     title={place.title}
+                    description={place.description}
                     image={place.image}
                   />
                 ))}

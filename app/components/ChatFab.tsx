@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import styled from "styled-components";
 
 const FabButton = styled.button`
@@ -54,8 +55,14 @@ const ChatIcon = () => (
 );
 
 export default function ChatFab() {
+  const router = useRouter();
+
+  const handleClick = () => {
+    router.push("/chat");
+  };
+
   return (
-    <FabButton aria-label="채팅">
+    <FabButton aria-label="채팅" onClick={handleClick}>
       <ChatIcon />
     </FabButton>
   );

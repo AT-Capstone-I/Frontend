@@ -1,49 +1,91 @@
 "use client";
 
+import Link from "next/link";
 import styled from "styled-components";
 
-const Card = styled.div`
+// Figma Design: 인기 장소 카드
+const Card = styled(Link)`
+  display: flex;
+  flex-direction: column;
   flex-shrink: 0;
-  width: 130px;
+  width: 160px;
+  gap: 10px;
   cursor: pointer;
+  transition: transform 0.2s ease;
+  text-decoration: none;
 
-  &:hover img {
-    transform: scale(1.05);
+  &:hover {
+    transform: translateY(-4px);
   }
 
   @media (min-width: 768px) {
-    width: 150px;
+    width: 200px;
   }
 
   @media (min-width: 1024px) {
-    width: 180px;
+    width: 240px;
+  }
+`;
+
+const CardImageWrapper = styled.div`
+  width: 100%;
+  height: 212px;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: var(--greyscale-500);
+
+  @media (min-width: 768px) {
+    height: 260px;
+  }
+
+  @media (min-width: 1024px) {
+    height: 300px;
   }
 `;
 
 const CardImage = styled.img`
-  width: 130px;
-  height: 90px;
-  border-radius: 10px;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  margin-bottom: 8px;
-  transition: transform 0.2s ease;
+  transition: transform 0.3s ease;
 
-  @media (min-width: 768px) {
-    width: 150px;
-    height: 100px;
-  }
-
-  @media (min-width: 1024px) {
-    width: 180px;
-    height: 120px;
-    border-radius: 12px;
+  ${Card}:hover & {
+    transform: scale(1.05);
   }
 `;
 
-const CardTitle = styled.p`
+const CardInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  height: 41px;
+  justify-content: center;
+`;
+
+const CardTitle = styled.h4`
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: -0.042px;
+  color: var(--greyscale-1000);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  @media (min-width: 1024px) {
+    font-size: 16px;
+  }
+`;
+
+const CardDesc = styled.p`
   font-size: 13px;
-  font-weight: 500;
-  color: var(--text-primary);
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.039px;
+  color: var(--greyscale-700);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   @media (min-width: 1024px) {
     font-size: 14px;
@@ -51,15 +93,22 @@ const CardTitle = styled.p`
 `;
 
 interface PopularPlaceCardProps {
+  id?: string | number;
   title: string;
+  description: string;
   image: string;
 }
 
-export default function PopularPlaceCard({ title, image }: PopularPlaceCardProps) {
+export default function PopularPlaceCard({ id = "1", title, description, image }: PopularPlaceCardProps) {
   return (
-    <Card>
-      <CardImage src={image} alt={title} />
-      <CardTitle>{title}</CardTitle>
+    <Card href={`/place/${id}`}>
+      <CardImageWrapper>
+        <CardImage src={image} alt={title} />
+      </CardImageWrapper>
+      <CardInfo>
+        <CardTitle>{title}</CardTitle>
+        <CardDesc>{description}</CardDesc>
+      </CardInfo>
     </Card>
   );
 }

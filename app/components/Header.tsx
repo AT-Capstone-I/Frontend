@@ -2,16 +2,23 @@
 
 import styled from "styled-components";
 
+// Figma Design: Top bar (헤더)
 const HeaderWrapper = styled.header`
-  padding: 16px 20px 8px;
-  background-color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 50px;
+  padding: 13px 20px;
+  background-color: var(--greyscale-000);
 `;
 
 const Logo = styled.h1`
-  font-size: 22px;
-  font-weight: 700;
-  color: #ffffff;
-  letter-spacing: -0.5px;
+  font-family: 'KOHIBaeum', sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--greyscale-1000);
+  letter-spacing: 0;
 `;
 
 interface HeaderProps {

@@ -3,60 +3,74 @@
 import Link from "next/link";
 import styled from "styled-components";
 
+// Figma Design: 여행 추천 카드
 const Card = styled(Link)`
-  display: block;
+  display: flex;
+  flex-direction: column;
   flex-shrink: 0;
-  width: 200px;
-  border-radius: 14px;
-  overflow: hidden;
-  background-color: var(--card-background);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  width: 160px;
+  gap: 10px;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease;
   text-decoration: none;
 
   &:hover {
     transform: translateY(-4px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
   }
 
   @media (min-width: 768px) {
-    width: 240px;
+    width: 200px;
   }
 
   @media (min-width: 1024px) {
-    width: 300px;
-    border-radius: 16px;
+    width: 240px;
+  }
+`;
+
+const CardImageWrapper = styled.div`
+  width: 100%;
+  height: 212px;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: var(--greyscale-500);
+
+  @media (min-width: 768px) {
+    height: 260px;
+  }
+
+  @media (min-width: 1024px) {
+    height: 300px;
   }
 `;
 
 const CardImage = styled.img`
   width: 100%;
-  height: 150px;
+  height: 100%;
   object-fit: cover;
+  transition: transform 0.3s ease;
 
-  @media (min-width: 768px) {
-    height: 170px;
-  }
-
-  @media (min-width: 1024px) {
-    height: 190px;
+  ${Card}:hover & {
+    transform: scale(1.05);
   }
 `;
 
 const CardInfo = styled.div`
-  padding: 12px;
-
-  @media (min-width: 1024px) {
-    padding: 16px;
-  }
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  height: 41px;
+  justify-content: center;
 `;
 
 const CardTitle = styled.h4`
   font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 4px;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: -0.042px;
+  color: var(--greyscale-1000);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   @media (min-width: 1024px) {
     font-size: 16px;
@@ -64,15 +78,17 @@ const CardTitle = styled.h4`
 `;
 
 const CardDesc = styled.p`
-  font-size: 11px;
-  color: var(--text-muted);
-  line-height: 1.4;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.039px;
+  color: var(--greyscale-700);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 
   @media (min-width: 1024px) {
-    font-size: 13px;
+    font-size: 14px;
   }
 `;
 
@@ -86,7 +102,9 @@ interface TravelCardProps {
 export default function TravelCard({ id = "1", title, description, image }: TravelCardProps) {
   return (
     <Card href={`/travel/${id}`}>
-      <CardImage src={image} alt={title} />
+      <CardImageWrapper>
+        <CardImage src={image} alt={title} />
+      </CardImageWrapper>
       <CardInfo>
         <CardTitle>{title}</CardTitle>
         <CardDesc>{description}</CardDesc>

@@ -9,16 +9,37 @@
 }
 
 :root {
-  --primary-color: #1a1a2e;
-  --secondary-color: #16213e;
-  --accent-color: #4a90d9;
-  --text-primary: #1a1a1a;
-  --text-secondary: #666666;
-  --text-muted: #999999;
-  --background: #ffffff;
-  --card-background: #ffffff;
-  --nav-background: #ffffff;
-  --border-color: #e5e5e5;
+  /* Figma Design System - Greyscale */
+  --greyscale-1200: #111111;
+  --greyscale-1100: #111112;
+  --greyscale-1000: #2B2A2C;
+  --greyscale-900: #444246;
+  --greyscale-800: #5E5B61;
+  --greyscale-700: #77747B;
+  --greyscale-600: #918E94;
+  --greyscale-500: #AAA8AD;
+  --greyscale-400: #C4C2C6;
+  --greyscale-300: #E1E1E4;
+  --greyscale-200: #F2F1F2;
+  --greyscale-000: #FFFFFF;
+
+  /* Figma Design System - Primary */
+  --primary-500: #4F9DE8;
+  --primary-400: #66B2FE;
+
+  /* Semantic Colors (기존 호환성 유지) */
+  --primary-color: #4F9DE8;
+  --secondary-color: #66B2FE;
+  --accent-color: #4F9DE8;
+  --text-primary: #111112;
+  --text-secondary: #444246;
+  --text-muted: #5E5B61;
+  --text-caption: #77747B;
+  --background: #FFFFFF;
+  --card-background: #FFFFFF;
+  --nav-background: #FFFFFF;
+  --border-color: #E1E1E4;
+  --placeholder-bg: #F2F1F2;
 }
 
 html {
