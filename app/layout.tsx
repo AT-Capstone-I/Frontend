@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import StyledComponentsRegistry from "./styles/StyledComponentsRegistry";
+import { AppWrapper } from "./components";
 
 export const metadata: Metadata = {
   title: "MoodTrip - 나만의 특별한 여행",
@@ -29,7 +30,9 @@ export default function RootLayout({
       </head>
       <body>
         <StyledComponentsRegistry>
-          {children}
+          <AppWrapper>
+            {children}
+          </AppWrapper>
         </StyledComponentsRegistry>
       </body>
     </html>

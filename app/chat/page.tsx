@@ -21,11 +21,11 @@ interface Place {
   image: string;
 }
 
-// Styled Components
+// Styled Components - Figma Design System 적용
 const ChatContainer = styled.div`
   height: 100vh;
   height: 100dvh;
-  background-color: #f8fcff;
+  background-color: var(--primary-050, #F2F8FF);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -35,24 +35,24 @@ const ChatHeader = styled.header`
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 16px 20px;
-  background-color: #ffffff;
-  border-bottom: 1px solid var(--border-color);
+  justify-content: space-between;
+  height: 50px;
+  padding: 13px 20px;
+  background-color: var(--primary-050, #F2F8FF);
   position: relative;
 `;
 
 const BackButton = styled.button`
-  position: absolute;
-  left: 16px;
   background: none;
   border: none;
   cursor: pointer;
-  padding: 8px;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-primary);
+  color: var(--greyscale-1100, #111112);
+  width: 24px;
+  height: 24px;
 
   svg {
     width: 24px;
@@ -61,59 +61,86 @@ const BackButton = styled.button`
 `;
 
 const HeaderTitle = styled.h1`
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-family: 'Gmarket Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: -0.096px;
+  color: var(--greyscale-1100, #111112);
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+`;
+
+const HeaderSpacer = styled.div`
+  width: 24px;
+  height: 24px;
 `;
 
 const ChatContent = styled.div`
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  padding: 10px 20px 20px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 `;
 
 const DateBadge = styled.div`
   align-self: center;
-  background-color: var(--text-muted);
-  color: #ffffff;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 12px;
-  margin-bottom: 8px;
+  background-color: var(--greyscale-300, #E1E1E4);
+  color: var(--greyscale-800, #5E5B61);
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.033px;
+  margin-bottom: 4px;
 `;
 
 const MessageWrapper = styled.div<{ $isUser?: boolean }>`
   display: flex;
   flex-direction: column;
   align-items: ${({ $isUser }) => ($isUser ? "flex-end" : "flex-start")};
+  margin-left: ${({ $isUser }) => ($isUser ? "31px" : "0")};
+  max-width: 100%;
 `;
 
 const MessageBubble = styled.div<{ $isUser?: boolean }>`
-  max-width: 85%;
-  padding: 14px 16px;
-  border-radius: 16px;
-  font-size: 14px;
+  display: inline-block;
+  max-width: calc(100% - 40px);
+  width: fit-content;
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 15px;
+  font-weight: 400;
   line-height: 1.5;
+  letter-spacing: -0.045px;
   background-color: ${({ $isUser }) =>
-    $isUser ? "var(--primary-color)" : "#ffffff"};
-  color: ${({ $isUser }) => ($isUser ? "#ffffff" : "var(--text-primary)")};
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    $isUser ? "var(--primary-100, #E0F0FF)" : "var(--greyscale-000, #FFFFFF)"};
+  color: var(--greyscale-1200, #111111);
+  word-break: keep-all;
+  word-wrap: break-word;
 `;
 
 const LoadingMessage = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: var(--text-muted);
+  gap: 6px;
+  color: var(--greyscale-900, #444246);
+  font-family: 'Pretendard', sans-serif;
   font-size: 14px;
-  padding: 8px 0;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: -0.042px;
+  padding: 4px 0;
 
   svg {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     animation: spin 1s linear infinite;
   }
 
@@ -130,74 +157,129 @@ const LoadingMessage = styled.div`
 const CompletedMessage = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: var(--primary-color);
+  gap: 6px;
+  color: var(--primary-500, #4F9DE8);
+  font-family: 'Pretendard', sans-serif;
   font-size: 14px;
-  padding: 8px 0;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: -0.042px;
+  padding: 4px 0;
 
   svg {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
   }
+`;
+
+const AIResponseCard = styled.div`
+  display: flex;
+  flex-direction: column;
+  width: 280px;
+  background-color: var(--greyscale-000, #FFFFFF);
+  border-radius: 12px;
+  overflow: hidden;
+`;
+
+const AIResponseMessage = styled.div`
+  padding: 8px 16px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: -0.045px;
+  color: var(--greyscale-1200, #111111);
+`;
+
+const PlaceCardContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  width: 100%;
 `;
 
 const PlaceCardList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 8px;
+  gap: 14px;
+  width: 100%;
 `;
 
 const PlaceCard = styled.div`
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  background-color: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  gap: 8px;
+  width: 100%;
   cursor: pointer;
-  transition: transform 0.2s ease;
+  transition: opacity 0.2s ease;
 
   &:hover {
-    transform: translateX(4px);
+    opacity: 0.8;
   }
 `;
 
 const PlaceImage = styled.img`
   width: 50px;
   height: 50px;
-  border-radius: 8px;
+  border-radius: 12px;
   object-fit: cover;
+  flex-shrink: 0;
+  background-color: var(--greyscale-200, #F1F1F1);
 `;
 
 const PlaceInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  height: 41px;
+  justify-content: center;
   flex: 1;
-  overflow: hidden;
+  min-width: 0;
 `;
 
 const PlaceName = styled.p`
+  font-family: 'Pretendard', sans-serif;
   font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 2px;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: -0.042px;
+  color: var(--greyscale-1000, #2B2A2C);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const PlaceAddress = styled.p`
-  font-size: 12px;
-  color: var(--text-muted);
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.039px;
+  color: var(--greyscale-700, #77747B);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 `;
 
 const MoreButton = styled.button`
-  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: none;
   cursor: pointer;
-  padding: 8px;
-  color: var(--text-muted);
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  color: var(--greyscale-600, #918E94);
+  transform: rotate(0deg);
+  transition: transform 0.2s ease;
+
+  &:hover {
+    color: var(--greyscale-900, #444246);
+  }
 
   svg {
     width: 24px;
@@ -207,31 +289,34 @@ const MoreButton = styled.button`
 
 const InputContainer = styled.div`
   flex-shrink: 0;
-  padding: 16px 20px;
-  padding-bottom: max(16px, env(safe-area-inset-bottom));
-  background-color: #ffffff;
-  border-top: 1px solid var(--border-color);
+  padding: 12px 20px;
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+  background-color: var(--greyscale-000, #FFFFFF);
+  border-top: 1px solid var(--greyscale-300, #E1E1E4);
 `;
 
 const InputWrapper = styled.div`
   display: flex;
   align-items: center;
   gap: 12px;
-  background-color: var(--background);
-  border-radius: 24px;
-  padding: 12px 16px;
+  background-color: var(--greyscale-200, #F2F1F2);
+  border-radius: 20px;
+  padding: 10px 16px;
 `;
 
 const TextInput = styled.input`
   flex: 1;
   border: none;
   background: none;
+  font-family: 'Pretendard', sans-serif;
   font-size: 14px;
-  color: var(--text-primary);
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--greyscale-1100, #111112);
   outline: none;
 
   &::placeholder {
-    color: var(--text-muted);
+    color: var(--greyscale-600, #918E94);
   }
 `;
 
@@ -240,14 +325,19 @@ const SendButton = styled.button`
   border: none;
   cursor: pointer;
   padding: 4px;
-  color: var(--primary-color);
+  color: var(--primary-500, #4F9DE8);
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: color 0.2s ease;
 
   &:disabled {
-    color: var(--text-muted);
+    color: var(--greyscale-400, #C4C2C6);
     cursor: not-allowed;
+  }
+
+  &:hover:not(:disabled) {
+    color: var(--primary-400, #66B2FE);
   }
 
   svg {
@@ -430,6 +520,7 @@ export default function ChatPage() {
           <BackIcon />
         </BackButton>
         <HeaderTitle>MoodTrip</HeaderTitle>
+        <HeaderSpacer />
       </ChatHeader>
 
       <ChatContent>
@@ -447,12 +538,10 @@ export default function ChatPage() {
                 <CheckIcon />
                 {message.content}
               </CompletedMessage>
-            ) : (
-              <>
-                <MessageBubble $isUser={message.type === "user"}>
-                  {message.content}
-                </MessageBubble>
-                {message.places && (
+            ) : message.places ? (
+              <AIResponseCard>
+                <AIResponseMessage>{message.content}</AIResponseMessage>
+                <PlaceCardContainer>
                   <PlaceCardList>
                     {message.places.map((place) => (
                       <PlaceCard key={place.id} onClick={() => router.push(`/place/${place.id}`)}>
@@ -463,14 +552,18 @@ export default function ChatPage() {
                         </PlaceInfo>
                       </PlaceCard>
                     ))}
-                    {message.showMoreButton && (
-                      <MoreButton>
-                        <ChevronDownIcon />
-                      </MoreButton>
-                    )}
                   </PlaceCardList>
-                )}
-              </>
+                  {message.showMoreButton && (
+                    <MoreButton>
+                      <ChevronDownIcon />
+                    </MoreButton>
+                  )}
+                </PlaceCardContainer>
+              </AIResponseCard>
+            ) : (
+              <MessageBubble $isUser={message.type === "user"}>
+                {message.content}
+              </MessageBubble>
             )}
           </MessageWrapper>
         ))}

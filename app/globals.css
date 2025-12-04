@@ -26,6 +26,8 @@
   /* Figma Design System - Primary */
   --primary-500: #4F9DE8;
   --primary-400: #66B2FE;
+  --primary-100: #E0F0FF;
+  --primary-050: #F2F8FF;
 
   /* Semantic Colors (기존 호환성 유지) */
   --primary-color: #4F9DE8;

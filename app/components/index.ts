@@ -4,4 +4,6 @@ export { default as TabNavigation } from "./TabNavigation";
 export { default as ChatFab } from "./ChatFab";
 export { default as BackButton } from "./BackButton";
 export { default as ImageSlider } from "./ImageSlider";
+export { default as SplashScreen } from "./SplashScreen";
+export { default as AppWrapper } from "./AppWrapper";
 export * from "./cards";
