@@ -1,3 +1,17 @@
+/**
+ * AI 여행 테마 채팅 페이지
+ * 
+ * 주요 기능:
+ * - SSE(Server-Sent Events) 스트리밍을 통한 실시간 테마 생성
+ * - 사용자 쿼리 기반 여행 테마 추천
+ * - 테마 선택 후 상세 콘텐츠 뷰 표시
+ * 
+ * API 엔드포인트:
+ * - GET /api/agents/home/themes/stream - 테마 스트리밍
+ * - POST /api/agents/home/themes/select - 테마 선택 및 콘텐츠 생성
+ * 
+ * @author MoodTrip Team
+ */
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
