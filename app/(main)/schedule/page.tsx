@@ -297,118 +297,221 @@ const AskButton = styled.button`
 `;
 
 // ============ 실시간 추천 탭 스타일 ============
-const RecommendHeader = styled.div`
-  margin-bottom: 20px;
+const RecommendSection = styled.section`
+  margin-bottom: 32px;
 `;
 
-const WeatherMessage = styled.div`
-  background-color: #f0f7ff;
-  padding: 16px;
-  border-radius: 12px;
-  margin-bottom: 20px;
+const RecommendTitle = styled.div`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.096px;
+  color: var(--greyscale-1000, #2b2a2c);
+  margin-bottom: 12px;
 
   p {
-    font-family: 'Pretendard', sans-serif;
-    font-size: 14px;
-    color: var(--greyscale-1200, #111111);
-    line-height: 1.5;
-
-    strong {
-      color: var(--primary-500, #4f9de8);
-    }
+    margin: 0;
   }
 `;
 
-const RecommendGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+const RecommendScroll = styled.div`
+  display: flex;
   gap: 12px;
-  margin-bottom: 24px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  padding-right: 20px;
+  margin-right: -20px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 `;
 
 const RecommendCard = styled.div`
+  flex-shrink: 0;
+  width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`;
+
+const RecommendImageWrapper = styled.div`
+  position: relative;
+  width: 160px;
+  height: 212px;
   border-radius: 12px;
   overflow: hidden;
-  background-color: var(--greyscale-000, #ffffff);
-  border: 1px solid var(--greyscale-300, #e1e1e4);
+  background-color: var(--greyscale-300, #b8b8b8);
 `;
 
 const RecommendImage = styled.img`
   width: 100%;
-  height: 100px;
+  height: 100%;
   object-fit: cover;
 `;
 
+const HeartButton = styled.button<{ $filled?: boolean }>`
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  width: 24px;
+  height: 24px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: scale(1.1);
+  }
+
+  svg {
+    width: 18px;
+    height: 15px;
+    fill: ${({ $filled }) => ($filled ? '#FD818B' : 'none')};
+    stroke: ${({ $filled }) => ($filled ? '#FD818B' : '#ffffff')};
+    stroke-width: 2;
+  }
+`;
+
 const RecommendInfo = styled.div`
-  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  height: 41px;
+  justify-content: center;
 `;
 
 const RecommendName = styled.h4`
   font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: -0.042px;
+  color: var(--greyscale-1000, #2b2a2c);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+`;
+
+const RecommendAddress = styled.p`
+  font-family: 'Pretendard', sans-serif;
   font-size: 13px;
-  font-weight: 600;
-  color: var(--greyscale-1200, #111111);
-  margin-bottom: 2px;
-`;
-
-const RecommendDesc = styled.p`
-  font-family: 'Pretendard', sans-serif;
-  font-size: 11px;
-  color: var(--greyscale-600, #918e94);
-`;
-
-const QuestionSection = styled.div`
-  margin-top: 24px;
-`;
-
-const QuestionTitle = styled.h3`
-  font-family: 'Pretendard', sans-serif;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--greyscale-1200, #111111);
-  margin-bottom: 12px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.039px;
+  color: var(--greyscale-700, #77747b);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
 `;
 
 // ============ 작성한 리뷰 탭 스타일 ============
 const ReviewItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--greyscale-200, #f2f1f2);
   margin-bottom: 24px;
+
+  &:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+  }
 `;
 
-const ReviewNumber = styled.div`
-  font-family: 'Pretendard', sans-serif;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--greyscale-1200, #111111);
-  margin-bottom: 12px;
-`;
-
-const ReviewContent = styled.div`
-  padding: 16px;
-  background-color: var(--greyscale-100, #f5f5f5);
-  border-radius: 12px;
-  font-family: 'Pretendard', sans-serif;
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--greyscale-800, #5e5b61);
-  margin-bottom: 12px;
-`;
-
-const ReviewImagePlaceholder = styled.div`
-  width: 80px;
-  height: 80px;
-  background-color: var(--greyscale-300, #e1e1e4);
-  border-radius: 8px;
+const ReviewHeader = styled.div`
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: var(--greyscale-600, #918e94);
-  font-size: 12px;
+  justify-content: space-between;
+`;
+
+const ReviewTitle = styled.h3`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.096px;
+  color: var(--greyscale-1200, #111111);
+  margin: 0;
+`;
+
+const ReviewEditButton = styled.button`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.039px;
+  color: var(--greyscale-800, #5e5b61);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+
+  &:hover {
+    color: var(--primary-500, #4f9de8);
+  }
+`;
+
+const ReviewImageScroll = styled.div`
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-right: 20px;
+  margin-right: -20px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+`;
+
+const ReviewImageBox = styled.div`
+  flex-shrink: 0;
+  width: 148px;
+  height: 148px;
+  background-color: var(--greyscale-200, #f2f1f2);
+  border-radius: 12px;
+  overflow: hidden;
+`;
+
+const ReviewImage = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+`;
+
+const ReviewContent = styled.p`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: -0.042px;
+  color: var(--greyscale-1000, #2b2a2c);
+  margin: 0;
 `;
 
 // ============ 아이콘 컴포넌트 ============
 const CheckmarkIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
     <polyline points="20,6 9,17 4,12" />
+  </svg>
+);
+
+const HeartIcon = () => (
+  <svg viewBox="0 0 18 15" xmlns="http://www.w3.org/2000/svg">
+    <path d="M9 14.5L1.5 7.5C0.5 6.5 0 5.5 0 4C0 1.5 2 0 4.5 0C6 0 7.5 0.8 9 2.5C10.5 0.8 12 0 13.5 0C16 0 18 1.5 18 4C18 5.5 17.5 6.5 16.5 7.5L9 14.5Z" />
   </svg>
 );
 
@@ -442,18 +545,51 @@ const scheduleData = {
   ],
 };
 
-const recommendData = [
+const weatherRecommendData = [
   {
     id: 1,
-    name: "순이네횟상",
-    desc: "전남 여수시 돌산읍읍길 5 18...",
-    image: "https://images.unsplash.com/photo-1534256958597-7fe685cbd745?w=300&h=200&fit=crop",
+    name: "순이네밥상",
+    address: "전남 여수시 통제영5길 5 1층 순이네밥상",
+    image: "https://images.unsplash.com/photo-1534256958597-7fe685cbd745?w=300&h=400&fit=crop",
+    liked: true,
   },
   {
     id: 2,
-    name: "모아산 스카이점",
-    desc: "전라남도, 여수시 돌산로 무슬...",
-    image: "https://images.unsplash.com/photo-1567521464027-f127ff144326?w=300&h=200&fit=crop",
+    name: "모이핀 스카이점",
+    address: "전라남도 여수시 돌산읍 무술목길 59 모이핀 스카이점",
+    image: "https://images.unsplash.com/photo-1567521464027-f127ff144326?w=300&h=400&fit=crop",
+    liked: false,
+  },
+  {
+    id: 3,
+    name: "여진식당",
+    address: "전남 여수시 학동5길 2-2",
+    image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=300&h=400&fit=crop",
+    liked: false,
+  },
+];
+
+const foodRecommendData = [
+  {
+    id: 1,
+    name: "덕충식당",
+    address: "전남 여수시 공화남3길 9",
+    image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300&h=400&fit=crop",
+    liked: true,
+  },
+  {
+    id: 2,
+    name: "청정게장촌",
+    address: "전남 여수시 봉산남4길 23-32 청정게장촌",
+    image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&h=400&fit=crop",
+    liked: false,
+  },
+  {
+    id: 3,
+    name: "진남옥",
+    address: "전남 여수시 통제영3길 6 1층 진남옥",
+    image: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=300&h=400&fit=crop",
+    liked: false,
   },
 ];
 
@@ -461,12 +597,20 @@ const reviewData = [
   {
     id: 1,
     placeName: "여행지 이름",
-    content: "리뷰 내용이 들어갑니다. 리뷰 내용이 들어갑니다. 리뷰 내용이 들어갑니다. 리뷰 내용이 들어갑니다. 리뷰 내용이 들어갑니다. 리뷰 내용이 들어갑니다.",
+    images: [
+      "https://images.unsplash.com/photo-1534256958597-7fe685cbd745?w=300&h=300&fit=crop",
+    ],
+    content: "리뷰 내용이 들어갑니다. 리뷰 내용이 들어갑니다. 리뷰 내용이 들어갑니다. 리뷰 내용이 들어갑니다. 리뷰 내용이 들어갑니다. 리뷰 내용이 들어갑니다. 리뷰 내용이 들어갑니다.",
   },
   {
     id: 2,
     placeName: "여행지 이름",
-    content: "",
+    images: [
+      "https://images.unsplash.com/photo-1567521464027-f127ff144326?w=300&h=300&fit=crop",
+      "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=300&h=300&fit=crop",
+      "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300&h=300&fit=crop",
+    ],
+    content: "리뷰 내용이 들어갑니다. 리뷰 내용이 들어갑니다. 리뷰 내용이 들어갑니다. 리뷰 내용이 들어갑니다. 리뷰 내용이 들어갑니다. 리뷰 내용이 들어갑니다. 리뷰 내용이 들어갑니다.",
   },
 ];
 
@@ -558,40 +702,52 @@ export default function SchedulePage() {
               <TripTitle>여수 여행</TripTitle>
             </TripHeader>
 
-            <WeatherMessage>
-              <p>
-                <strong>현재 비가 내리고 있어요.</strong>
-                <br />
-                비오는 날, 인기 플레이스를 추천해요.
-              </p>
-            </WeatherMessage>
-
-            <RecommendGrid>
-              {recommendData.map((item) => (
-                <RecommendCard key={item.id}>
-                  <RecommendImage src={item.image} alt={item.name} />
-                  <RecommendInfo>
-                    <RecommendName>{item.name}</RecommendName>
-                    <RecommendDesc>{item.desc}</RecommendDesc>
-                  </RecommendInfo>
-                </RecommendCard>
-              ))}
-            </RecommendGrid>
-
-            <QuestionSection>
-              <QuestionTitle>다른 맛집을 찾고 계신가요?</QuestionTitle>
-              <RecommendGrid>
-                {recommendData.map((item) => (
+            {/* 날씨 기반 추천 */}
+            <RecommendSection>
+              <RecommendTitle>
+                <p>현재 비가 내리고 있어요.</p>
+                <p>비오는 날, 인기 플레이스를 추천해요.</p>
+              </RecommendTitle>
+              <RecommendScroll>
+                {weatherRecommendData.map((item) => (
                   <RecommendCard key={item.id}>
-                    <RecommendImage src={item.image} alt={item.name} />
+                    <RecommendImageWrapper>
+                      <RecommendImage src={item.image} alt={item.name} />
+                      <HeartButton $filled={item.liked}>
+                        <HeartIcon />
+                      </HeartButton>
+                    </RecommendImageWrapper>
                     <RecommendInfo>
                       <RecommendName>{item.name}</RecommendName>
-                      <RecommendDesc>{item.desc}</RecommendDesc>
+                      <RecommendAddress>{item.address}</RecommendAddress>
                     </RecommendInfo>
                   </RecommendCard>
                 ))}
-              </RecommendGrid>
-            </QuestionSection>
+              </RecommendScroll>
+            </RecommendSection>
+
+            {/* 맛집 추천 */}
+            <RecommendSection>
+              <RecommendTitle>
+                <p>다른 맛집을 찾고 계신가요?</p>
+              </RecommendTitle>
+              <RecommendScroll>
+                {foodRecommendData.map((item) => (
+                  <RecommendCard key={item.id}>
+                    <RecommendImageWrapper>
+                      <RecommendImage src={item.image} alt={item.name} />
+                      <HeartButton $filled={item.liked}>
+                        <HeartIcon />
+                      </HeartButton>
+                    </RecommendImageWrapper>
+                    <RecommendInfo>
+                      <RecommendName>{item.name}</RecommendName>
+                      <RecommendAddress>{item.address}</RecommendAddress>
+                    </RecommendInfo>
+                  </RecommendCard>
+                ))}
+              </RecommendScroll>
+            </RecommendSection>
           </>
         )}
 
@@ -616,11 +772,21 @@ export default function SchedulePage() {
 
             {reviewData.map((review, index) => (
               <ReviewItem key={review.id}>
-                <ReviewNumber>{index + 1}. 여행지 이름</ReviewNumber>
-                {review.content ? (
+                <ReviewHeader>
+                  <ReviewTitle>{index + 1}. {review.placeName}</ReviewTitle>
+                  <ReviewEditButton>편집</ReviewEditButton>
+                </ReviewHeader>
+                {review.images && review.images.length > 0 && (
+                  <ReviewImageScroll>
+                    {review.images.map((image, imgIndex) => (
+                      <ReviewImageBox key={imgIndex}>
+                        <ReviewImage src={image} alt={`리뷰 이미지 ${imgIndex + 1}`} />
+                      </ReviewImageBox>
+                    ))}
+                  </ReviewImageScroll>
+                )}
+                {review.content && (
                   <ReviewContent>{review.content}</ReviewContent>
-                ) : (
-                  <ReviewImagePlaceholder>이미지</ReviewImagePlaceholder>
                 )}
               </ReviewItem>
             ))}

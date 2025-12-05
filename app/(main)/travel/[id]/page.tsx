@@ -1,321 +1,549 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import styled from "styled-components";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { BackButton } from "@/app/components";
+import { ThemeContent } from "@/app/lib/api";
 
-// Styled Components
+// Styled Components - Figma 디자인 적용
 const PageWrapper = styled.div`
   min-height: 100vh;
-  background-color: var(--background);
+  background-color: var(--greyscale-000, #FFFFFF);
   padding-bottom: 100px;
 `;
 
 const Header = styled.header`
   display: flex;
   align-items: center;
-  padding: 8px 12px;
+  justify-content: space-between;
+  height: 50px;
+  padding: 13px 20px;
   position: sticky;
   top: 0;
-  background-color: var(--background);
+  background-color: var(--greyscale-000, #FFFFFF);
   z-index: 10;
+`;
+
+const HeaderSpacer = styled.div`
+  width: 24px;
+  height: 24px;
 `;
 
 const Content = styled.div`
   padding: 0 20px;
 `;
 
+const TitleSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 20px;
+`;
+
 const TravelTitle = styled.h1`
+  font-family: 'Pretendard', sans-serif;
   font-size: 24px;
   font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 4px;
+  line-height: 1.4;
+  letter-spacing: -0.144px;
+  color: var(--greyscale-1100, #111112);
 `;
 
 const TravelSubtitle = styled.p`
+  font-family: 'Pretendard', sans-serif;
   font-size: 14px;
-  color: var(--text-muted);
-  margin-bottom: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: -0.042px;
+  color: var(--greyscale-800, #5E5B61);
+`;
+
+const MainImageSection = styled.div`
+  margin-bottom: 24px;
+  border-radius: 12px;
+  overflow: hidden;
 `;
 
 const MainImage = styled.img`
   width: 100%;
-  aspect-ratio: 16/10;
+  aspect-ratio: 335/212;
   object-fit: cover;
   border-radius: 12px;
-  margin-bottom: 20px;
+  background-color: var(--greyscale-200, #F1F1F1);
 `;
 
-const Description = styled.p`
-  font-size: 14px;
-  line-height: 1.8;
-  color: var(--text-primary);
-  margin-bottom: 24px;
+const ImageIndicator = styled.div`
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 12px;
 `;
 
-const Section = styled.section`
-  margin-bottom: 24px;
+const IndicatorDot = styled.div<{ $active?: boolean }>`
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: ${({ $active }) => 
+    $active ? 'var(--greyscale-900, #444246)' : 'var(--greyscale-300, #E1E1E4)'};
+  cursor: pointer;
+  transition: background-color 0.2s ease;
 `;
 
-const SectionTitle = styled.h3`
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 16px;
-`;
-
-const DetailItem = styled.div`
-  margin-bottom: 20px;
-`;
-
-const DetailTitle = styled.h4`
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 8px;
-`;
-
-const DetailContent = styled.div`
-  font-size: 13px;
+// 마크다운 스타일 컨테이너
+const MarkdownContent = styled.div`
+  font-family: 'Pretendard', sans-serif;
+  color: var(--greyscale-1100, #111112);
   line-height: 1.7;
-  color: var(--text-secondary);
+  
+  /* 인트로 문단 */
+  & > p:first-of-type {
+    font-size: 14px;
+    padding: 24px 0;
+    border-bottom: 1px solid var(--greyscale-200, #F2F1F2);
+    margin-bottom: 24px;
+  }
+  
+  /* 일반 문단 */
+  p {
+    font-size: 14px;
+    margin-bottom: 12px;
+    word-break: keep-all;
+  }
+  
+  /* 제목 (### 1. 장소명) */
+  h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--greyscale-1100, #111112);
+    margin-top: 24px;
+    margin-bottom: 8px;
+    padding-top: 16px;
+    border-top: 1px solid var(--greyscale-200, #F2F1F2);
+    
+    &:first-of-type {
+      border-top: none;
+      padding-top: 0;
+      margin-top: 0;
+    }
+  }
+  
+  h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--greyscale-1000, #2B2A2C);
+    margin-top: 16px;
+    margin-bottom: 8px;
+  }
+  
+  /* 인용문 (> 설명) */
+  blockquote {
+    margin: 8px 0 16px 0;
+    padding: 0;
+    border: none;
+    
+    p {
+      font-size: 14px;
+      color: var(--greyscale-800, #5E5B61);
+      margin: 0;
+    }
+  }
+  
+  /* 리스트 */
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 12px 0;
+  }
+  
+  li {
+    position: relative;
+    padding-left: 16px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    color: var(--greyscale-800, #5E5B61);
+    line-height: 1.5;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 6px;
+      width: 3px;
+      height: 14px;
+      background-color: var(--primary-500, #4F9DE8);
+      border-radius: 2px;
+    }
+  }
+  
+  /* 볼드 텍스트 */
+  strong {
+    font-weight: 600;
+    color: var(--greyscale-1000, #2B2A2C);
+  }
+  
+  /* 이모지 스타일링 */
+  em {
+    font-style: normal;
+  }
+  
+  /* 구분선 */
+  hr {
+    border: none;
+    border-top: 1px solid var(--greyscale-200, #F2F1F2);
+    margin: 24px 0;
+  }
+  
+  /* 링크 */
+  a {
+    color: var(--primary-500, #4F9DE8);
+    text-decoration: underline;
+  }
 `;
 
-const Tag = styled.span<{ $type: "good" | "recommend" | "tip" }>`
-  display: inline-block;
-  font-size: 12px;
-  font-weight: 500;
-  padding: 2px 8px;
-  border-radius: 4px;
-  margin-right: 6px;
-  margin-bottom: 4px;
-  background-color: ${({ $type }) => {
-    switch ($type) {
-      case "good":
-        return "#e8f5e9";
-      case "recommend":
-        return "#e3f2fd";
-      case "tip":
-        return "#fff3e0";
-      default:
-        return "#f5f5f5";
-    }
-  }};
-  color: ${({ $type }) => {
-    switch ($type) {
-      case "good":
-        return "#2e7d32";
-      case "recommend":
-        return "#1565c0";
-      case "tip":
-        return "#ef6c00";
-      default:
-        return "#666";
-    }
-  }};
+// 정보 카드 스타일
+const InfoCard = styled.div`
+  background-color: var(--greyscale-100, #F8F8F8);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 12px 0;
 `;
 
-const TaggedText = styled.p`
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
-
+const InfoRow = styled.div`
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+  
   &:last-child {
     margin-bottom: 0;
   }
 `;
 
-const ExpandButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  padding: 12px;
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: 13px;
-
-  svg {
-    width: 20px;
-    height: 20px;
-    margin-left: 4px;
-  }
-`;
-
-const LastMessage = styled.div`
-  background-color: #f8f9fa;
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 24px;
-`;
-
-const LastMessageTitle = styled.h4`
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 12px;
-`;
-
-const LastMessageContent = styled.p`
+const InfoIcon = styled.span`
   font-size: 14px;
-  line-height: 1.7;
-  color: var(--text-secondary);
+  flex-shrink: 0;
 `;
 
-const ReferenceList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
-
-const ReferenceItem = styled.a`
+const InfoText = styled.p`
   font-size: 13px;
-  color: var(--accent-color);
-  text-decoration: underline;
-  padding: 4px 0;
-
-  &:hover {
-    opacity: 0.8;
+  color: var(--greyscale-800, #5E5B61);
+  line-height: 1.5;
+  flex: 1;
+  margin: 0;
+  
+  strong {
+    font-weight: 500;
+    color: var(--greyscale-1000, #2B2A2C);
   }
+`;
+
+const Section = styled.section`
+  padding: 24px 0;
+  border-bottom: 1px solid var(--greyscale-200, #F2F1F2);
+`;
+
+const SectionTitle = styled.h3`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.096px;
+  color: var(--greyscale-1000, #2B2A2C);
+  margin-bottom: 16px;
+`;
+
+const CarouselSection = styled.div`
+  padding: 24px 0;
+  border-bottom: 1px solid var(--greyscale-200, #F2F1F2);
+`;
+
+const CarouselScroll = styled.div`
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  -webkit-overflow-scrolling: touch;
+  
+  &::-webkit-scrollbar {
+    display: none;
+  }
+`;
+
+const CarouselItem = styled.div`
+  flex-shrink: 0;
+`;
+
+const CarouselImage = styled.img`
+  width: 120px;
+  height: 90px;
+  border-radius: 8px;
+  object-fit: cover;
+  background-color: var(--greyscale-200, #F1F1F1);
+`;
+
+const CarouselLabel = styled.p`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--greyscale-800, #5E5B61);
+  margin-top: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+`;
+
+const LastMessageSection = styled.section`
+  padding: 24px 0;
+  border-bottom: 1px solid var(--greyscale-200, #F2F1F2);
+`;
+
+const LastMessageContent = styled.div`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.6;
+  letter-spacing: -0.042px;
+  color: var(--greyscale-1100, #111112);
+`;
+
+const ButtonWrapper = styled.div`
+  padding: 24px 20px 40px;
 `;
 
 const BottomButton = styled.button`
-  position: fixed;
-  bottom: 90px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: calc(100% - 40px);
-  max-width: 390px;
-  padding: 16px;
-  background-color: var(--primary-color);
-  color: #ffffff;
+  width: 100%;
+  padding: 18px 32px;
+  background-color: var(--greyscale-900, #444246);
+  color: var(--greyscale-000, #FFFFFF);
   border: none;
   border-radius: 12px;
+  font-family: 'Pretendard', sans-serif;
   font-size: 16px;
   font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.096px;
   cursor: pointer;
   transition: opacity 0.2s ease;
-  z-index: 50;
 
   &:hover {
     opacity: 0.9;
   }
-
-  @media (min-width: 768px) {
-    max-width: 100%;
-    width: calc(100% - 80px);
-  }
 `;
 
-// 하드코딩된 샘플 데이터
-const travelData = {
-  id: "1",
-  title: "여수",
-  subtitle: "하루의 피로를 풀어주는 느긋한 아침",
-  image: "https://images.unsplash.com/photo-1596402184320-417e7178b2cd?w=800&h=500&fit=crop",
-  description:
-    "아침은 하루를 결정짓는 작은 의식입니다. 바다 내음이 섞인 여수의 여유로운 공기 속에서 천천히 깨어나는 시간은, 일상의 피로를 말끔히 풀어줄 특별한 치유가 됩니다.",
-  details: [
-    {
-      title: "1. 대각게장",
-      subtitle: "신선한 게의 단맛이 입안에 녹아드는 아침 한상",
-      items: [
-        { type: "good" as const, text: "분위기: 창문으로 들어오는 햇살과 함께 집에서 걸어 모락모락 풍미와는 한판 갈아 오기" },
-        { type: "recommend" as const, text: "추천 포인트: 여수의 바다를 바로 느낄 수 있는 재료로 만든 게장으로 아침부터 든든한 만족감을 줍니다" },
-        { type: "tip" as const, text: "에디터 팁: 밥은 조금 적게 주문하고 반찬을 골고루 맛보세요. 테이블 회전이 빠르니 여유 있게 방문을 추천합니다" },
-      ],
-    },
-    {
-      title: "2. 상야식당",
-      subtitle: "해산물의 다채로운 맛을 한상으로 즐기는 곳",
-      items: [
-        { type: "good" as const, text: "분위기: 소박한 항구 식당의 소리와 함께 걸어서서 바다 힐이 뭍기는 핑기" },
-        { type: "recommend" as const, text: "추천 포인트: 다양한 해산물 매뉴로 여러 가지 맛을 조금씩 즐기기 좋아 아침 여행 식사로 안성맞춤입니다" },
-        { type: "tip" as const, text: "에디터 팁: 인기 메뉴는 금세 소진되니 일찍 가서 주문하세요, 반면 테이블 온용은 부담 없이 하세요" },
-      ],
-    },
-    {
-      title: "3. 청청게장은",
-      subtitle: "깔끔한 재료 본연의 맛으로 시작하는 하루",
-      items: [
-        { type: "good" as const, text: "분위기: 정갈한 플레이팅과 비타 좋음이 어우러져 아끔까지 차분해지는 느낌" },
-        { type: "recommend" as const, text: "추천 포인트: 신선한 해산물 본연의 맛을 살려 부담 없이 즐길 수 있어 아침 식사로 부담이 적습니다" },
-        { type: "tip" as const, text: "에디터 팁: 주차 공간이 제한적일 수 있으니 가급적 대중교통을 이용하거나 일찍 도착하세요" },
-      ],
-    },
-  ],
-  lastMessage:
-    "여수의 느긋한 아침은 소리와 향, 맛이 어우러져 하루의 피로를 잊게 합니다. 한 상으로 채우는 작은 사치가 여행의 기억을 오래도록 남겨줄 거예요.",
-  references: [
-    { title: "대전 성심당 본점 : 인생 베이커리 VLOG", url: "#" },
-    { title: "11월 닷. 추천메뉴, 딸기시루 먹방 및 후기 - 성심당 투어...", url: "#" },
-    { title: "대전 시내 빵지순례 3탄 / 주말 웨이팅 / 영업시간 / 위치...", url: "#" },
-  ],
+const LoadingWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  color: var(--greyscale-600, #918E94);
+  font-size: 14px;
+`;
+
+// 마크다운 텍스트 전처리 함수
+const preprocessMarkdown = (text: string): string => {
+  let processed = text;
+  
+  // ### 숫자. 형식을 ### 로 변환 (h3로 렌더링)
+  processed = processed.replace(/###\s*(\d+)\.\s*/g, '### $1. ');
+  
+  // **숫자. 장소명** 형식을 ### 로 변환
+  processed = processed.replace(/\*\*(\d+)\.\s*([^*]+)\*\*/g, '### $1. $2');
+  
+  // - 🌿, - ⭐, - 💡 형식의 정보를 깔끔하게 변환
+  processed = processed.replace(/[-•]\s*🌿\s*분위기:?\s*/g, '- 🌿 **분위기:** ');
+  processed = processed.replace(/[-•]\s*⭐\s*추천:?\s*/g, '- ⭐ **추천:** ');
+  processed = processed.replace(/[-•]\s*💡\s*에디터\s*팁:?\s*/g, '- 💡 **에디터 팁:** ');
+  
+  // **에디터 팁** 형식 정리
+  processed = processed.replace(/\*\*에디터\s*팁\*\*\s*[-–]\s*/g, '\n\n');
+  
+  // 📌 주소 정보 정리
+  processed = processed.replace(/📌\s*/g, '\n📌 ');
+  
+  // 연속된 공백 라인 정리
+  processed = processed.replace(/\n{3,}/g, '\n\n');
+  
+  return processed;
+};
+
+// 마지막 메시지 추출 함수
+const extractLastMessage = (text: string): string => {
+  const lines = text.split('\n').filter(line => line.trim());
+  
+  // 마지막 몇 줄에서 일반 텍스트 찾기
+  for (let i = lines.length - 1; i >= Math.max(0, lines.length - 10); i--) {
+    const line = lines[i].trim();
+    // 마크다운 기호나 이모지로 시작하지 않는 일반 문장
+    if (
+      line.length > 20 &&
+      !line.startsWith('#') &&
+      !line.startsWith('-') &&
+      !line.startsWith('>') &&
+      !line.startsWith('*') &&
+      !line.match(/^[🌿⭐💡📌]/) &&
+      !line.match(/^\d+\./)
+    ) {
+      return line;
+    }
+  }
+  
+  return '이번 여행이 특별한 추억으로 남기를 바랍니다!';
 };
 
 export default function TravelDetailPage() {
   const params = useParams();
+  const router = useRouter();
+  const [themeContent, setThemeContent] = useState<ThemeContent | null>(null);
+  const [processedMarkdown, setProcessedMarkdown] = useState<string>('');
+  const [lastMessage, setLastMessage] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  useEffect(() => {
+    const storedContent = sessionStorage.getItem('selectedThemeContent');
+    
+    if (storedContent) {
+      try {
+        const content: ThemeContent = JSON.parse(storedContent);
+        setThemeContent(content);
+        
+        // 마크다운 전처리
+        const processed = preprocessMarkdown(content.content_text);
+        setProcessedMarkdown(processed);
+        
+        // 마지막 메시지 추출
+        const lastMsg = extractLastMessage(content.content_text);
+        setLastMessage(lastMsg);
+      } catch (error) {
+        console.error('테마 콘텐츠 파싱 에러:', error);
+      }
+    }
+    
+    setIsLoading(false);
+  }, [params.id]);
+
+  // 이미지 슬라이더용 데이터
+  const carouselImages = themeContent?.carousel_images
+    ?.filter((img, index, self) => 
+      index === self.findIndex(i => i.place_name === img.place_name)
+    )
+    .slice(0, 6) || [];
+
+  const mainImages = carouselImages.map(img => img.image_url);
+
+  const handleCreateSchedule = () => {
+    router.push('/schedule');
+  };
+
+  if (isLoading) {
+    return (
+      <PageWrapper>
+        <Header>
+          <BackButton />
+          <HeaderSpacer />
+        </Header>
+        <LoadingWrapper>로딩 중...</LoadingWrapper>
+      </PageWrapper>
+    );
+  }
+
+  if (!themeContent) {
+    return (
+      <PageWrapper>
+        <Header>
+          <BackButton />
+          <HeaderSpacer />
+        </Header>
+        <LoadingWrapper>콘텐츠를 찾을 수 없습니다.</LoadingWrapper>
+      </PageWrapper>
+    );
+  }
 
   return (
     <PageWrapper>
       <Header>
         <BackButton />
+        <HeaderSpacer />
       </Header>
 
       <Content>
-        <TravelTitle>{travelData.title}</TravelTitle>
-        <TravelSubtitle>{travelData.subtitle}</TravelSubtitle>
+        <TitleSection>
+          <TravelTitle>{themeContent.city_name}</TravelTitle>
+          <TravelSubtitle>{themeContent.theme_phrase}</TravelSubtitle>
+        </TitleSection>
 
-        <MainImage src={travelData.image} alt={travelData.title} />
-
-        <Description>{travelData.description}</Description>
-
-        <Section>
-          <SectionTitle>상세 설명</SectionTitle>
-          {travelData.details.map((detail, index) => (
-            <DetailItem key={index}>
-              <DetailTitle>{detail.title}</DetailTitle>
-              <DetailContent>
-                <p style={{ marginBottom: "8px", color: "var(--text-primary)", fontSize: "13px" }}>
-                  {detail.subtitle}
-                </p>
-                {detail.items.map((item, itemIndex) => (
-                  <TaggedText key={itemIndex}>
-                    <Tag $type={item.type}>
-                      {item.type === "good" && "분위기"}
-                      {item.type === "recommend" && "추천 포인트"}
-                      {item.type === "tip" && "에디터 팁"}
-                    </Tag>
-                    {item.text.split(": ")[1]}
-                  </TaggedText>
+        {/* 메인 이미지 */}
+        {mainImages.length > 0 && (
+          <MainImageSection>
+            <MainImage 
+              src={mainImages[currentImageIndex]} 
+              alt={themeContent.city_name}
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&h=400&fit=crop';
+              }}
+            />
+            {mainImages.length > 1 && (
+              <ImageIndicator>
+                {mainImages.slice(0, 4).map((_, idx) => (
+                  <IndicatorDot 
+                    key={idx} 
+                    $active={idx === currentImageIndex}
+                    onClick={() => setCurrentImageIndex(idx)}
+                  />
                 ))}
-              </DetailContent>
-            </DetailItem>
-          ))}
-        </Section>
+              </ImageIndicator>
+            )}
+          </MainImageSection>
+        )}
 
-        <LastMessage>
-          <LastMessageTitle>마지막 한마디</LastMessageTitle>
-          <LastMessageContent>{travelData.lastMessage}</LastMessageContent>
-        </LastMessage>
+        {/* 마크다운 콘텐츠 */}
+        <MarkdownContent>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {processedMarkdown}
+          </ReactMarkdown>
+        </MarkdownContent>
 
-        <Section>
-          <SectionTitle>참고자료</SectionTitle>
-          <ReferenceList>
-            {travelData.references.map((ref, index) => (
-              <ReferenceItem key={index} href={ref.url}>
-                {ref.title}
-              </ReferenceItem>
-            ))}
-          </ReferenceList>
-        </Section>
+        {/* 이미지 캐러셀 */}
+        {carouselImages.length > 0 && (
+          <CarouselSection>
+            <CarouselScroll>
+              {carouselImages.map((img, idx) => (
+                <CarouselItem key={idx}>
+                  <CarouselImage 
+                    src={img.image_url} 
+                    alt={img.place_name}
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=120&h=90&fit=crop';
+                    }}
+                  />
+                  <CarouselLabel>{img.place_name}</CarouselLabel>
+                </CarouselItem>
+              ))}
+            </CarouselScroll>
+          </CarouselSection>
+        )}
+
+        {/* 마지막 한마디 */}
+        <LastMessageSection>
+          <SectionTitle>마지막 한마디</SectionTitle>
+          <LastMessageContent>
+            {lastMessage}
+          </LastMessageContent>
+        </LastMessageSection>
+
+        {/* 하단 버튼 */}
+        <ButtonWrapper>
+          <BottomButton onClick={handleCreateSchedule}>
+            여기로 결정하기
+          </BottomButton>
+        </ButtonWrapper>
       </Content>
-
-      <BottomButton>여기로 결정하기</BottomButton>
     </PageWrapper>
   );
 }
-

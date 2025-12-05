@@ -172,6 +172,11 @@ export interface CarouselImage {
   image_url: string;
 }
 
+export interface Reference {
+  title: string;
+  url: string;
+}
+
 export interface ThemeContent {
   type: string;
   content_id: string;
@@ -183,6 +188,7 @@ export interface ThemeContent {
   needs_embedding: boolean;
   message: string;
   actions: string[];
+  references?: Reference[];
 }
 
 export interface ThemeSelectResponse {

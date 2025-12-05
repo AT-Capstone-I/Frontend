@@ -42,7 +42,6 @@ interface Message {
   loadingText?: string;
   themes?: ThemePreview[];
   isCompleted?: boolean;
-  contentView?: ThemeContent;
 }
 
 // Styled Components - Figma Design System 적용
@@ -570,6 +569,44 @@ const ChevronDownIcon = () => (
 // 로딩 메시지 ID 상수
 const LOADING_MESSAGE_ID = -999;
 
+// 채팅 저장 키
+const CHAT_STORAGE_KEY = 'moodtrip_chat_messages';
+const TRIP_ID_STORAGE_KEY = 'moodtrip_current_trip_id';
+
+// 채팅 메시지 저장
+const saveChatMessages = (messages: Message[]) => {
+  if (typeof window === 'undefined') return;
+  // 로딩 메시지는 저장하지 않음
+  const messagesToSave = messages.filter(m => m.id !== LOADING_MESSAGE_ID && !m.isLoading);
+  sessionStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messagesToSave));
+};
+
+// 채팅 메시지 복원
+const loadChatMessages = (): Message[] | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const saved = sessionStorage.getItem(CHAT_STORAGE_KEY);
+    return saved ? JSON.parse(saved) : null;
+  } catch {
+    return null;
+  }
+};
+
+// Trip ID 저장/복원
+const saveTripId = (tripId: string | null) => {
+  if (typeof window === 'undefined') return;
+  if (tripId) {
+    sessionStorage.setItem(TRIP_ID_STORAGE_KEY, tripId);
+  } else {
+    sessionStorage.removeItem(TRIP_ID_STORAGE_KEY);
+  }
+};
+
+const loadTripId = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  return sessionStorage.getItem(TRIP_ID_STORAGE_KEY);
+};
+
 // 도시 이미지 가져오기 헬퍼
 const getCityImage = (cityName: string): string => {
   // 도시명에서 첫 번째 단어만 추출 (예: "서울 영등포구" -> "서울")
@@ -621,12 +658,41 @@ export default function ChatPage() {
   const [isSelectingTheme, setIsSelectingTheme] = useState(false);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // 사용자 정보 로드
+  // 사용자 정보 및 저장된 채팅 로드
   useEffect(() => {
     const name = getUserName();
     setUserName(name);
+    
+    // 저장된 채팅 메시지 복원
+    const savedMessages = loadChatMessages();
+    if (savedMessages && savedMessages.length > 0) {
+      setMessages(savedMessages);
+    }
+    
+    // 저장된 Trip ID 복원
+    const savedTripId = loadTripId();
+    if (savedTripId) {
+      setCurrentTripId(savedTripId);
+    }
+    
+    setIsInitialized(true);
   }, []);
+
+  // 메시지 변경 시 저장 (초기화 완료 후에만)
+  useEffect(() => {
+    if (isInitialized) {
+      saveChatMessages(messages);
+    }
+  }, [messages, isInitialized]);
+
+  // Trip ID 변경 시 저장
+  useEffect(() => {
+    if (isInitialized && currentTripId) {
+      saveTripId(currentTripId);
+    }
+  }, [currentTripId, isInitialized]);
 
   // 스크롤 자동 이동
   useEffect(() => {
@@ -887,16 +953,21 @@ export default function ChatPage() {
         
         removeLoadingMessage();
         
-        // 콘텐츠 뷰 메시지 추가
+        // 선택한 테마 메시지 추가
         setMessages((prev) => [
           ...prev,
           {
             id: Date.now(),
             type: "ai",
             content: `"${theme.theme_phrase}" 테마를 선택하셨어요! 🎉`,
-            contentView: data.content,
           }
         ]);
+        
+        // sessionStorage에 테마 콘텐츠 데이터 저장
+        sessionStorage.setItem('selectedThemeContent', JSON.stringify(data.content));
+        
+        // 여행 상세 페이지로 이동 (trip_id를 URL에 포함)
+        router.push(`/travel/${currentTripId}`);
       } else {
         throw new Error('API 요청 실패');
       }
@@ -1008,13 +1079,6 @@ export default function ChatPage() {
                 <CheckIcon />
                 {message.content}
               </CompletedMessage>
-            ) : message.contentView ? (
-              <>
-                <MessageBubble $isUser={false}>
-                  {message.content}
-                </MessageBubble>
-                {renderContentView(message.contentView)}
-              </>
             ) : message.themes && message.themes.length > 0 ? (
               <>
                 <MessageBubble $isUser={false}>

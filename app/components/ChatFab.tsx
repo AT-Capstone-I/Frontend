@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import styled from "styled-components";
 
 const FabButton = styled.button`
@@ -56,10 +56,16 @@ const ChatIcon = () => (
 
 export default function ChatFab() {
   const router = useRouter();
+  const pathname = usePathname();
 
   const handleClick = () => {
     router.push("/chat");
   };
+
+  // travel 상세 페이지, place 상세 페이지에서는 숨기기
+  if (pathname?.startsWith('/travel/') || pathname?.startsWith('/place/')) {
+    return null;
+  }
 
   return (
     <FabButton aria-label="채팅" onClick={handleClick}>

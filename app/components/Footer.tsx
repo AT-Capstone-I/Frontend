@@ -88,7 +88,7 @@ export default function Footer() {
         </FooterLinks>
         <FooterInfo>
           <FooterText>
-            MoodTrip | 대표: 무드트립팀
+            MoodTrip | 대표: TEAM Wave
           </FooterText>
           <FooterText>
             이메일: contact@moodtrip.com

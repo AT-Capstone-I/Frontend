@@ -227,6 +227,8 @@ const PlaceCardScroll = styled.div`
   gap: 13px;
   overflow-x: auto;
   padding-bottom: 4px;
+  padding-right: 20px;
+  margin-right: -20px;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 
@@ -234,8 +236,15 @@ const PlaceCardScroll = styled.div`
     display: none;
   }
 
+  @media (min-width: 768px) {
+    padding-right: 40px;
+    margin-right: -40px;
+  }
+
   @media (min-width: 1024px) {
     gap: 16px;
+    padding-right: 60px;
+    margin-right: -60px;
   }
 `;
 
@@ -244,6 +253,8 @@ const HorizontalScroll = styled.div`
   gap: 13px;
   overflow-x: auto;
   padding-bottom: 4px;
+  padding-right: 20px;
+  margin-right: -20px;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 
@@ -251,8 +262,15 @@ const HorizontalScroll = styled.div`
     display: none;
   }
 
+  @media (min-width: 768px) {
+    padding-right: 40px;
+    margin-right: -40px;
+  }
+
   @media (min-width: 1024px) {
     gap: 16px;
+    padding-right: 60px;
+    margin-right: -60px;
   }
 `;
 
@@ -541,7 +559,7 @@ export default function HomePage() {
 
   return (
     <>
-      <Header />
+      <Header showLogout={false} />
       <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
 
       <MainContent>
