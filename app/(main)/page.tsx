@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import styled, { keyframes } from "styled-components";
 import {
   Header,
+  Footer,
   TabNavigation,
   PlaceCard,
   TravelCard,
@@ -291,27 +292,27 @@ const EmptyState = styled.div`
 // 기본 이미지 (사진이 없을 때 사용)
 const DEFAULT_PLACE_IMAGE = "https://images.unsplash.com/photo-1518005020951-eccb494ad742?w=400&h=300&fit=crop";
 
-// 여행 탭용 샘플 데이터 (아직 API 없음)
+// 여행 탭용 샘플 데이터 (Figma 디자인 기준)
 const travelNotes = [
   {
     id: 1,
     title: "여수",
-    image: "https://images.unsplash.com/photo-1596402184320-417e7178b2cd?w=200&h=200&fit=crop",
+    image: "https://www.figma.com/api/mcp/asset/8a0a72bf-7d47-42ac-b1e9-6d189e033509",
   },
   {
     id: 2,
     title: "제주도",
-    image: "https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=200&h=200&fit=crop",
+    image: "https://www.figma.com/api/mcp/asset/957cd7d3-00a0-4db0-9615-a5c2e578e7ec",
   },
   {
     id: 3,
     title: "서울",
-    image: "https://images.unsplash.com/photo-1534274988757-a28bf1a57c17?w=200&h=200&fit=crop",
+    image: "https://www.figma.com/api/mcp/asset/da0567cd-0bd5-4ed4-ae10-67b1bb46cb02",
   },
   {
     id: 4,
     title: "대전",
-    image: "https://images.unsplash.com/photo-1517154421773-0529f29ea451?w=200&h=200&fit=crop",
+    image: "https://www.figma.com/api/mcp/asset/fc58a9d8-ed44-4be5-befb-5fe7d22ca781",
   },
 ];
 
@@ -320,19 +321,19 @@ const travelRecommendations = [
     id: 1,
     title: "여수",
     description: "바다와 함께하는 카페 투어",
-    image: "https://images.unsplash.com/photo-1596402184320-417e7178b2cd?w=400&h=300&fit=crop",
+    image: "https://www.figma.com/api/mcp/asset/5efdb36f-bad9-4aa3-abad-6700f4deb5e3",
   },
   {
     id: 2,
     title: "전주",
-    description: "고즈넉한 한옥 마을의 향기",
-    image: "https://images.unsplash.com/photo-1534274988757-a28bf1a57c17?w=400&h=300&fit=crop",
+    description: "고즈넉한 한옥 마을의 정취",
+    image: "https://www.figma.com/api/mcp/asset/17c25c61-ebff-413a-93ac-0c45a1ccd7f2",
   },
   {
     id: 3,
-    title: "부산",
-    description: "해운대의 멋진 일몰",
-    image: "https://images.unsplash.com/photo-1538485399081-7191377e8241?w=400&h=300&fit=crop",
+    title: "제주",
+    description: "푸른 바다와 오름이 어우러진 자연 속 힐링",
+    image: "https://www.figma.com/api/mcp/asset/8696dc73-71ef-45d1-a9b9-e07a7136d513",
   },
 ];
 
@@ -670,6 +671,7 @@ export default function HomePage() {
           </>
         )}
       </MainContent>
+      <Footer />
     </>
   );
 }

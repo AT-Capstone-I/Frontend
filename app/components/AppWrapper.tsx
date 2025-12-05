@@ -8,7 +8,6 @@ interface AppWrapperProps {
   children: React.ReactNode;
 }
 
-const SPLASH_STORAGE_KEY = 'moodtrip_splash_shown';
 const SIGNUP_COMPLETED_KEY = 'moodtrip_signup_completed';
 
 const AppWrapper: React.FC<AppWrapperProps> = ({ children }) => {
@@ -19,16 +18,10 @@ const AppWrapper: React.FC<AppWrapperProps> = ({ children }) => {
 
   useEffect(() => {
     setIsClient(true);
-    
-    // 세션 내에서 이미 스플래시를 본 경우 바로 건너뛰기
-    const hasSeenSplash = sessionStorage.getItem(SPLASH_STORAGE_KEY);
-    if (hasSeenSplash) {
-      setShowSplash(false);
-    }
+    // 새로고침할 때마다 스플래시 표시
   }, []);
 
   const handleSplashFinish = () => {
-    sessionStorage.setItem(SPLASH_STORAGE_KEY, 'true');
     setShowSplash(false);
     
     // 회원가입 여부 확인 후 리다이렉트

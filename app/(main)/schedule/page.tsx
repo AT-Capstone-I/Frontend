@@ -2,31 +2,38 @@
 
 import { useState } from "react";
 import styled from "styled-components";
-import { ChatFab } from "@/app/components";
 
-// Styled Components
+// ============ Styled Components - Figma 디자인 기반 ============
 const PageWrapper = styled.div`
   min-height: 100vh;
-  background-color: var(--background);
+  background-color: var(--greyscale-000, #ffffff);
   padding-bottom: 80px;
 `;
 
+// 상단 탭 네비게이션
 const TabNavigation = styled.nav`
   display: flex;
-  padding: 0 20px;
-  border-bottom: 1px solid var(--border-color);
-  background-color: var(--background);
+  align-items: center;
+  gap: 20px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--greyscale-300, #e1e1e4);
+  background-color: var(--greyscale-000, #ffffff);
   position: sticky;
   top: 0;
   z-index: 10;
 `;
 
 const TabButton = styled.button<{ $active: boolean }>`
-  flex: 1;
-  padding: 14px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 4px;
+  font-family: 'Pretendard', sans-serif;
   font-size: 14px;
-  font-weight: ${({ $active }) => ($active ? "600" : "400")};
-  color: ${({ $active }) => ($active ? "var(--text-primary)" : "var(--text-muted)")};
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: -0.042px;
+  color: ${({ $active }) => ($active ? "var(--greyscale-1200, #111111)" : "var(--greyscale-600, #918e94)")};
   border: none;
   background: none;
   cursor: pointer;
@@ -36,12 +43,17 @@ const TabButton = styled.button<{ $active: boolean }>`
   &::after {
     content: "";
     position: absolute;
-    bottom: 0;
+    bottom: -10px;
     left: 0;
     right: 0;
     height: 2px;
-    background-color: var(--text-primary);
+    background-color: var(--primary-500, #4f9de8);
     opacity: ${({ $active }) => ($active ? 1 : 0)};
+    transition: opacity 0.2s ease;
+  }
+
+  &:hover {
+    color: var(--greyscale-1200, #111111);
   }
 `;
 
@@ -49,151 +61,242 @@ const Content = styled.div`
   padding: 20px;
 `;
 
-// 내 일정 탭 스타일
+// 여행 정보 헤더
 const TripHeader = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   margin-bottom: 16px;
 `;
 
 const TripSubtitle = styled.p`
+  font-family: 'Pretendard', sans-serif;
   font-size: 13px;
-  color: var(--text-muted);
-  margin-bottom: 4px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.039px;
+  color: var(--greyscale-600, #918e94);
 `;
 
 const TripTitle = styled.h1`
+  font-family: 'Pretendard', sans-serif;
   font-size: 20px;
   font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 12px;
+  line-height: 1.4;
+  letter-spacing: -0.12px;
+  color: var(--greyscale-1200, #111111);
 `;
 
+// 날짜 선택 버튼
 const DateSelector = styled.div`
   display: flex;
   gap: 8px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 `;
 
 const DateButton = styled.button<{ $active: boolean }>`
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 500;
-  border: 1px solid ${({ $active }) => ($active ? "var(--accent-color)" : "var(--border-color)")};
-  background-color: ${({ $active }) => ($active ? "var(--accent-color)" : "transparent")};
-  color: ${({ $active }) => ($active ? "#ffffff" : "var(--text-secondary)")};
-  cursor: pointer;
-  transition: all 0.2s ease;
-`;
-
-const DayLabel = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
+  justify-content: center;
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.033px;
+  border: 1px solid ${({ $active }) => ($active ? "transparent" : "var(--greyscale-300, #e1e1e4)")};
+  background-color: ${({ $active }) => ($active ? "var(--greyscale-900, #444246)" : "var(--greyscale-000, #ffffff)")};
+  color: ${({ $active }) => ($active ? "#ffffff" : "var(--greyscale-900, #444246)")};
+  cursor: pointer;
+  transition: all 0.2s ease;
 
-  span {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-primary);
-  }
-
-  button {
-    font-size: 12px;
-    color: var(--text-muted);
-    background: none;
-    border: none;
-    cursor: pointer;
+  &:hover {
+    background-color: ${({ $active }) => ($active ? "var(--greyscale-900, #444246)" : "var(--greyscale-100, #f5f5f5)")};
   }
 `;
 
+// 일차 헤더
+const DayHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+`;
+
+const DayLabel = styled.span`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.096px;
+  color: var(--greyscale-1200, #111111);
+`;
+
+const EditButton = styled.button`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.039px;
+  color: var(--greyscale-800, #5e5b61);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: var(--primary-500, #4f9de8);
+  }
+`;
+
+// 타임라인
 const Timeline = styled.div`
   position: relative;
-  padding-left: 20px;
+  padding-left: 31px;
+`;
 
-  &::before {
-    content: "";
-    position: absolute;
-    left: 6px;
-    top: 8px;
-    bottom: 8px;
-    width: 2px;
-    background-color: var(--border-color);
-  }
+const TimelineLine = styled.div`
+  position: absolute;
+  left: 7px;
+  top: 15px;
+  bottom: 70px;
+  width: 1px;
+  background-color: var(--greyscale-300, #e1e1e4);
 `;
 
 const TimelineItem = styled.div`
   position: relative;
-  padding: 16px;
-  background-color: var(--card-background);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
+`;
 
-  &::before {
-    content: "";
-    position: absolute;
-    left: -17px;
-    top: 20px;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background-color: var(--accent-color);
-    border: 2px solid #ffffff;
+// 체크 아이콘
+const CheckIcon = styled.div<{ $completed: boolean }>`
+  position: absolute;
+  left: -31px;
+  top: 0;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background-color: ${({ $completed }) => ($completed ? "var(--greyscale-1200, #111111)" : "var(--greyscale-000, #ffffff)")};
+  border: 1px solid ${({ $completed }) => ($completed ? "var(--greyscale-1200, #111111)" : "var(--greyscale-400, #c4c2c6)")};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    width: 9px;
+    height: 9px;
+    color: #ffffff;
+    display: ${({ $completed }) => ($completed ? "block" : "none")};
   }
+`;
+
+// 일정 카드
+const ScheduleCard = styled.div`
+  background-color: var(--greyscale-000, #ffffff);
+  border: 1px solid var(--greyscale-300, #e1e1e4);
+  border-radius: 12px;
+  padding: 14px;
+`;
+
+const CardContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const PlaceInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 `;
 
 const PlaceName = styled.h4`
-  font-size: 15px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 4px;
+  line-height: 1.5;
+  letter-spacing: -0.042px;
+  color: var(--greyscale-1000, #2b2a2c);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const PlaceAddress = styled.p`
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-bottom: 8px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.033px;
+  color: var(--greyscale-600, #918e94);
 `;
 
-const PlaceMeta = styled.div`
-  display: flex;
-  gap: 12px;
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
-`;
-
-const WriteButton = styled.button`
-  font-size: 12px;
-  color: var(--accent-color);
+const ReviewButton = styled.button`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.033px;
+  color: var(--primary-500, #4f9de8);
   background: none;
   border: none;
   cursor: pointer;
-  text-decoration: underline;
-`;
+  padding: 0;
+  text-align: left;
+  transition: color 0.2s ease;
 
-const AskButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 16px 20px;
-  background-color: var(--accent-color);
-  color: #ffffff;
-  border: none;
-  border-radius: 30px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  margin-top: 20px;
-
-  svg {
-    width: 24px;
-    height: 24px;
+  &:hover {
+    color: var(--primary-600, #3d8bd6);
   }
 `;
 
-// 실시간 추천 탭 스타일
+// 이동 정보
+const TransitInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+  margin-left: 14px;
+`;
+
+const TransitText = styled.span`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.033px;
+  color: var(--greyscale-700, #77747b);
+`;
+
+// 하단 버튼
+const AskButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  height: 56px;
+  background-color: var(--greyscale-900, #444246);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: -0.096px;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: var(--greyscale-1000, #2b2a2c);
+  }
+`;
+
+// ============ 실시간 추천 탭 스타일 ============
 const RecommendHeader = styled.div`
   margin-bottom: 20px;
 `;
@@ -205,12 +308,13 @@ const WeatherMessage = styled.div`
   margin-bottom: 20px;
 
   p {
+    font-family: 'Pretendard', sans-serif;
     font-size: 14px;
-    color: var(--text-primary);
+    color: var(--greyscale-1200, #111111);
     line-height: 1.5;
 
     strong {
-      color: var(--accent-color);
+      color: var(--primary-500, #4f9de8);
     }
   }
 `;
@@ -223,10 +327,10 @@ const RecommendGrid = styled.div`
 `;
 
 const RecommendCard = styled.div`
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
-  background-color: var(--card-background);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  background-color: var(--greyscale-000, #ffffff);
+  border: 1px solid var(--greyscale-300, #e1e1e4);
 `;
 
 const RecommendImage = styled.img`
@@ -240,15 +344,17 @@ const RecommendInfo = styled.div`
 `;
 
 const RecommendName = styled.h4`
+  font-family: 'Pretendard', sans-serif;
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--greyscale-1200, #111111);
   margin-bottom: 2px;
 `;
 
 const RecommendDesc = styled.p`
+  font-family: 'Pretendard', sans-serif;
   font-size: 11px;
-  color: var(--text-muted);
+  color: var(--greyscale-600, #918e94);
 `;
 
 const QuestionSection = styled.div`
@@ -256,79 +362,82 @@ const QuestionSection = styled.div`
 `;
 
 const QuestionTitle = styled.h3`
+  font-family: 'Pretendard', sans-serif;
   font-size: 15px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--greyscale-1200, #111111);
   margin-bottom: 12px;
 `;
 
-// 작성한 리뷰 탭 스타일
+// ============ 작성한 리뷰 탭 스타일 ============
 const ReviewItem = styled.div`
   margin-bottom: 24px;
 `;
 
 const ReviewNumber = styled.div`
+  font-family: 'Pretendard', sans-serif;
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--greyscale-1200, #111111);
   margin-bottom: 12px;
-`;
-
-const ReviewPlaceName = styled.h4`
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 8px;
 `;
 
 const ReviewContent = styled.div`
   padding: 16px;
-  background-color: #f8f9fa;
+  background-color: var(--greyscale-100, #f5f5f5);
   border-radius: 12px;
+  font-family: 'Pretendard', sans-serif;
   font-size: 13px;
   line-height: 1.6;
-  color: var(--text-secondary);
+  color: var(--greyscale-800, #5e5b61);
   margin-bottom: 12px;
 `;
 
 const ReviewImagePlaceholder = styled.div`
   width: 80px;
   height: 80px;
-  background-color: var(--border-color);
+  background-color: var(--greyscale-300, #e1e1e4);
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
+  color: var(--greyscale-600, #918e94);
   font-size: 12px;
 `;
 
-// 샘플 데이터
+// ============ 아이콘 컴포넌트 ============
+const CheckmarkIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="20,6 9,17 4,12" />
+  </svg>
+);
+
+// ============ 샘플 데이터 ============
 const scheduleData = {
   tripTitle: "여수 여행",
   tripSubtitle: "바다와 함께하는 카페 투어",
-  dates: ["11.12", "11.13", "11.14", "11.15"],
+  dates: ["11. 12", "11. 13", "11. 14", "11. 15"],
   places: [
     {
       id: 1,
       name: "여행지 이름",
       address: "주소가 들어갑니다. 주소가 들어갑니다.",
-      distance: "거리 예상시간",
-      duration: "2시",
+      completed: true,
+      transit: { distance: "도보 385m", duration: "20분" },
     },
     {
       id: 2,
       name: "여행지 이름",
       address: "주소가 들어갑니다. 주소가 들어갑니다.",
-      distance: "거리 예상시간",
-      duration: "",
+      completed: true,
+      transit: { distance: "도보 385m", duration: "20분" },
     },
     {
       id: 3,
       name: "여행지 이름",
       address: "주소가 들어갑니다. 주소가 들어갑니다.",
-      distance: "거리 예상시간",
-      duration: "",
+      completed: false,
+      transit: { distance: "도보 385m", duration: "20분" },
     },
   ],
 };
@@ -361,9 +470,15 @@ const reviewData = [
   },
 ];
 
+// ============ 메인 컴포넌트 ============
 export default function SchedulePage() {
   const [activeTab, setActiveTab] = useState<"schedule" | "recommend" | "review">("schedule");
   const [selectedDate, setSelectedDate] = useState(0);
+
+  const handleChatClick = () => {
+    // 채팅 페이지로 이동 또는 채팅 모달 열기
+    window.location.href = "/chat";
+  };
 
   return (
     <PageWrapper>
@@ -399,30 +514,39 @@ export default function SchedulePage() {
               ))}
             </DateSelector>
 
-            <DayLabel>
-              <span>1일차</span>
-              <button>편집</button>
-            </DayLabel>
+            <DayHeader>
+              <DayLabel>{selectedDate + 1}일차</DayLabel>
+              <EditButton>편집</EditButton>
+            </DayHeader>
 
             <Timeline>
-              {scheduleData.places.map((place) => (
+              <TimelineLine />
+              {scheduleData.places.map((place, index) => (
                 <TimelineItem key={place.id}>
-                  <PlaceName>{place.name}</PlaceName>
-                  <PlaceAddress>{place.address}</PlaceAddress>
-                  <PlaceMeta>
-                    <span>{place.distance}</span>
-                    {place.duration && <span>{place.duration}</span>}
-                  </PlaceMeta>
-                  <WriteButton>지도 작성하기</WriteButton>
+                  <CheckIcon $completed={place.completed}>
+                    <CheckmarkIcon />
+                  </CheckIcon>
+                  <ScheduleCard>
+                    <CardContent>
+                      <PlaceInfo>
+                        <PlaceName>{place.name}</PlaceName>
+                        <PlaceAddress>{place.address}</PlaceAddress>
+                      </PlaceInfo>
+                      <ReviewButton>리뷰 작성하기</ReviewButton>
+                    </CardContent>
+                  </ScheduleCard>
+                  {index < scheduleData.places.length - 1 && (
+                    <TransitInfo>
+                      <TransitText>{place.transit.distance}</TransitText>
+                      <TransitText>{place.transit.duration}</TransitText>
+                    </TransitInfo>
+                  )}
                 </TimelineItem>
               ))}
             </Timeline>
 
-            <AskButton>
-              오늘 여행은 어디신가요?
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-              </svg>
+            <AskButton onClick={handleChatClick}>
+              오늘 여행은 어떠셨나요?
             </AskButton>
           </>
         )}
@@ -503,6 +627,7 @@ export default function SchedulePage() {
           </>
         )}
       </Content>
+
     </PageWrapper>
   );
 }

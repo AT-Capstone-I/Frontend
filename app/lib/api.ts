@@ -126,6 +126,71 @@ export async function getRecommendedPlaces(
   return response.json();
 }
 
+// ============ 테마 스트리밍 타입 정의 ============
+
+export interface ThemePreview {
+  index: number;
+  city_name: string;
+  theme_phrase: string;
+  place_count: number;
+  place_ids: string[];
+  places_preview: string[];
+}
+
+export interface ClarifierQuestion {
+  key: string;
+  question: string;
+  options: string[];
+}
+
+export type SSEEventType = 
+  | 'assistant_message' 
+  | 'search_status' 
+  | 'themes_ready' 
+  | 'clarifier_questions'
+  | 'result' 
+  | 'complete' 
+  | 'error';
+
+export interface SSEEvent {
+  type: SSEEventType;
+  content?: string;           // assistant_message
+  count?: number;             // search_status
+  themes?: ThemePreview[];    // themes_ready, result
+  questions?: ClarifierQuestion[];  // clarifier_questions
+  status?: string;            // result
+  message?: string;           // error
+  trip_id?: string;
+  timestamp: string;
+}
+
+// ============ 테마 선택 응답 타입 정의 ============
+
+export interface CarouselImage {
+  place_name: string;
+  place_id: string;
+  image_url: string;
+}
+
+export interface ThemeContent {
+  type: string;
+  content_id: string;
+  city_name: string;
+  theme_phrase: string;
+  content_text: string;
+  place_ids: string[];
+  carousel_images: CarouselImage[];
+  needs_embedding: boolean;
+  message: string;
+  actions: string[];
+}
+
+export interface ThemeSelectResponse {
+  status: string;
+  trip_id: string;
+  content: ThemeContent;
+}
+
 // ============ 로컬 스토리지 키 ============
 
 export const STORAGE_KEYS = {

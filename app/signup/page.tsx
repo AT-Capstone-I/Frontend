@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import styled from 'styled-components';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 const Container = styled.div`
   position: relative;
@@ -15,213 +16,193 @@ const Container = styled.div`
   flex-direction: column;
 `;
 
-const TopBar = styled.div`
+const LogoSection = styled.div`
+  flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  padding: 13px 20px;
-  height: 50px;
+  justify-content: center;
 `;
 
-const BackButton = styled.button`
-  width: 24px;
-  height: 24px;
-  background: none;
-  border: none;
-  cursor: pointer;
+const LogoWrapper = styled.div`
+  margin-bottom: 16px;
+`;
+
+const AppDescription = styled.p`
+  font-family: ${({ theme }) => theme.typography.body};
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: -0.096px;
+  color: ${({ theme }) => theme.colors.greyscale700};
+  text-align: center;
+`;
+
+const BottomSection = styled.div`
+  padding: 20px;
+  padding-bottom: max(34px, env(safe-area-inset-bottom));
+`;
+
+const LoginSection = styled.div`
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const GoogleLoginButton = styled.button`
+  width: 100%;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0;
-`;
-
-const BackIcon = styled.svg`
-  width: 8px;
-  height: 16px;
-`;
-
-const Spacer = styled.div`
-  width: 24px;
-  height: 24px;
-`;
-
-const Content = styled.div`
-  flex: 1;
-  padding: 20px;
-  padding-top: 20px;
-`;
-
-const SubTitle = styled.p`
-  font-family: ${({ theme }) => theme.typography.body};
-  font-size: 18px;
-  font-weight: 400;
-  line-height: 1.4;
-  letter-spacing: -0.108px;
-  color: ${({ theme }) => theme.colors.greyscale1100};
-  margin-bottom: 8px;
-`;
-
-const Title = styled.h1`
-  font-family: ${({ theme }) => theme.typography.body};
-  font-size: 24px;
-  font-weight: 600;
-  line-height: 1.4;
-  letter-spacing: -0.144px;
-  color: ${({ theme }) => theme.colors.greyscale1100};
-  margin-bottom: 52px;
-`;
-
-const InputWrapper = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-`;
-
-const Label = styled.div`
-  display: flex;
-  align-items: flex-start;
-  gap: 2px;
-`;
-
-const LabelText = styled.span`
-  font-family: ${({ theme }) => theme.typography.body};
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.5;
-  letter-spacing: -0.042px;
-  color: ${({ theme }) => theme.colors.greyscale1200};
-`;
-
-const RequiredMark = styled.span`
-  font-family: ${({ theme }) => theme.typography.body};
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.2;
-  letter-spacing: -0.3px;
-  color: #FD818B;
-`;
-
-const InputField = styled.input`
-  width: 100%;
-  height: 52px;
-  padding: 12px 16px;
-  background-color: ${({ theme }) => theme.colors.greyscale000};
-  border: 1px solid ${({ theme }) => theme.colors.greyscale200};
+  gap: 12px;
+  border: 1px solid ${({ theme }) => theme.colors.greyscale300};
   border-radius: 12px;
-  font-family: ${({ theme }) => theme.typography.body};
-  font-size: 15px;
-  font-weight: 400;
-  line-height: 1.5;
-  letter-spacing: -0.3px;
-  color: ${({ theme }) => theme.colors.greyscale1200};
-  outline: none;
-  transition: border-color 0.2s ease;
-
-  &::placeholder {
-    color: ${({ theme }) => theme.colors.greyscale400};
-  }
-
-  &:focus {
-    border-color: ${({ theme }) => theme.colors.greyscale900};
-  }
-`;
-
-const BottomBar = styled.div`
-  position: sticky;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 12px 18px 34px;
   background-color: ${({ theme }) => theme.colors.greyscale000};
-  box-shadow: 0px -3px 8px rgba(0, 0, 0, 0.06);
-`;
-
-const SubmitButton = styled.button<{ $isActive: boolean }>`
-  width: 100%;
-  height: 56px;
-  border: none;
-  border-radius: 12px;
-  background-color: ${({ $isActive, theme }) => 
-    $isActive ? theme.colors.greyscale900 : theme.colors.greyscale500};
-  color: ${({ theme }) => theme.colors.greyscale000};
   font-family: ${({ theme }) => theme.typography.body};
   font-size: 16px;
   font-weight: 500;
   line-height: 1.4;
   letter-spacing: -0.096px;
-  cursor: ${({ $isActive }) => ($isActive ? 'pointer' : 'not-allowed')};
-  transition: background-color 0.2s ease;
+  color: ${({ theme }) => theme.colors.greyscale1100};
+  cursor: pointer;
+  transition: all 0.2s ease;
 
   &:hover {
-    background-color: ${({ $isActive, theme }) => 
-      $isActive ? theme.colors.greyscale1000 : theme.colors.greyscale500};
+    background-color: ${({ theme }) => theme.colors.greyscale100};
+    border-color: ${({ theme }) => theme.colors.greyscale400};
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+`;
+
+const GoogleIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M19.8055 10.2275C19.8055 9.51805 19.7499 8.8364 19.6388 8.18253H10.2V12.0519H15.6011C15.3677 13.2994 14.6461 14.3594 13.5861 15.0686V17.577H16.8233C18.7122 15.8358 19.8055 13.2716 19.8055 10.2275Z" fill="#4285F4"/>
+    <path d="M10.2 20C12.9 20 15.1711 19.1044 16.8233 17.577L13.5861 15.0686C12.6905 15.6686 11.5461 16.0219 10.2 16.0219C7.59497 16.0219 5.38275 14.2633 4.58941 11.9H1.26331V14.4908C2.90775 17.7575 6.29165 20 10.2 20Z" fill="#34A853"/>
+    <path d="M4.58942 11.9C4.38942 11.3 4.27831 10.6592 4.27831 10C4.27831 9.34083 4.38942 8.7 4.58942 8.1V5.50916H1.26331C0.583313 6.85916 0.200012 8.38666 0.200012 10C0.200012 11.6133 0.583313 13.1408 1.26331 14.4908L4.58942 11.9Z" fill="#FBBC04"/>
+    <path d="M10.2 3.97833C11.6744 3.97833 12.9961 4.48166 14.0283 5.47249L16.8955 2.60527C15.1677 0.990833 12.8966 0 10.2 0C6.29165 0 2.90775 2.2425 1.26331 5.50916L4.58941 8.1C5.38275 5.73666 7.59497 3.97833 10.2 3.97833Z" fill="#EA4335"/>
+  </svg>
+);
+
+const Divider = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 24px 0;
+`;
+
+const DividerLine = styled.div`
+  flex: 1;
+  height: 1px;
+  background-color: ${({ theme }) => theme.colors.greyscale300};
+`;
+
+const DividerText = styled.span`
+  font-family: ${({ theme }) => theme.typography.body};
+  font-size: 13px;
+  font-weight: 400;
+  color: ${({ theme }) => theme.colors.greyscale600};
+`;
+
+const GuestButton = styled.button`
+  width: 100%;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 12px;
+  background-color: ${({ theme }) => theme.colors.greyscale200};
+  font-family: ${({ theme }) => theme.typography.body};
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: -0.096px;
+  color: ${({ theme }) => theme.colors.greyscale800};
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: ${({ theme }) => theme.colors.greyscale300};
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+`;
+
+const TermsText = styled.p`
+  font-family: ${({ theme }) => theme.typography.body};
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: ${({ theme }) => theme.colors.greyscale600};
+  text-align: center;
+  margin-top: 24px;
+
+  a {
+    color: ${({ theme }) => theme.colors.greyscale800};
+    text-decoration: underline;
   }
 `;
 
 export default function SignupPage() {
   const router = useRouter();
-  const [name, setName] = useState('');
 
-  const isNameValid = name.trim().length > 0;
-
-  const handleBack = () => {
-    router.back();
+  const handleGoogleLogin = () => {
+    // TODO: 실제 Google OAuth 연동
+    // 현재는 임시로 설문조사 페이지로 이동
+    localStorage.setItem('moodtrip_user_name', '사용자');
+    router.push('/survey');
   };
 
-  const handleSubmit = () => {
-    if (isNameValid) {
-      // 이름 저장 후 설문조사 페이지로 이동
-      localStorage.setItem('moodtrip_user_name', name.trim());
-      router.push('/survey');
-    }
+  const handleGuestLogin = () => {
+    // 게스트 로그인 - 설문조사 페이지로 이동
+    localStorage.setItem('moodtrip_user_name', '여행자');
+    router.push('/survey');
   };
 
   return (
     <Container>
-      <TopBar>
-        <BackButton onClick={handleBack}>
-          <BackIcon viewBox="0 0 8 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path 
-              d="M7 1L1 8L7 15" 
-              stroke="#111111" 
-              strokeWidth="1.5" 
-              strokeLinecap="round" 
-              strokeLinejoin="round"
-            />
-          </BackIcon>
-        </BackButton>
-        <Spacer />
-      </TopBar>
-
-      <Content>
-        <SubTitle>여행을 시작하기 전에,</SubTitle>
-        <Title>먼저 이름부터 확인할게요.</Title>
-
-        <InputWrapper>
-          <Label>
-            <LabelText>이름</LabelText>
-            <RequiredMark>*</RequiredMark>
-          </Label>
-          <InputField
-            type="text"
-            placeholder="이름을 입력해주세요."
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            autoFocus
+      <LogoSection>
+        <LogoWrapper>
+          <Image
+            src="/assets/icons/icon.svg"
+            alt="MoodTrip"
+            width={180}
+            height={36}
+            priority
           />
-        </InputWrapper>
-      </Content>
+        </LogoWrapper>
+        <AppDescription>나만을 위한 여행 추천 서비스</AppDescription>
+      </LogoSection>
 
-      <BottomBar>
-        <SubmitButton 
-          $isActive={isNameValid} 
-          onClick={handleSubmit}
-          disabled={!isNameValid}
-        >
-          다음
-        </SubmitButton>
-      </BottomBar>
+      <BottomSection>
+        <LoginSection>
+          <GoogleLoginButton onClick={handleGoogleLogin}>
+            <GoogleIcon />
+            Google로 계속하기
+          </GoogleLoginButton>
+
+          <Divider>
+            <DividerLine />
+            <DividerText>또는</DividerText>
+            <DividerLine />
+          </Divider>
+
+          <GuestButton onClick={handleGuestLogin}>
+            게스트로 시작하기
+          </GuestButton>
+        </LoginSection>
+
+        <TermsText>
+          계속 진행하면 <a href="#">서비스 이용약관</a> 및 <a href="#">개인정보 처리방침</a>에 동의하는 것으로 간주됩니다.
+        </TermsText>
+      </BottomSection>
     </Container>
   );
 }
-

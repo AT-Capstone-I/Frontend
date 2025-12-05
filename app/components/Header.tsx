@@ -2,6 +2,7 @@
 
 import styled from "styled-components";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { logout } from "@/app/lib/api";
 
 // Figma Design: Top bar (헤더)
@@ -14,13 +15,10 @@ const HeaderWrapper = styled.header`
   background-color: var(--greyscale-000);
 `;
 
-const Logo = styled.h1`
-  font-family: 'KOHIBaeum', sans-serif;
-  font-size: 18px;
-  font-weight: 400;
-  line-height: 1;
-  color: var(--greyscale-1000);
-  letter-spacing: 0;
+const LogoContainer = styled.div`
+  display: flex;
+  align-items: center;
+  height: 24px;
 `;
 
 const LogoutButton = styled.button`
@@ -47,11 +45,10 @@ const LogoutButton = styled.button`
 `;
 
 interface HeaderProps {
-  title?: string;
   showLogout?: boolean;
 }
 
-export default function Header({ title = "MoodTrip", showLogout = true }: HeaderProps) {
+export default function Header({ showLogout = true }: HeaderProps) {
   const router = useRouter();
 
   const handleLogout = () => {
@@ -65,7 +62,15 @@ export default function Header({ title = "MoodTrip", showLogout = true }: Header
 
   return (
     <HeaderWrapper>
-      <Logo>{title}</Logo>
+      <LogoContainer>
+        <Image
+          src="/assets/icons/icon.svg"
+          alt="MoodTrip"
+          width={120}
+          height={24}
+          priority
+        />
+      </LogoContainer>
       {showLogout && (
         <LogoutButton onClick={handleLogout} aria-label="로그아웃">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
