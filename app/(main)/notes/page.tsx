@@ -1,31 +1,36 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import styled from "styled-components";
 
-// Styled Components
+// Styled Components - Figma Design System 적용
 const PageWrapper = styled.div`
   min-height: 100vh;
-  background-color: var(--background);
-  padding-bottom: 80px;
+  background-color: var(--greyscale-000, #FFFFFF);
+  padding-bottom: 104px;
 `;
 
 const TabNavigation = styled.nav`
   display: flex;
-  padding: 0 20px;
-  border-bottom: 1px solid var(--border-color);
-  background-color: var(--background);
+  align-items: center;
+  gap: 20px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--greyscale-300, #E1E1E4);
+  background-color: var(--greyscale-000, #FFFFFF);
   position: sticky;
   top: 0;
   z-index: 10;
 `;
 
 const TabButton = styled.button<{ $active: boolean }>`
-  flex: 1;
-  padding: 14px 0;
-  font-size: 13px;
-  font-weight: ${({ $active }) => ($active ? "600" : "400")};
-  color: ${({ $active }) => ($active ? "var(--text-primary)" : "var(--text-muted)")};
+  padding: 10px 4px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: -0.042px;
+  color: ${({ $active }) => ($active ? "var(--greyscale-1200, #111111)" : "var(--greyscale-600, #918E94)")};
   border: none;
   background: none;
   cursor: pointer;
@@ -35,52 +40,94 @@ const TabButton = styled.button<{ $active: boolean }>`
   &::after {
     content: "";
     position: absolute;
-    bottom: 0;
+    bottom: -10px;
     left: 0;
     right: 0;
     height: 2px;
-    background-color: var(--text-primary);
+    background-color: var(--primary-500, #4F9DE8);
     opacity: ${({ $active }) => ($active ? 1 : 0)};
+    transition: opacity 0.2s ease;
   }
 `;
 
 const Content = styled.div`
-  padding: 16px 20px;
+  padding: 28px 20px 20px;
 `;
 
 const SearchWrapper = styled.div`
-  position: relative;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+`;
+
+const SearchInputContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 48px;
+  padding: 12px 16px;
+  background-color: var(--greyscale-000, #FFFFFF);
+  border: 1px solid var(--greyscale-700, #77747B);
+  border-radius: 12px;
 `;
 
 const SearchInput = styled.input`
-  width: 100%;
-  padding: 12px 44px 12px 16px;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  font-size: 14px;
-  background-color: var(--background);
-  color: var(--text-primary);
+  flex: 1;
+  border: none;
+  background: none;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: -0.045px;
+  color: var(--greyscale-1200, #111111);
+  outline: none;
 
   &::placeholder {
-    color: var(--text-muted);
-  }
-
-  &:focus {
-    outline: none;
-    border-color: var(--accent-color);
+    color: var(--greyscale-500, #AAA8AD);
   }
 `;
 
 const SearchIcon = styled.button`
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--text-muted);
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  color: var(--greyscale-700, #77747B);
+`;
+
+const ListHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+`;
+
+const ListTitle = styled.h2`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.096px;
+  color: var(--greyscale-1200, #2E2E2E);
+`;
+
+const SortButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.039px;
+  color: var(--greyscale-800, #5E5B61);
+  background: none;
+  border: none;
+  cursor: pointer;
 
   svg {
     width: 20px;
@@ -88,170 +135,100 @@ const SearchIcon = styled.button`
   }
 `;
 
-const ListHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-`;
-
-const ListTitle = styled.h2`
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-`;
-
-const SortButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 13px;
-  color: var(--text-muted);
-  background: none;
-  border: none;
-  cursor: pointer;
-
-  svg {
-    width: 16px;
-    height: 16px;
-  }
-`;
-
 const NoteList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 `;
 
-const NoteItem = styled.div`
-  background-color: var(--card-background);
-  border: 1px solid var(--border-color);
+const NoteCard = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px;
+  background-color: var(--greyscale-000, #FFFFFF);
+  border: 1px solid var(--greyscale-300, #E1E1E4);
   border-radius: 12px;
-  overflow: hidden;
-`;
-
-const NoteHeader = styled.div`
-  display: flex;
-  align-items: center;
-  padding: 16px;
   cursor: pointer;
-`;
+  transition: box-shadow 0.2s ease;
 
-const ExpandIcon = styled.div<{ $expanded: boolean }>`
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 12px;
-  transition: transform 0.2s ease;
-  transform: rotate(${({ $expanded }) => ($expanded ? "90deg" : "0deg")});
-
-  svg {
-    width: 16px;
-    height: 16px;
-    color: var(--text-muted);
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
 `;
 
 const NoteInfo = styled.div`
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const NoteTextGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 `;
 
 const NoteName = styled.h4`
-  font-size: 15px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 4px;
+  line-height: 1.5;
+  letter-spacing: -0.042px;
+  color: var(--greyscale-1000, #2B2A2C);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const NoteAddress = styled.p`
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-bottom: 4px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.033px;
+  color: var(--greyscale-600, #918E94);
+  margin: 0;
 `;
 
 const NoteDate = styled.p`
-  font-size: 12px;
-  color: var(--text-secondary);
+  font-family: 'Pretendard', sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.033px;
+  color: var(--greyscale-400, #C4C2C6);
+  margin: 0;
 `;
 
 const StatusBadge = styled.span<{ $status: "before" | "during" | "after" }>`
-  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
   border-radius: 12px;
+  font-family: 'Pretendard', sans-serif;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.033px;
+  color: var(--greyscale-1000, #2B2A2C);
+  white-space: nowrap;
+  flex-shrink: 0;
   background-color: ${({ $status }) => {
     switch ($status) {
       case "before":
-        return "#e3f2fd";
+        return "var(--greyscale-100, #F1F1F1)";
       case "during":
-        return "#e8f5e9";
+        return "var(--primary-100, #E0F0FF)";
       case "after":
-        return "#f3e5f5";
+        return "#D2F3E8";
       default:
-        return "#f5f5f5";
+        return "var(--greyscale-100, #F1F1F1)";
     }
   }};
-  color: ${({ $status }) => {
-    switch ($status) {
-      case "before":
-        return "#1565c0";
-      case "during":
-        return "#2e7d32";
-      case "after":
-        return "#7b1fa2";
-      default:
-        return "#666";
-    }
-  }};
-`;
-
-const NoteContent = styled.div<{ $expanded: boolean }>`
-  max-height: ${({ $expanded }) => ($expanded ? "500px" : "0")};
-  overflow: hidden;
-  transition: max-height 0.3s ease;
-`;
-
-const NoteContentInner = styled.div`
-  padding: 0 16px 16px;
-  border-top: 1px solid var(--border-color);
-  padding-top: 16px;
-`;
-
-const NoteDetailItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border-color);
-
-  &:last-child {
-    border-bottom: none;
-  }
-`;
-
-const NoteDetailImage = styled.img`
-  width: 60px;
-  height: 60px;
-  border-radius: 8px;
-  object-fit: cover;
-`;
-
-const NoteDetailInfo = styled.div`
-  flex: 1;
-`;
-
-const NoteDetailName = styled.h5`
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 4px;
-`;
-
-const NoteDetailDesc = styled.p`
-  font-size: 12px;
-  color: var(--text-muted);
 `;
 
 const EmptyState = styled.div`
@@ -265,15 +242,31 @@ const EmptyState = styled.div`
   svg {
     width: 64px;
     height: 64px;
-    color: var(--border-color);
+    color: var(--greyscale-400, #C4C2C6);
     margin-bottom: 16px;
   }
 
   p {
+    font-family: 'Pretendard', sans-serif;
     font-size: 14px;
-    color: var(--text-muted);
+    font-weight: 400;
+    color: var(--greyscale-600, #918E94);
   }
 `;
+
+// Icons
+const SearchIconSvg = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+    <circle cx="11" cy="11" r="7" />
+    <path d="M21 21l-4.35-4.35" />
+  </svg>
+);
+
+const SortIconSvg = () => (
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+    <path d="M10 4V16M10 4L6 8M10 4L14 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
 
 // 샘플 데이터
 const notesData = [
@@ -281,40 +274,33 @@ const notesData = [
     id: 1,
     name: "여행지 이름",
     address: "주소가 들어갑니다. 주소가 들어갑니다.",
-    startDate: "2025.7.12",
-    endDate: "7.15",
+    startDate: "2025.11.12",
+    endDate: "11.15",
     status: "before" as const,
-    places: [
-      { name: "성심당 본점", desc: "대전 빵지순례 필수 코스", image: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=200&h=200&fit=crop" },
-      { name: "대전 스카이로드", desc: "야경 명소", image: "https://images.unsplash.com/photo-1519677100203-a0e668c92439?w=200&h=200&fit=crop" },
-    ],
   },
   {
     id: 2,
     name: "여행지 이름",
     address: "주소가 들어갑니다. 주소가 들어갑니다.",
-    startDate: "2025.7.12",
-    endDate: "7.15",
+    startDate: "2025.11.12",
+    endDate: "11.15",
     status: "during" as const,
-    places: [],
   },
   {
     id: 3,
     name: "여행지 이름",
     address: "주소가 들어갑니다. 주소가 들어갑니다.",
-    startDate: "2025.7.12",
-    endDate: "7.15",
+    startDate: "2025.11.12",
+    endDate: "11.15",
     status: "during" as const,
-    places: [],
   },
   {
     id: 4,
     name: "여행지 이름",
     address: "주소가 들어갑니다. 주소가 들어갑니다.",
-    startDate: "2025.7.12",
-    endDate: "7.15",
+    startDate: "2025.11.12",
+    endDate: "11.15",
     status: "after" as const,
-    places: [],
   },
 ];
 
@@ -325,19 +311,19 @@ const statusLabel = {
 };
 
 export default function NotesPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"all" | "before" | "during" | "after">("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+
+  const handleNoteClick = (noteId: number) => {
+    router.push(`/notes/${noteId}`);
+  };
 
   const filteredNotes = notesData.filter((note) => {
     if (activeTab !== "all" && note.status !== activeTab) return false;
     if (searchQuery && !note.name.includes(searchQuery)) return false;
     return true;
   });
-
-  const toggleExpand = (id: number) => {
-    setExpandedId(expandedId === id ? null : id);
-  };
 
   return (
     <PageWrapper>
@@ -358,26 +344,23 @@ export default function NotesPage() {
 
       <Content>
         <SearchWrapper>
-          <SearchInput
-            type="text"
-            placeholder="여행지를 입력해 주세요."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <SearchIcon aria-label="검색">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-              <circle cx="11" cy="11" r="8" />
-              <path d="M21 21l-4.35-4.35" />
-            </svg>
-          </SearchIcon>
+          <SearchInputContainer>
+            <SearchInput
+              type="text"
+              placeholder="여행지를 입력해 주세요."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <SearchIcon aria-label="검색">
+              <SearchIconSvg />
+            </SearchIcon>
+          </SearchInputContainer>
         </SearchWrapper>
 
         <ListHeader>
           <ListTitle>여행지</ListTitle>
           <SortButton>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-              <path d="M3 6h18M6 12h12M9 18h6" />
-            </svg>
+            <SortIconSvg />
             최신순
           </SortButton>
         </ListHeader>
@@ -385,40 +368,16 @@ export default function NotesPage() {
         {filteredNotes.length > 0 ? (
           <NoteList>
             {filteredNotes.map((note) => (
-              <NoteItem key={note.id}>
-                <NoteHeader onClick={() => toggleExpand(note.id)}>
-                  <ExpandIcon $expanded={expandedId === note.id}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                      <path d="M9 18l6-6-6-6" />
-                    </svg>
-                  </ExpandIcon>
-                  <NoteInfo>
+              <NoteCard key={note.id} onClick={() => handleNoteClick(note.id)}>
+                <NoteInfo>
+                  <NoteTextGroup>
                     <NoteName>{note.name}</NoteName>
                     <NoteAddress>{note.address}</NoteAddress>
-                    <NoteDate>{note.startDate} ~ {note.endDate}</NoteDate>
-                  </NoteInfo>
-                  <StatusBadge $status={note.status}>{statusLabel[note.status]}</StatusBadge>
-                </NoteHeader>
-                <NoteContent $expanded={expandedId === note.id}>
-                  <NoteContentInner>
-                    {note.places.length > 0 ? (
-                      note.places.map((place, index) => (
-                        <NoteDetailItem key={index}>
-                          <NoteDetailImage src={place.image} alt={place.name} />
-                          <NoteDetailInfo>
-                            <NoteDetailName>{place.name}</NoteDetailName>
-                            <NoteDetailDesc>{place.desc}</NoteDetailDesc>
-                          </NoteDetailInfo>
-                        </NoteDetailItem>
-                      ))
-                    ) : (
-                      <p style={{ fontSize: "13px", color: "var(--text-muted)", textAlign: "center", padding: "20px 0" }}>
-                        등록된 장소가 없습니다.
-                      </p>
-                    )}
-                  </NoteContentInner>
-                </NoteContent>
-              </NoteItem>
+                  </NoteTextGroup>
+                  <NoteDate>{note.startDate} ~ {note.endDate}</NoteDate>
+                </NoteInfo>
+                <StatusBadge $status={note.status}>{statusLabel[note.status]}</StatusBadge>
+              </NoteCard>
             ))}
           </NoteList>
         ) : (

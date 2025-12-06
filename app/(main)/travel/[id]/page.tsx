@@ -6,7 +6,12 @@ import styled from "styled-components";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { BackButton } from "@/app/components";
-import { ThemeContent } from "@/app/lib/api";
+import { 
+  ThemeContent, 
+  ClarifierData,
+  requestContentAction, 
+  submitClarifierAnswer 
+} from "@/app/lib/api";
 
 // Styled Components - Figma 디자인 적용
 const PageWrapper = styled.div`
@@ -343,8 +348,264 @@ const LoadingWrapper = styled.div`
   font-size: 14px;
 `;
 
+// ============ Clarifier Modal 스타일 ============
+
+const ModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+`;
+
+const ModalContainer = styled.div`
+  width: 100%;
+  max-width: 400px;
+  max-height: 90vh;
+  background-color: var(--greyscale-000, #FFFFFF);
+  border-radius: 20px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+`;
+
+const ModalHeader = styled.div`
+  padding: 24px 20px 16px;
+  border-bottom: 1px solid var(--greyscale-200, #F2F1F2);
+`;
+
+const ModalTitle = styled.h2`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--greyscale-1100, #111112);
+  margin: 0 0 8px 0;
+`;
+
+const ModalSubtitle = styled.p`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--greyscale-700, #77747B);
+  margin: 0;
+`;
+
+const ModalContent = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+`;
+
+const QuestionItem = styled.div`
+  margin-bottom: 24px;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+`;
+
+const QuestionLabel = styled.label`
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 12px;
+`;
+
+const QuestionNumber = styled.span`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: var(--primary-100, #E0F0FF);
+  color: var(--primary-500, #4F9DE8);
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+`;
+
+const QuestionText = styled.span`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--greyscale-1000, #2B2A2C);
+`;
+
+const PriorityBadge = styled.span<{ $priority: string }>`
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  margin-left: auto;
+  flex-shrink: 0;
+  
+  ${({ $priority }) => {
+    switch ($priority) {
+      case 'high':
+        return `
+          background-color: var(--error-100, #FFE5E5);
+          color: var(--error-500, #E85050);
+        `;
+      case 'medium':
+        return `
+          background-color: var(--warning-100, #FFF3E0);
+          color: var(--warning-500, #FF9800);
+        `;
+      default:
+        return `
+          background-color: var(--greyscale-200, #F2F1F2);
+          color: var(--greyscale-700, #77747B);
+        `;
+    }
+  }}
+`;
+
+const AnswerInput = styled.input`
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--greyscale-300, #E1E1E4);
+  border-radius: 12px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--greyscale-1100, #111112);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  
+  &::placeholder {
+    color: var(--greyscale-500, #AAA8AD);
+  }
+  
+  &:focus {
+    outline: none;
+    border-color: var(--primary-500, #4F9DE8);
+    box-shadow: 0 0 0 3px rgba(79, 157, 232, 0.1);
+  }
+`;
+
+const ModalFooter = styled.div`
+  padding: 16px 20px 24px;
+  border-top: 1px solid var(--greyscale-200, #F2F1F2);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const SubmitButton = styled.button`
+  width: 100%;
+  padding: 16px;
+  background-color: var(--primary-500, #4F9DE8);
+  color: var(--greyscale-000, #FFFFFF);
+  border: none;
+  border-radius: 12px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  
+  &:hover {
+    background-color: var(--primary-400, #66B2FE);
+  }
+  
+  &:disabled {
+    background-color: var(--greyscale-400, #C4C2C6);
+    cursor: not-allowed;
+  }
+`;
+
+const SkipButton = styled.button`
+  width: 100%;
+  padding: 14px;
+  background-color: transparent;
+  color: var(--greyscale-700, #77747B);
+  border: 1px solid var(--greyscale-300, #E1E1E4);
+  border-radius: 12px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background-color: var(--greyscale-100, #F8F8F8);
+    border-color: var(--greyscale-400, #C4C2C6);
+  }
+`;
+
+const SkipDescription = styled.p`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--greyscale-600, #918E94);
+  text-align: center;
+  margin: 0;
+`;
+
+// 로딩 오버레이
+const LoadingOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  z-index: 1001;
+`;
+
+const LoadingSpinner = styled.div`
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--primary-100, #E0F0FF);
+  border-top-color: var(--primary-500, #4F9DE8);
+  border-radius: 50%;
+  animation: spinLoader 1s linear infinite;
+
+  @keyframes spinLoader {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+`;
+
+const LoadingText = styled.p`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--greyscale-900, #444246);
+  text-align: center;
+`;
+
+const LoadingSubtext = styled.p`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--greyscale-600, #918E94);
+  text-align: center;
+  margin: 0;
+`;
+
 // 마크다운 텍스트 전처리 함수
-const preprocessMarkdown = (text: string): string => {
+const preprocessMarkdown = (text: string | undefined | null): string => {
+  if (!text) return '';
+  
   let processed = text;
   
   // ### 숫자. 형식을 ### 로 변환 (h3로 렌더링)
@@ -371,7 +632,9 @@ const preprocessMarkdown = (text: string): string => {
 };
 
 // 마지막 메시지 추출 함수
-const extractLastMessage = (text: string): string => {
+const extractLastMessage = (text: string | undefined | null): string => {
+  if (!text) return '이번 여행이 특별한 추억으로 남기를 바랍니다!';
+  
   const lines = text.split('\n').filter(line => line.trim());
   
   // 마지막 몇 줄에서 일반 텍스트 찾기
@@ -402,22 +665,34 @@ export default function TravelDetailPage() {
   const [lastMessage, setLastMessage] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  
+  // Clarifier 관련 상태
+  const [showClarifierModal, setShowClarifierModal] = useState(false);
+  const [clarifierData, setClarifierData] = useState<ClarifierData | null>(null);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('');
 
   useEffect(() => {
     const storedContent = sessionStorage.getItem('selectedThemeContent');
     
-    if (storedContent) {
+    // 유효한 JSON 문자열인지 확인 (null, "undefined", 빈 문자열 제외)
+    if (storedContent && storedContent !== 'undefined' && storedContent !== 'null') {
       try {
         const content: ThemeContent = JSON.parse(storedContent);
-        setThemeContent(content);
         
-        // 마크다운 전처리
-        const processed = preprocessMarkdown(content.content_text);
-        setProcessedMarkdown(processed);
-        
-        // 마지막 메시지 추출
-        const lastMsg = extractLastMessage(content.content_text);
-        setLastMessage(lastMsg);
+        // 파싱된 객체가 유효한지 확인
+        if (content && typeof content === 'object') {
+          setThemeContent(content);
+          
+          // 마크다운 전처리
+          const processed = preprocessMarkdown(content.content_text);
+          setProcessedMarkdown(processed);
+          
+          // 마지막 메시지 추출
+          const lastMsg = extractLastMessage(content.content_text);
+          setLastMessage(lastMsg);
+        }
       } catch (error) {
         console.error('테마 콘텐츠 파싱 에러:', error);
       }
@@ -435,9 +710,126 @@ export default function TravelDetailPage() {
 
   const mainImages = carouselImages.map(img => img.image_url);
 
-  const handleCreateSchedule = () => {
-    router.push('/schedule');
+  // "여기로 결정하기" 버튼 클릭 핸들러
+  const handleCreateSchedule = async () => {
+    const tripId = params.id as string;
+    if (!tripId) return;
+    
+    setIsSubmitting(true);
+    setLoadingMessage('질문을 준비하고 있어요...');
+    
+    try {
+      const response = await requestContentAction(tripId);
+      
+      if (response.status === 'clarifier_asking') {
+        setClarifierData(response.clarifier);
+        // 초기 answers 객체 생성
+        const initialAnswers: Record<string, string> = {};
+        response.clarifier.questions.forEach((q) => {
+          initialAnswers[q.field_name] = '';
+        });
+        setAnswers(initialAnswers);
+        setShowClarifierModal(true);
+      }
+    } catch (error) {
+      console.error('Content action 에러:', error);
+      alert('요청 중 오류가 발생했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsSubmitting(false);
+      setLoadingMessage('');
+    }
   };
+  
+  // 답변 입력 핸들러
+  const handleAnswerChange = (fieldName: string, value: string) => {
+    setAnswers((prev) => ({
+      ...prev,
+      [fieldName]: value,
+    }));
+  };
+  
+  // 답변 제출 핸들러
+  const handleSubmitAnswers = async () => {
+    const tripId = params.id as string;
+    if (!tripId) return;
+    
+    setIsSubmitting(true);
+    setLoadingMessage('여행 노트를 생성하고 있어요...');
+    setShowClarifierModal(false);
+    
+    try {
+      // 빈 답변 제거
+      const filledAnswers: Record<string, string> = {};
+      Object.entries(answers).forEach(([key, value]) => {
+        if (value.trim()) {
+          filledAnswers[key] = value.trim();
+        }
+      });
+      
+      const result = await submitClarifierAnswer(tripId, filledAnswers, false);
+      
+      if (result.status === 'completed') {
+        // 여행노트 데이터를 sessionStorage에 저장
+        const travelNoteData = {
+          tripId,
+          themeContent,
+          clarifierAnswers: result.clarification_answers,
+          userProfileSummary: result.user_profile_summary,
+          createdAt: new Date().toISOString(),
+        };
+        sessionStorage.setItem(`travelNote_${tripId}`, JSON.stringify(travelNoteData));
+        
+        // 여행 노트 페이지로 이동
+        router.push(`/notes/${tripId}`);
+      }
+    } catch (error) {
+      console.error('답변 제출 에러:', error);
+      alert('답변 제출 중 오류가 발생했습니다. 다시 시도해주세요.');
+      setShowClarifierModal(true);
+    } finally {
+      setIsSubmitting(false);
+      setLoadingMessage('');
+    }
+  };
+  
+  // 건너뛰기 핸들러
+  const handleSkip = async () => {
+    const tripId = params.id as string;
+    if (!tripId) return;
+    
+    setIsSubmitting(true);
+    setLoadingMessage('여행 노트를 생성하고 있어요...');
+    setShowClarifierModal(false);
+    
+    try {
+      const result = await submitClarifierAnswer(tripId, {}, true);
+      
+      if (result.status === 'completed') {
+        // 여행노트 데이터를 sessionStorage에 저장
+        const travelNoteData = {
+          tripId,
+          themeContent,
+          clarifierAnswers: result.clarification_answers,
+          userProfileSummary: result.user_profile_summary,
+          createdAt: new Date().toISOString(),
+        };
+        sessionStorage.setItem(`travelNote_${tripId}`, JSON.stringify(travelNoteData));
+        
+        // 여행 노트 페이지로 이동
+        router.push(`/notes/${tripId}`);
+      }
+    } catch (error) {
+      console.error('건너뛰기 에러:', error);
+      alert('처리 중 오류가 발생했습니다. 다시 시도해주세요.');
+      setShowClarifierModal(true);
+    } finally {
+      setIsSubmitting(false);
+      setLoadingMessage('');
+    }
+  };
+  
+  // 답변이 하나라도 입력되었는지 확인
+  const hasAnyAnswer = Object.values(answers).some((v) => v.trim() !== '');
 
   if (isLoading) {
     return (
@@ -539,11 +931,66 @@ export default function TravelDetailPage() {
 
         {/* 하단 버튼 */}
         <ButtonWrapper>
-          <BottomButton onClick={handleCreateSchedule}>
+          <BottomButton onClick={handleCreateSchedule} disabled={isSubmitting}>
             여기로 결정하기
           </BottomButton>
         </ButtonWrapper>
       </Content>
+
+      {/* Clarifier 질문 모달 */}
+      {showClarifierModal && clarifierData && (
+        <ModalOverlay onClick={() => setShowClarifierModal(false)}>
+          <ModalContainer onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <ModalTitle>여행 정보를 알려주세요</ModalTitle>
+              <ModalSubtitle>
+                더 정확한 여행 계획을 위해 몇 가지 질문에 답해주세요
+              </ModalSubtitle>
+            </ModalHeader>
+            
+            <ModalContent>
+              {clarifierData.questions.map((question, idx) => (
+                <QuestionItem key={question.field_name}>
+                  <QuestionLabel>
+                    <QuestionNumber>{idx + 1}</QuestionNumber>
+                    <QuestionText>{question.question}</QuestionText>
+                    {question.priority === 'high' && (
+                      <PriorityBadge $priority={question.priority}>필수</PriorityBadge>
+                    )}
+                  </QuestionLabel>
+                  <AnswerInput
+                    type="text"
+                    placeholder="답변을 입력해주세요"
+                    value={answers[question.field_name] || ''}
+                    onChange={(e) => handleAnswerChange(question.field_name, e.target.value)}
+                  />
+                </QuestionItem>
+              ))}
+            </ModalContent>
+            
+            <ModalFooter>
+              <SubmitButton onClick={handleSubmitAnswers}>
+                답변 완료
+              </SubmitButton>
+              <SkipButton onClick={handleSkip}>
+                {clarifierData.skip_button.label}
+              </SkipButton>
+              <SkipDescription>
+                {clarifierData.skip_button.description}
+              </SkipDescription>
+            </ModalFooter>
+          </ModalContainer>
+        </ModalOverlay>
+      )}
+
+      {/* 로딩 오버레이 */}
+      {isSubmitting && loadingMessage && (
+        <LoadingOverlay>
+          <LoadingSpinner />
+          <LoadingText>{loadingMessage}</LoadingText>
+          <LoadingSubtext>잠시만 기다려주세요</LoadingSubtext>
+        </LoadingOverlay>
+      )}
     </PageWrapper>
   );
 }

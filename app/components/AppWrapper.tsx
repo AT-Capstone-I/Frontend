@@ -24,11 +24,11 @@ const AppWrapper: React.FC<AppWrapperProps> = ({ children }) => {
   const handleSplashFinish = () => {
     setShowSplash(false);
     
-    // 회원가입 여부 확인 후 리다이렉트
-    const isSignupCompleted = localStorage.getItem(SIGNUP_COMPLETED_KEY);
-    if (!isSignupCompleted && pathname !== '/signup') {
-      router.push('/signup');
-    }
+    // [디버깅] 회원가입 체크 임시 비활성화 - 나중에 원복 필요!
+    // const isSignupCompleted = localStorage.getItem(SIGNUP_COMPLETED_KEY);
+    // if (!isSignupCompleted && pathname !== '/signup') {
+    //   router.push('/signup');
+    // }
   };
 
   // 서버 사이드에서는 children만 렌더링

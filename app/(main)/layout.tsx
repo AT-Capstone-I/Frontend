@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import styled from "styled-components";
 import { BottomNavigation, ChatFab } from "@/app/components";
 
@@ -21,11 +22,16 @@ export default function MainLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  
+  // 노트 상세 페이지에서는 ChatFab, BottomNavigation 숨기기
+  const isNoteDetailPage = pathname?.startsWith('/notes/') && pathname !== '/notes';
+
   return (
     <AppContainer>
       {children}
-      <ChatFab />
-      <BottomNavigation />
+      {!isNoteDetailPage && <ChatFab />}
+      {!isNoteDetailPage && <BottomNavigation />}
     </AppContainer>
   );
 }

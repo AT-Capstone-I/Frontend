@@ -55,10 +55,79 @@ const ChatContainer = styled.div`
   width: 100%;
   max-width: 430px;
   margin: 0 auto;
+  position: relative;
 
   @media (min-width: 768px) {
     max-width: 100%;
   }
+`;
+
+// 전체 화면 로딩 오버레이
+const FullScreenLoading = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  z-index: 100;
+  backdrop-filter: blur(2px);
+`;
+
+const LoadingSpinner = styled.div`
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--primary-100, #E0F0FF);
+  border-top-color: var(--primary-500, #4F9DE8);
+  border-radius: 50%;
+  animation: spinLoader 1s linear infinite;
+
+  @keyframes spinLoader {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+`;
+
+const LoadingOverlayText = styled.div`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+  
+  background: linear-gradient(
+    90deg,
+    var(--greyscale-700, #77747B) 0%,
+    var(--greyscale-1000, #2B2A2C) 50%,
+    var(--greyscale-700, #77747B) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmerText 2s ease-in-out infinite;
+
+  @keyframes shimmerText {
+    0% {
+      background-position: 100% 0;
+    }
+    100% {
+      background-position: -100% 0;
+    }
+  }
+`;
+
+const LoadingSubText = styled.p`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--greyscale-600, #918E94);
+  margin: 0;
 `;
 
 const ChatHeader = styled.header`
@@ -90,13 +159,9 @@ const BackButton = styled.button`
   }
 `;
 
-const HeaderTitle = styled.h1`
-  font-family: 'Gmarket Sans', sans-serif;
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 1.4;
-  letter-spacing: -0.096px;
-  color: var(--greyscale-1100, #111112);
+const HeaderLogo = styled.img`
+  height: 20px;
+  width: auto;
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
@@ -160,7 +225,6 @@ const LoadingMessage = styled.div`
   display: flex;
   align-items: center;
   gap: 6px;
-  color: var(--greyscale-900, #444246);
   font-family: 'Pretendard', sans-serif;
   font-size: 14px;
   font-weight: 400;
@@ -180,6 +244,30 @@ const LoadingMessage = styled.div`
     }
     to {
       transform: rotate(360deg);
+    }
+  }
+`;
+
+// 애니메이션 텍스트 컴포넌트 (펄스 효과)
+const AnimatedText = styled.span`
+  background: linear-gradient(
+    90deg,
+    var(--greyscale-600, #918E94) 0%,
+    var(--greyscale-900, #444246) 50%,
+    var(--greyscale-600, #918E94) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 2s ease-in-out infinite;
+
+  @keyframes shimmer {
+    0% {
+      background-position: 100% 0;
+    }
+    100% {
+      background-position: -100% 0;
     }
   }
 `;
@@ -517,7 +605,7 @@ const SendButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.2s ease;
+  transition: all 0.2s ease;
 
   &:disabled {
     color: var(--greyscale-400, #C4C2C6);
@@ -531,6 +619,33 @@ const SendButton = styled.button`
   svg {
     width: 24px;
     height: 24px;
+  }
+`;
+
+const StopButton = styled.button`
+  background: var(--error-100, #FFE5E5);
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  color: var(--error-500, #E85050);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: var(--error-200, #FFCCCC);
+    transform: scale(1.05);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  svg {
+    width: 18px;
+    height: 18px;
   }
 `;
 
@@ -557,6 +672,12 @@ const CheckIcon = () => (
 const SendIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor">
     <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+  </svg>
+);
+
+const StopIcon = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor">
+    <rect x="6" y="6" width="12" height="12" rx="2" />
   </svg>
 );
 
@@ -607,10 +728,14 @@ const loadTripId = (): string | null => {
   return sessionStorage.getItem(TRIP_ID_STORAGE_KEY);
 };
 
-// 도시 이미지 가져오기 헬퍼
-const getCityImage = (cityName: string): string => {
-  // 도시명에서 첫 번째 단어만 추출 (예: "서울 영등포구" -> "서울")
-  const mainCity = cityName.split(' ')[0];
+// 테마 이미지 가져오기 헬퍼 (representative_image 우선 사용)
+const getThemeImage = (theme: ThemePreview): string => {
+  // 백엔드에서 제공하는 대표 이미지가 있으면 사용
+  if (theme.representative_image) {
+    return theme.representative_image;
+  }
+  // 없으면 도시명 기반 기본 이미지 사용
+  const mainCity = theme.city_name.split(' ')[0];
   return CITY_IMAGES[mainCity] || CITY_IMAGES["default"];
 };
 
@@ -659,6 +784,7 @@ export default function ChatPage() {
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [expandedThemes, setExpandedThemes] = useState<Set<number>>(new Set());
 
   // 사용자 정보 및 저장된 채팅 로드
   useEffect(() => {
@@ -793,7 +919,7 @@ export default function ChatPage() {
             // assistant_message 카운트 증가
             streamStateRef.current.assistantMessageCount += 1;
             
-            // 로딩 제거하고 AI 메시지 추가
+            // 로딩 제거하고 AI 메시지 추가 (모든 assistant_message를 채팅 버블로 표시)
             setMessages((prev) => {
               const filtered = prev.filter(m => m.id !== LOADING_MESSAGE_ID);
               return [
@@ -806,12 +932,17 @@ export default function ChatPage() {
               ];
             });
             
-            // 첫 번째 assistant_message 후: "검색 중..." 로딩
-            // 두 번째 assistant_message 후: "테마 생성 중..." 로딩
+            // is_searching에 따라 로딩 UI 표시
             setTimeout(() => {
-              if (streamStateRef.current.assistantMessageCount === 1) {
-                updateLoadingMessage("장소를 검색하는 중...");
+              if (data.is_searching) {
+                // 웹 검색 중일 때
+                if (data.search_query) {
+                  updateLoadingMessage(`"${data.search_query}"를 검색하는 중...`);
+                } else {
+                  updateLoadingMessage("검색 결과를 분석하는 중...");
+                }
               } else {
+                // 웹 검색 없는 일반 여행 - 테마 생성 로딩
                 updateLoadingMessage("여행지를 바탕으로 테마를 생성하는 중입니다...");
               }
             }, 100);
@@ -823,22 +954,17 @@ export default function ChatPage() {
             break;
 
           case 'themes_ready':
-          case 'result':
-            // 이미 테마를 표시했으면 무시
-            if (streamStateRef.current.themesDisplayed) {
-              break;
-            }
-
-            // theme_phrase가 있는 테마만 필터링
+            // themes_ready는 2회 발생: 클러스터링(theme_phrase: null) + 라벨링(최종)
+            // theme_phrase가 있는 테마만 필터링하여 마지막 것만 사용 (덮어쓰기)
             const validThemes = data.themes?.filter(t => t.theme_phrase) || [];
             
-            // 유효한 테마가 있을 때만 표시
+            // 유효한 테마가 있을 때만 표시 (라벨링 완료된 최종 데이터)
             if (validThemes.length > 0) {
               streamStateRef.current.themesDisplayed = true;
               
               setMessages((prev) => {
-                // 로딩 메시지 제거
-                const filtered = prev.filter(m => m.id !== LOADING_MESSAGE_ID);
+                // 기존 테마 메시지와 로딩 메시지 모두 제거 (덮어쓰기)
+                const filtered = prev.filter(m => m.id !== LOADING_MESSAGE_ID && !m.themes);
                 return [
                   ...filtered,
                   {
@@ -854,7 +980,17 @@ export default function ChatPage() {
             }
             break;
 
+          case 'result':
+            // result는 최종 확인용 - themes_ready에서 이미 처리했으므로 무시
+            if (data.status === 'waiting_for_selection') {
+              // 테마 선택 대기 상태 확인
+              removeLoadingMessage();
+            }
+            break;
+
           case 'complete':
+            // 스트림 종료 - EventSource 닫기
+            eventSource.close();
             removeLoadingMessage();
             setIsProcessing(false);
             break;
@@ -923,6 +1059,44 @@ export default function ChatPage() {
     }, 100);
   };
 
+  // 생성 중지 핸들러
+  const handleStopGeneration = useCallback(() => {
+    // SSE 연결 종료
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+    
+    // 로딩 메시지 제거
+    removeLoadingMessage();
+    
+    // 처리 상태 초기화
+    setIsProcessing(false);
+    
+    // 중지 알림 메시지 추가
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: Date.now(),
+        type: "ai",
+        content: "⏹ 생성이 중지되었어요. 다시 요청해주세요!",
+      }
+    ]);
+  }, [removeLoadingMessage]);
+
+  // 테마 목록 확장/축소 토글
+  const toggleThemeExpand = useCallback((messageId: number) => {
+    setExpandedThemes((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(messageId)) {
+        newSet.delete(messageId);
+      } else {
+        newSet.add(messageId);
+      }
+      return newSet;
+    });
+  }, []);
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -935,7 +1109,6 @@ export default function ChatPage() {
     if (!currentTripId || isSelectingTheme) return;
 
     setIsSelectingTheme(true);
-    updateLoadingMessage("콘텐츠를 생성하는 중...");
 
     try {
       // 테마 선택 API 호출
@@ -951,18 +1124,6 @@ export default function ChatPage() {
       if (response.ok) {
         const data: ThemeSelectResponse = await response.json();
         
-        removeLoadingMessage();
-        
-        // 선택한 테마 메시지 추가
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: Date.now(),
-            type: "ai",
-            content: `"${theme.theme_phrase}" 테마를 선택하셨어요! 🎉`,
-          }
-        ]);
-        
         // sessionStorage에 테마 콘텐츠 데이터 저장
         sessionStorage.setItem('selectedThemeContent', JSON.stringify(data.content));
         
@@ -973,13 +1134,19 @@ export default function ChatPage() {
       }
     } catch (error) {
       console.error('테마 선택 에러:', error);
-      removeLoadingMessage();
+      
+      // 네트워크 에러인지 확인
+      const isNetworkError = error instanceof TypeError && (error as Error).message === 'Failed to fetch';
+      const errorMessage = isNetworkError 
+        ? "❌ 서버에 연결할 수 없어요. 인터넷 연결을 확인해주세요."
+        : "❌ 테마 선택 중 에러가 발생했어요. 다시 시도해주세요.";
+      
       setMessages((prev) => [
         ...prev,
         {
           id: Date.now(),
           type: "ai",
-          content: "❌ 테마 선택 중 에러가 발생했어요. 다시 시도해주세요.",
+          content: errorMessage,
         }
       ]);
       // 에러 시에만 다시 선택 가능하도록
@@ -1056,11 +1223,20 @@ export default function ChatPage() {
 
   return (
     <ChatContainer>
+      {/* 테마 선택 시 전체 화면 로딩 오버레이 */}
+      {isSelectingTheme && (
+        <FullScreenLoading>
+          <LoadingSpinner />
+          <LoadingOverlayText>콘텐츠를 생성하는 중...</LoadingOverlayText>
+          <LoadingSubText>잠시만 기다려주세요</LoadingSubText>
+        </FullScreenLoading>
+      )}
+
       <ChatHeader>
         <BackButton onClick={() => router.back()}>
           <BackIcon />
         </BackButton>
-        <HeaderTitle>MoodTrip</HeaderTitle>
+        <HeaderLogo src="/assets/icons/icon.svg" alt="MoodTrip" />
         <HeaderSpacer />
       </ChatHeader>
 
@@ -1072,7 +1248,9 @@ export default function ChatPage() {
             {message.isLoading ? (
               <LoadingMessage>
                 <LoadingIcon />
-                {message.loadingText || message.content}
+                <AnimatedText>
+                  {message.loadingText || message.content}
+                </AnimatedText>
               </LoadingMessage>
             ) : message.isCompleted ? (
               <CompletedMessage>
@@ -1086,14 +1264,17 @@ export default function ChatPage() {
                 </MessageBubble>
                 <ThemeCardWrapper style={{ marginTop: '12px' }}>
                   <ThemeList>
-                    {message.themes.slice(0, 3).map((theme) => (
+                    {(expandedThemes.has(message.id) 
+                      ? message.themes 
+                      : message.themes.slice(0, 3)
+                    ).map((theme) => (
                       <ThemeItem 
                         key={theme.index} 
                         $disabled={isSelectingTheme}
                         onClick={() => handleThemeSelect(theme)}
                       >
                         <ThemeImage 
-                          src={getCityImage(theme.city_name)} 
+                          src={getThemeImage(theme)} 
                           alt={theme.city_name}
                         />
                         <ThemeInfo>
@@ -1104,7 +1285,16 @@ export default function ChatPage() {
                     ))}
                   </ThemeList>
                   {message.themes.length > 3 && (
-                    <MoreButton>
+                    <MoreButton 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleThemeExpand(message.id);
+                      }}
+                      style={{ 
+                        transform: expandedThemes.has(message.id) ? 'rotate(180deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.3s ease'
+                      }}
+                    >
                       <ChevronDownIcon />
                     </MoreButton>
                   )}
@@ -1129,9 +1319,15 @@ export default function ChatPage() {
             onKeyPress={handleKeyPress}
             disabled={isProcessing}
           />
-          <SendButton onClick={handleSendMessage} disabled={!inputValue.trim() || isProcessing}>
-            <SendIcon />
-          </SendButton>
+          {isProcessing ? (
+            <StopButton onClick={handleStopGeneration} title="생성 중지">
+              <StopIcon />
+            </StopButton>
+          ) : (
+            <SendButton onClick={handleSendMessage} disabled={!inputValue.trim()}>
+              <SendIcon />
+            </SendButton>
+          )}
         </InputWrapper>
       </InputContainer>
     </ChatContainer>

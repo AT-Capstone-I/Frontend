@@ -131,10 +131,11 @@ export async function getRecommendedPlaces(
 export interface ThemePreview {
   index: number;
   city_name: string;
-  theme_phrase: string;
+  theme_phrase: string | null;  // 클러스터링 완료 시 null, 라벨링 완료 시 값 존재
   place_count: number;
   place_ids: string[];
-  places_preview: string[];
+  places_preview: string[];     // 장소명 미리보기 (최대 3개)
+  representative_image: string | null;  // 테마 대표 이미지 URL
 }
 
 export interface ClarifierQuestion {
@@ -154,12 +155,21 @@ export type SSEEventType =
 
 export interface SSEEvent {
   type: SSEEventType;
-  content?: string;           // assistant_message
-  count?: number;             // search_status
-  themes?: ThemePreview[];    // themes_ready, result
-  questions?: ClarifierQuestion[];  // clarifier_questions
-  status?: string;            // result
-  message?: string;           // error
+  // assistant_message 필드
+  content?: string;
+  is_searching?: boolean;       // 웹 검색 진행 여부
+  search_query?: string;        // 검색 중일 때만 포함 (검색어)
+  // search_status 필드
+  count?: number;
+  // themes_ready, result 필드
+  themes?: ThemePreview[];
+  // clarifier_questions 필드
+  questions?: ClarifierQuestion[];
+  // result 필드
+  status?: string;
+  // error 필드
+  message?: string;
+  // 공통 필드
   trip_id?: string;
   timestamp: string;
 }
@@ -195,6 +205,47 @@ export interface ThemeSelectResponse {
   status: string;
   trip_id: string;
   content: ThemeContent;
+}
+
+// ============ Clarifier API 타입 정의 ============
+
+export interface ClarifierQuestionItem {
+  index: number;
+  category: string;
+  question: string;
+  priority: 'high' | 'medium' | 'low';
+  field_name: string;
+}
+
+export interface SkipButton {
+  label: string;
+  description: string;
+}
+
+export interface ClarifierData {
+  type: string;
+  questions: ClarifierQuestionItem[];
+  total_count: number;
+  skip_button: SkipButton;
+}
+
+export interface ContentActionResponse {
+  status: 'clarifier_asking';
+  trip_id: string;
+  clarifier: ClarifierData;
+}
+
+export interface ClarifierAnswerRequest {
+  trip_id: string;
+  answers: Record<string, string>;
+  skipped: boolean;
+}
+
+export interface ClarifierAnswerResponse {
+  status: 'completed';
+  trip_id: string;
+  user_profile_summary: string;
+  clarification_answers: Record<string, string>;
 }
 
 // ============ 로컬 스토리지 키 ============
@@ -241,5 +292,56 @@ export function logout(): void {
 export function isLoggedIn(): boolean {
   if (typeof window === 'undefined') return false;
   return localStorage.getItem(STORAGE_KEYS.SIGNUP_COMPLETED) === 'true';
+}
+
+// ============ Clarifier API 함수 ============
+
+/**
+ * 콘텐츠 액션 API - "여기로 결정하기" 클릭 시 호출
+ * Clarifier 질문들을 받아옴
+ */
+export async function requestContentAction(tripId: string): Promise<ContentActionResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/agents/home/content/action`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      trip_id: tripId,
+      action: 'go'
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || '요청 실패');
+  }
+
+  return response.json();
+}
+
+/**
+ * Clarifier 답변 제출 API
+ * 질문에 대한 답변 또는 건너뛰기 처리
+ */
+export async function submitClarifierAnswer(
+  tripId: string,
+  answers: Record<string, string>,
+  skipped: boolean = false
+): Promise<ClarifierAnswerResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/agents/home/clarifier/answer`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      trip_id: tripId,
+      answers,
+      skipped
+    } as ClarifierAnswerRequest)
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || '답변 제출 실패');
+  }
+
+  return response.json();
 }
 
