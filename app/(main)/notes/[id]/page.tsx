@@ -613,6 +613,7 @@ export default function NoteDetailPage() {
   const isDragging = useRef(false);
   const startY = useRef(0);
   const startHeight = useRef(0);
+  const isNavigatingRef = useRef(false);
   
   // 여행노트 데이터 상태
   const [scheduleData, setScheduleData] = useState<ScheduleData | null>(null);
@@ -641,7 +642,37 @@ export default function NoteDetailPage() {
           // 일정 데이터 생성
           const schedule = generateScheduleFromNote(parsedData);
           setScheduleData(schedule);
+
+          // 이미 노트가 있으면 여행 계획 페이지로 이동
+          if (!isNavigatingRef.current) {
+            isNavigatingRef.current = true;
+            router.replace(`/travel/${tripId}`);
+          }
+          return;
         }
+      }
+
+      // 저장된 노트가 없으면 테마 콘텐츠로 자동 생성
+      const themeContentRaw = sessionStorage.getItem('selectedThemeContent');
+      if (themeContentRaw && themeContentRaw !== 'undefined' && themeContentRaw !== 'null') {
+        const themeContent: ThemeContent = JSON.parse(themeContentRaw);
+        const autoNote: TravelNoteData = {
+          tripId,
+          themeContent,
+          clarifierAnswers: {},
+          userProfileSummary: '',
+          createdAt: new Date().toISOString(),
+        };
+        sessionStorage.setItem(`travelNote_${tripId}`, JSON.stringify(autoNote));
+        setNoteData(autoNote);
+        const schedule = generateScheduleFromNote(autoNote);
+        setScheduleData(schedule);
+
+        if (!isNavigatingRef.current) {
+          isNavigatingRef.current = true;
+          router.replace(`/travel/${tripId}`);
+        }
+        return;
       }
     } catch (error) {
       console.error('여행노트 데이터 로드 에러:', error);

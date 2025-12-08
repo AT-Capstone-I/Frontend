@@ -15,9 +15,9 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import styled from "styled-components";
-import { SSEEvent, ThemePreview, ThemeContent, ThemeSelectResponse, getUserId, getUserName } from "../lib/api";
+import { SSEEvent, ThemePreview, ThemeContent, ThemeSelectResponse, getUserId, getUserName, requestContentAction, submitClarifierAnswer, ClarifierData, ClarifierQuestionItem } from "../lib/api";
 
 // API Base URL
 const API_BASE_URL = 'https://moodtrip-production.up.railway.app';
@@ -60,6 +60,178 @@ const ChatContainer = styled.div`
   @media (min-width: 768px) {
     max-width: 100%;
   }
+`;
+
+// Clarifier 오버레이
+const ClarifierOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--greyscale-000, #FFFFFF);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+`;
+
+const ClarifierContainer = styled.div`
+  width: 100%;
+  max-width: 430px;
+  min-height: 100vh;
+  margin: 0 auto;
+  background-color: var(--greyscale-000, #FFFFFF);
+  display: flex;
+  flex-direction: column;
+`;
+
+const ClarifierTopBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 20px;
+  height: 50px;
+`;
+
+const ClarifierBackButton = styled.button<{ disabled?: boolean }>`
+  width: 24px;
+  height: 24px;
+  background: none;
+  border: none;
+  cursor: ${({ disabled }) => (disabled ? 'not-allowed' : 'pointer')};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: ${({ disabled }) => (disabled ? 'var(--greyscale-400, #C4C2C6)' : 'var(--greyscale-1100, #111112)')};
+`;
+
+const ClarifierSpacer = styled.div`
+  width: 24px;
+  height: 24px;
+`;
+
+const ClarifierContentWrapper = styled.div`
+  flex: 1;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 0.3s ease-out;
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+`;
+
+const ClarifierQuestionNumber = styled.p`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: -0.042px;
+  color: var(--primary-500, #4F9DE8);
+  margin-bottom: 8px;
+`;
+
+const ClarifierTitle = styled.h1`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.132px;
+  color: var(--greyscale-1100, #111112);
+  margin-bottom: 28px;
+`;
+
+const ClarifierTextArea = styled.textarea`
+  width: 100%;
+  min-height: 120px;
+  padding: 16px;
+  border: 1px solid var(--greyscale-300, #E1E1E4);
+  border-radius: 12px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--greyscale-1100, #111112);
+  resize: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  
+  &::placeholder {
+    color: var(--greyscale-500, #AAA8AD);
+  }
+  
+  &:focus {
+    outline: none;
+    border-color: var(--primary-500, #4F9DE8);
+    box-shadow: 0 0 0 3px rgba(79, 157, 232, 0.1);
+  }
+`;
+
+const ClarifierPageIndicator = styled.p`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: -0.042px;
+  color: var(--greyscale-400, #C4C2C6);
+  text-align: center;
+  margin-top: auto;
+  margin-bottom: 20px;
+`;
+
+const ClarifierBottomBar = styled.div`
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px 18px 34px;
+  background-color: var(--greyscale-000, #FFFFFF);
+  box-shadow: 0px -3px 8px rgba(0, 0, 0, 0.06);
+`;
+
+const ClarifierButtonRow = styled.div`
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+`;
+
+const ClarifierNextButton = styled.button<{ $isActive: boolean }>`
+  flex: 1;
+  height: 56px;
+  border: none;
+  border-radius: 12px;
+  background-color: ${({ $isActive }) => 
+    $isActive ? 'var(--greyscale-900, #444246)' : 'var(--greyscale-300, #E1E1E4)'};
+  color: var(--greyscale-000, #FFFFFF);
+  font-family: 'Pretendard', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: -0.096px;
+  cursor: ${({ $isActive }) => ($isActive ? 'pointer' : 'not-allowed')};
+  transition: background-color 0.2s ease;
+`;
+
+const ClarifierSkipAllButton = styled.button`
+  width: 100%;
+  height: 48px;
+  padding: 12px 20px;
+  background-color: var(--greyscale-200, #F2F1F2);
+  border: none;
+  border-radius: 12px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--greyscale-700, #77747B);
+  cursor: pointer;
+  transition: all 0.2s ease;
 `;
 
 // 전체 화면 로딩 오버레이
@@ -713,14 +885,8 @@ const ChevronDownIcon = () => (
   </svg>
 );
 
-const TrashIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 6h18" />
-    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-    <line x1="10" y1="11" x2="10" y2="17" />
-    <line x1="14" y1="11" x2="14" y2="17" />
-  </svg>
+const ResetIcon = () => (
+  <img src="/assets/icons/reset.svg" alt="초기화" width={24} height={24} />
 );
 
 // 로딩 메시지 ID 상수
@@ -803,10 +969,27 @@ const parseContentText = (text: string) => {
   return { intro, places: places.slice(0, 5) }; // 최대 5개만 표시
 };
 
+// 대화 기록에 trip_id 추가 (Fire-and-forget)
+const addToConversationHistory = async (userId: string, tripId: string) => {
+  try {
+    await fetch(
+      `${API_BASE_URL}/api/users/${userId}/conversations/${tripId}`,
+      { method: 'POST' }
+    );
+    console.log('✅ Trip added to conversation history');
+  } catch (error) {
+    // 실패해도 UX에 영향 없음 - 조용히 로깅만
+    console.warn('⚠️ Failed to add trip to history:', error);
+  }
+};
+
 export default function ChatPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const chatContentRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const hasAddedToHistoryRef = useRef(false);
+  const hasHandledReturnRef = useRef(false);
   
   // 스트리밍 상태 추적용 ref
   const streamStateRef = useRef({
@@ -824,10 +1007,23 @@ export default function ChatPage() {
   ]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSelectingTheme, setIsSelectingTheme] = useState(false);
+  const [selectedContent, setSelectedContent] = useState<ThemeContent | null>(null);
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [expandedThemes, setExpandedThemes] = useState<Set<number>>(new Set());
+  const [showClarifier, setShowClarifier] = useState(false);
+  const [clarifierData, setClarifierData] = useState<ClarifierData | null>(null);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [isSubmittingClarifier, setIsSubmittingClarifier] = useState(false);
+  const [overlayTitle, setOverlayTitle] = useState("처리 중...");
+  const [overlaySubtitle, setOverlaySubtitle] = useState("잠시만 기다려주세요");
+
+  const setDefaultOverlayText = useCallback(() => {
+    setOverlayTitle("처리 중...");
+    setOverlaySubtitle("잠시만 기다려주세요");
+  }, []);
 
   // 사용자 정보 및 저장된 채팅 로드
   useEffect(() => {
@@ -909,12 +1105,53 @@ export default function ChatPage() {
     setMessages((prev) => prev.filter(m => m.id !== LOADING_MESSAGE_ID));
   }, []);
 
+  const startClarifierFlow = useCallback(async (tripId: string) => {
+    setOverlayTitle("콘텐츠 생성중...");
+    setOverlaySubtitle("맞춤 질문을 준비하고 있어요");
+    setIsSelectingTheme(true);
+    setIsProcessing(true);
+    setSelectedContent(null);
+    setShowClarifier(false);
+    setClarifierData(null);
+    setAnswers({});
+    setCurrentQuestionIndex(0);
+    updateLoadingMessage("콘텐츠를 생성하는 중입니다...");
+
+    try {
+      const clarifierPayload = await requestContentAction(tripId);
+      removeLoadingMessage();
+
+      if (clarifierPayload?.clarifier?.questions?.length) {
+        const initialAnswers: Record<string, string> = {};
+        clarifierPayload.clarifier.questions.forEach((q: ClarifierQuestionItem) => {
+          initialAnswers[q.field_name] = '';
+        });
+        setClarifierData(clarifierPayload.clarifier);
+        setAnswers(initialAnswers);
+        setCurrentQuestionIndex(0);
+        setShowClarifier(true);
+        return;
+      }
+
+      router.push(`/travel/${tripId}`);
+    } catch (clarifierError) {
+      console.warn('Clarifier 요청 실패, 상세 페이지로 이동합니다.', clarifierError);
+      removeLoadingMessage();
+      router.push(`/travel/${tripId}`);
+    } finally {
+      setIsSelectingTheme(false);
+      setIsProcessing(false);
+      setDefaultOverlayText();
+    }
+  }, [removeLoadingMessage, router, setDefaultOverlayText, updateLoadingMessage]);
+
   const startThemeStream = useCallback((query: string) => {
     // 상태 초기화
     streamStateRef.current = {
       assistantMessageCount: 0,
       themesDisplayed: false,
     };
+    hasAddedToHistoryRef.current = false;
 
     // 새로운 trip_id 생성
     const tripId = crypto.randomUUID();
@@ -1005,6 +1242,13 @@ export default function ChatPage() {
             if (validThemes.length > 0) {
               streamStateRef.current.themesDisplayed = true;
               
+              // ⭐ 대화 기록에 trip_id 추가 (한 번만)
+              const userId = getUserId();
+              if (!hasAddedToHistoryRef.current && userId && currentTripId) {
+                hasAddedToHistoryRef.current = true;
+                addToConversationHistory(userId, currentTripId);
+              }
+              
               setMessages((prev) => {
                 // 기존 테마 메시지와 로딩 메시지 모두 제거 (덮어쓰기)
                 const filtered = prev.filter(m => m.id !== LOADING_MESSAGE_ID && !m.themes);
@@ -1077,6 +1321,26 @@ export default function ChatPage() {
       });
     };
   }, [userName, updateLoadingMessage, removeLoadingMessage]);
+
+  // 상세 페이지에서 돌아온 경우 Clarifier 흐름 재개
+  useEffect(() => {
+    if (!searchParams || hasHandledReturnRef.current) return;
+
+    const tripIdFromQuery = searchParams.get('trip_id');
+    const shouldConfirm = searchParams.get('confirm') === '1';
+
+    if (tripIdFromQuery) {
+      setCurrentTripId(tripIdFromQuery);
+      saveTripId(tripIdFromQuery);
+    }
+
+    if (tripIdFromQuery && shouldConfirm) {
+      hasHandledReturnRef.current = true;
+      startClarifierFlow(tripIdFromQuery);
+      // 한 번 처리 후 쿼리 제거하여 반복 이동 방지
+      router.replace('/chat');
+    }
+  }, [router, searchParams, startClarifierFlow]);
 
   const handleSendMessage = () => {
     if (!inputValue.trim() || isProcessing) return;
@@ -1169,7 +1433,15 @@ export default function ChatPage() {
     // 중복 요청 방지
     if (!currentTripId || isSelectingTheme) return;
 
+    setOverlayTitle("테마 생성중...");
+    setOverlaySubtitle("맞춤 여행 테마를 불러오는 중이에요");
     setIsSelectingTheme(true);
+    setIsProcessing(true);
+    setSelectedContent(null);
+    setShowClarifier(false);
+    setClarifierData(null);
+    setAnswers({});
+    setCurrentQuestionIndex(0);
 
     try {
       // 테마 선택 API 호출
@@ -1187,9 +1459,10 @@ export default function ChatPage() {
         
         // sessionStorage에 테마 콘텐츠 데이터 저장
         sessionStorage.setItem('selectedThemeContent', JSON.stringify(data.content));
-        
-        // 여행 상세 페이지로 이동 (trip_id를 URL에 포함)
+        // 콘텐츠 뷰 표시
+        setSelectedContent(data.content);
         router.push(`/travel/${currentTripId}`);
+        return;
       } else {
         throw new Error('API 요청 실패');
       }
@@ -1212,7 +1485,77 @@ export default function ChatPage() {
       ]);
       // 에러 시에만 다시 선택 가능하도록
       setIsSelectingTheme(false);
+      setIsProcessing(false);
+      setDefaultOverlayText();
+      return;
     }
+
+    setIsSelectingTheme(false);
+    setIsProcessing(false);
+    setDefaultOverlayText();
+  };
+
+  // 콘텐츠 확정 후 Clarifier 요청
+  const handleConfirmContent = async () => {
+    if (!currentTripId) return;
+    await startClarifierFlow(currentTripId);
+  };
+
+  const handleCancelContent = () => {
+    setSelectedContent(null);
+    setShowClarifier(false);
+    setClarifierData(null);
+    setAnswers({});
+    setCurrentQuestionIndex(0);
+  };
+
+  // Clarifier 제출/건너뛰기 처리
+  const handleClarifierSubmit = async (skip = false) => {
+    if (!currentTripId) {
+      // trip_id가 없으면 이동만 시도
+      router.push(`/travel/`);
+      return;
+    }
+
+    // Clarifier 데이터가 없거나 스킵을 눌렀을 때 여행노트로 이동
+    if (!clarifierData || skip) {
+      router.push(`/notes/${currentTripId}`);
+      return;
+    }
+
+    setIsSubmittingClarifier(true);
+    try {
+      await submitClarifierAnswer(
+        currentTripId,
+        answers,
+        skip
+      );
+
+      router.push(`/notes/${currentTripId}`);
+    } catch (e) {
+      console.error('Clarifier 제출 에러:', e);
+    } finally {
+      setIsSubmittingClarifier(false);
+    }
+  };
+
+  const handleClarifierAnswerChange = (fieldName: string, value: string) => {
+    setAnswers((prev) => ({ ...prev, [fieldName]: value }));
+  };
+
+  const handleClarifierNext = () => {
+    if (!clarifierData) return;
+    const isLast = currentQuestionIndex === clarifierData.questions.length - 1;
+    if (isLast) {
+      handleClarifierSubmit(false);
+    } else {
+      setCurrentQuestionIndex((idx) => idx + 1);
+    }
+  };
+
+  const handleClarifierPrev = () => {
+    if (currentQuestionIndex === 0) return;
+    setCurrentQuestionIndex((idx) => Math.max(0, idx - 1));
   };
 
   const getTodayDate = () => {
@@ -1271,11 +1614,11 @@ export default function ChatPage() {
         </ContentBody>
 
         <ContentActions>
-          <ActionButton onClick={() => setIsSelectingTheme(false)}>
+          <ActionButton onClick={handleCancelContent}>
             뒤로가기
           </ActionButton>
-          <ActionButton $primary onClick={() => router.push('/schedule')}>
-            일정 만들기
+          <ActionButton $primary onClick={handleConfirmContent}>
+            여기로 결정하기
           </ActionButton>
         </ContentActions>
       </ContentViewWrapper>
@@ -1288,8 +1631,8 @@ export default function ChatPage() {
       {isSelectingTheme && (
         <FullScreenLoading>
           <LoadingSpinner />
-          <LoadingOverlayText>콘텐츠를 생성하는 중...</LoadingOverlayText>
-          <LoadingSubText>잠시만 기다려주세요</LoadingSubText>
+          <LoadingOverlayText>{overlayTitle}</LoadingOverlayText>
+          <LoadingSubText>{overlaySubtitle}</LoadingSubText>
         </FullScreenLoading>
       )}
 
@@ -1299,7 +1642,7 @@ export default function ChatPage() {
         </BackButton>
         <HeaderLogo src="/assets/icons/icon.svg" alt="MoodTrip" />
         <ResetButton onClick={handleReset} title="대화 초기화">
-          <TrashIcon />
+          <ResetIcon />
         </ResetButton>
       </ChatHeader>
 
@@ -1372,6 +1715,9 @@ export default function ChatPage() {
         ))}
       </ChatContent>
 
+      {/* 선택된 콘텐츠 뷰 */}
+      {selectedContent && renderContentView(selectedContent)}
+
       <InputContainer>
         <InputWrapper>
           <TextInput
@@ -1393,6 +1739,54 @@ export default function ChatPage() {
           )}
         </InputWrapper>
       </InputContainer>
+
+      {/* Clarifier 오버레이 */}
+      {showClarifier && clarifierData && clarifierData.questions.length > 0 && (
+        <ClarifierOverlay>
+          <ClarifierContainer>
+            <ClarifierTopBar>
+              <ClarifierBackButton onClick={handleClarifierPrev} disabled={currentQuestionIndex === 0}>
+                <ChevronDownIcon />
+              </ClarifierBackButton>
+              <ClarifierSpacer />
+            </ClarifierTopBar>
+
+            <ClarifierContentWrapper>
+              <ClarifierQuestionNumber>
+                질문 {currentQuestionIndex + 1}/{clarifierData.questions.length}
+              </ClarifierQuestionNumber>
+              <ClarifierTitle>
+                {clarifierData.questions[currentQuestionIndex].question}
+              </ClarifierTitle>
+
+              <ClarifierTextArea
+                placeholder="답변을 입력해주세요 (선택사항)"
+                value={answers[clarifierData.questions[currentQuestionIndex].field_name] || ''}
+                onChange={(e) => handleClarifierAnswerChange(clarifierData.questions[currentQuestionIndex].field_name, e.target.value)}
+              />
+
+              <ClarifierPageIndicator>
+                {currentQuestionIndex + 1}/{clarifierData.questions.length}
+              </ClarifierPageIndicator>
+            </ClarifierContentWrapper>
+
+            <ClarifierBottomBar>
+              <ClarifierButtonRow>
+                <ClarifierNextButton 
+                  $isActive={!isSubmittingClarifier}
+                  onClick={handleClarifierNext}
+                  disabled={isSubmittingClarifier}
+                >
+                  {currentQuestionIndex === clarifierData.questions.length - 1 ? '완료' : '다음'}
+                </ClarifierNextButton>
+              </ClarifierButtonRow>
+              <ClarifierSkipAllButton onClick={() => handleClarifierSubmit(true)} disabled={isSubmittingClarifier}>
+                {clarifierData.skip_button?.label || '질문 건너뛰기'}
+              </ClarifierSkipAllButton>
+            </ClarifierBottomBar>
+          </ClarifierContainer>
+        </ClarifierOverlay>
+      )}
     </ChatContainer>
   );
 }

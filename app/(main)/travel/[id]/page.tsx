@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import styled, { keyframes } from "styled-components";
 import { BackButton } from "@/app/components";
-import { useContentDetail } from "@/app/hooks/useContentDetail";
+import { ThemeContent } from "@/app/lib/api";
 
 // ============ Styled Components - Figma 디자인 ============
 
@@ -428,16 +428,46 @@ export default function TravelDetailPage() {
   const router = useRouter();
   const contentId = params.id as string;
   
-  // API를 통한 콘텐츠 조회
-  const { content, isLoading, error, refetch } = useContentDetail(contentId);
+  // sessionStorage에서 콘텐츠 조회
+  const [content, setContent] = useState<ThemeContent | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isExpanded, setIsExpanded] = useState(false);
   
+  // sessionStorage에서 데이터 로드
+  useEffect(() => {
+    // 상태 초기화
+    setIsLoading(true);
+    setError(null);
+    setContent(null);
+    setCurrentImageIndex(0);
+    setIsExpanded(false);
+
+    const storedContent = sessionStorage.getItem('selectedThemeContent');
+    
+    if (storedContent && storedContent !== 'undefined' && storedContent !== 'null') {
+      try {
+        const parsed: ThemeContent = JSON.parse(storedContent);
+        if (parsed && typeof parsed === 'object') {
+          setContent(parsed);
+        } else {
+          setError('콘텐츠 데이터가 유효하지 않습니다.');
+        }
+      } catch (e) {
+        console.error('콘텐츠 파싱 에러:', e);
+        setError('콘텐츠를 불러오는데 실패했습니다.');
+      }
+    } else {
+      setError('콘텐츠를 찾을 수 없습니다.');
+    }
+    
+    setIsLoading(false);
+  }, [contentId]);
+  
   // 이미지 배열
-  const images = content?.representative_image 
-    ? [content.representative_image, ...content.carousel_images.flatMap(img => img.images).slice(0, 3)]
-    : content?.carousel_images.flatMap(img => img.images).slice(0, 4) || [];
+  const images = content?.carousel_images?.map(img => img.image_url).filter(Boolean) || [];
   
   // 자동 슬라이드
   useEffect(() => {
@@ -487,7 +517,7 @@ export default function TravelDetailPage() {
         <ErrorWrapper>
           <ErrorIcon>😢</ErrorIcon>
           <ErrorText>{error || '콘텐츠를 찾을 수 없습니다.'}</ErrorText>
-          <RetryButton onClick={refetch}>다시 시도</RetryButton>
+          <RetryButton onClick={() => router.back()}>뒤로 가기</RetryButton>
         </ErrorWrapper>
       </PageWrapper>
     );
@@ -602,7 +632,7 @@ export default function TravelDetailPage() {
       
       {/* 하단 고정 버튼 */}
       <BottomButtonWrapper>
-        <BottomButton onClick={() => router.push(`/chat?contentId=${contentId}`)}>
+        <BottomButton onClick={() => router.push(`/chat?trip_id=${contentId}&confirm=1`)}>
           여기로 결정하기
         </BottomButton>
       </BottomButtonWrapper>
