@@ -890,9 +890,8 @@ export default function HomePage() {
               <HorizontalScroll>
                 {isLoadingPopular ? (
                   <>
-                    <LoadingSmallCard />
-                    <LoadingSmallCard />
-                    <LoadingSmallCard />
+                    <LoadingCard />
+                    <LoadingCard />
                   </>
                 ) : popularPlaces.length === 0 ? (
                   <EmptyState>
@@ -922,7 +921,7 @@ export default function HomePage() {
             <Section>
               <SectionHeader>
                 <SectionTitle>작성 중인 여행 노트</SectionTitle>
-                <SectionMore>전체 보기</SectionMore>
+                <SectionMore onClick={() => router.push("/notes")}>전체 보기</SectionMore>
               </SectionHeader>
               <HorizontalScroll>
                 {isLoadingNotes ? (

@@ -194,39 +194,55 @@ const PlaceFullDescription = styled.div`
   }
 `;
 
-const InfoItem = styled.div`
+// 정보 항목 타입별 색상
+const INFO_COLORS = {
+  mood: { bg: "#E8F5E9", border: "#4CAF50", icon: "🌿" },        // 분위기: 초록색
+  recommendation: { bg: "#FFF8E1", border: "#FF9800", icon: "⭐" }, // 추천: 주황색
+  editorTip: { bg: "#E3F2FD", border: "#2196F3", icon: "💡" },   // 에디터 팁: 파란색
+};
+
+const InfoItem = styled.div<{ $type?: "mood" | "recommendation" | "editorTip" }>`
   display: flex;
-  gap: 2px;
+  gap: 10px;
   align-items: flex-start;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  padding: 12px 14px;
+  background-color: ${({ $type }) => 
+    $type ? INFO_COLORS[$type].bg : "#f8f9fa"};
+  border-radius: 10px;
+  border-left: 4px solid ${({ $type }) => 
+    $type ? INFO_COLORS[$type].border : "#4f9de8"};
 
   &:last-child {
     margin-bottom: 0;
   }
 `;
 
-const InfoBar = styled.div`
-  width: 3px;
-  height: 16px;
-  background-color: var(--primary-500, #4f9de8);
-  border-radius: 2px;
+const InfoIcon = styled.span`
+  font-size: 16px;
+  line-height: 1;
   flex-shrink: 0;
-  margin-top: 2px;
 `;
 
-const InfoContent = styled.p`
+const InfoContent = styled.div`
   font-family: "Pretendard", sans-serif;
   font-size: 13px;
   font-weight: 400;
-  line-height: 1.2;
+  line-height: 1.5;
   letter-spacing: -0.039px;
   color: #5e5b61;
   flex: 1;
+`;
 
-  strong {
-    font-weight: 500;
-    color: #2b2a2c;
-  }
+const InfoLabel = styled.span<{ $type?: "mood" | "recommendation" | "editorTip" }>`
+  font-weight: 600;
+  color: ${({ $type }) => 
+    $type ? INFO_COLORS[$type].border : "#2b2a2c"};
+  margin-right: 6px;
+`;
+
+const InfoText = styled.span`
+  color: #444246;
 `;
 
 const ExpandButton = styled.button`
@@ -759,28 +775,31 @@ export default function TravelDetailPage() {
                 )}
 
                 {place.mood && (
-                  <InfoItem>
-                    <InfoBar />
+                  <InfoItem $type="mood">
+                    <InfoIcon>🌿</InfoIcon>
                     <InfoContent>
-                      <strong>분위기:</strong> {place.mood}
+                      <InfoLabel $type="mood">분위기</InfoLabel>
+                      <InfoText>{place.mood}</InfoText>
                     </InfoContent>
                   </InfoItem>
                 )}
 
                 {place.recommendation && (
-                  <InfoItem>
-                    <InfoBar />
+                  <InfoItem $type="recommendation">
+                    <InfoIcon>⭐</InfoIcon>
                     <InfoContent>
-                      <strong>추천 포인트:</strong> {place.recommendation}
+                      <InfoLabel $type="recommendation">추천 포인트</InfoLabel>
+                      <InfoText>{place.recommendation}</InfoText>
                     </InfoContent>
                   </InfoItem>
                 )}
 
                 {place.editorTip && (
-                  <InfoItem>
-                    <InfoBar />
+                  <InfoItem $type="editorTip">
+                    <InfoIcon>💡</InfoIcon>
                     <InfoContent>
-                      <strong>에디터 팁:</strong> {place.editorTip}
+                      <InfoLabel $type="editorTip">에디터 팁</InfoLabel>
+                      <InfoText>{place.editorTip}</InfoText>
                     </InfoContent>
                   </InfoItem>
                 )}
