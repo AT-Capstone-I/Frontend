@@ -1,5 +1,5 @@
 // API Base URL
-const API_BASE_URL = 'https://moodtrip-production.up.railway.app';
+const API_BASE_URL = "https://moodtrip-production.up.railway.app";
 
 // ============ 온보딩 타입 정의 ============
 
@@ -39,7 +39,7 @@ export interface PlaceRecommendation {
 export interface RecommendPlacesRequest {
   user_id: string;
   city?: string | null;
-  domain?: 'place' | 'food' | 'activity' | 'unified';
+  domain?: "place" | "food" | "activity" | "unified";
   max_results?: number;
   use_rerank?: boolean;
   query?: string | null;
@@ -72,18 +72,18 @@ export async function submitOnboarding(
   userId?: string | null
 ): Promise<OnboardingResponse> {
   const response = await fetch(`${API_BASE_URL}/api/agents/onboarding`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       user_name: userName,
       answers: answers,
-      user_id: userId || null
-    } as OnboardingRequest)
+      user_id: userId || null,
+    } as OnboardingRequest),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || '온보딩 실패');
+    throw new Error(error.detail || "온보딩 실패");
   }
 
   return response.json();
@@ -100,28 +100,28 @@ export async function getRecommendedPlaces(
   userId: string,
   city?: string | null,
   options?: {
-    domain?: 'place' | 'food' | 'activity' | 'unified';
+    domain?: "place" | "food" | "activity" | "unified";
     maxResults?: number;
     useRerank?: boolean;
     query?: string | null;
   }
 ): Promise<RecommendPlacesResponse> {
   const response = await fetch(`${API_BASE_URL}/api/recommend/places`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       user_id: userId,
       city: city || null,
-      domain: options?.domain || 'unified',
+      domain: options?.domain || "unified",
       max_results: options?.maxResults || 5,
       use_rerank: options?.useRerank ?? true,
-      query: options?.query || null
-    } as RecommendPlacesRequest)
+      query: options?.query || null,
+    } as RecommendPlacesRequest),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || '추천 실패');
+    throw new Error(error.detail || "추천 실패");
   }
 
   return response.json();
@@ -132,11 +132,11 @@ export async function getRecommendedPlaces(
 export interface ThemePreview {
   index: number;
   city_name: string;
-  theme_phrase: string | null;  // 클러스터링 완료 시 null, 라벨링 완료 시 값 존재
+  theme_phrase: string | null; // 클러스터링 완료 시 null, 라벨링 완료 시 값 존재
   place_count: number;
   place_ids: string[];
-  places_preview: string[];     // 장소명 미리보기 (최대 3개)
-  representative_image: string | null;  // 테마 대표 이미지 URL
+  places_preview: string[]; // 장소명 미리보기 (최대 3개)
+  representative_image: string | null; // 테마 대표 이미지 URL
 }
 
 export interface ClarifierQuestion {
@@ -145,21 +145,21 @@ export interface ClarifierQuestion {
   options: string[];
 }
 
-export type SSEEventType = 
-  | 'assistant_message' 
-  | 'search_status' 
-  | 'themes_ready' 
-  | 'clarifier_questions'
-  | 'result' 
-  | 'complete' 
-  | 'error';
+export type SSEEventType =
+  | "assistant_message"
+  | "search_status"
+  | "themes_ready"
+  | "clarifier_questions"
+  | "result"
+  | "complete"
+  | "error";
 
 export interface SSEEvent {
   type: SSEEventType;
   // assistant_message 필드
   content?: string;
-  is_searching?: boolean;       // 웹 검색 진행 여부
-  search_query?: string;        // 검색 중일 때만 포함 (검색어)
+  is_searching?: boolean; // 웹 검색 진행 여부
+  search_query?: string; // 검색 중일 때만 포함 (검색어)
   // search_status 필드
   count?: number;
   // themes_ready, result 필드
@@ -181,6 +181,8 @@ export interface CarouselImage {
   place_name: string;
   place_id: string;
   image_url: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface Reference {
@@ -214,7 +216,7 @@ export interface ClarifierQuestionItem {
   index: number;
   category: string;
   question: string;
-  priority: 'high' | 'medium' | 'low';
+  priority: "high" | "medium" | "low";
   field_name: string;
 }
 
@@ -231,14 +233,14 @@ export interface ClarifierData {
 }
 
 export interface ContentActionResponse {
-  status: 'clarifier_asking';
+  status: "clarifier_asking";
   trip_id: string;
   clarifier: ClarifierData;
 }
 
 // Back 액션 응답 타입 (테마 카드 목록으로 돌아갈 때)
 export interface ContentActionBackResponse {
-  status: 'theme_cards';
+  status: "theme_cards";
   trip_id: string;
   themes: ThemePreview[];
 }
@@ -250,7 +252,7 @@ export interface ClarifierAnswerRequest {
 }
 
 export interface ClarifierAnswerResponse {
-  status: 'completed';
+  status: "completed";
   trip_id: string;
   user_profile_summary: string;
   clarification_answers: Record<string, string>;
@@ -262,19 +264,24 @@ export interface ClarifierAnswerResponse {
  * 콘텐츠 액션 API - "여기로 결정하기" 클릭 시 호출
  * Clarifier 질문들을 받아옴
  */
-export async function requestContentAction(tripId: string): Promise<ContentActionResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/agents/home/content/action`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      trip_id: tripId,
-      action: 'go'
-    })
-  });
+export async function requestContentAction(
+  tripId: string
+): Promise<ContentActionResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/agents/home/content/action`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        trip_id: tripId,
+        action: "go",
+      }),
+    }
+  );
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || '요청 실패');
+    throw new Error(error.detail || "요청 실패");
   }
 
   return response.json();
@@ -284,19 +291,24 @@ export async function requestContentAction(tripId: string): Promise<ContentActio
  * 콘텐츠 액션 API - "뒤로가기" 클릭 시 호출
  * 테마 카드 목록으로 돌아감 (LangGraph 인터럽트 상태 복원)
  */
-export async function requestContentActionBack(tripId: string): Promise<ContentActionBackResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/agents/home/content/action`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      trip_id: tripId,
-      action: 'back'
-    })
-  });
+export async function requestContentActionBack(
+  tripId: string
+): Promise<ContentActionBackResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/agents/home/content/action`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        trip_id: tripId,
+        action: "back",
+      }),
+    }
+  );
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || '뒤로가기 요청 실패');
+    throw new Error(error.detail || "뒤로가기 요청 실패");
   }
 
   return response.json();
@@ -311,19 +323,22 @@ export async function submitClarifierAnswer(
   answers: Record<string, string>,
   skipped: boolean = false
 ): Promise<ClarifierAnswerResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/agents/home/clarifier/answer`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      trip_id: tripId,
-      answers,
-      skipped
-    } as ClarifierAnswerRequest)
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/api/agents/home/clarifier/answer`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        trip_id: tripId,
+        answers,
+        skipped,
+      } as ClarifierAnswerRequest),
+    }
+  );
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || '답변 제출 실패');
+    throw new Error(error.detail || "답변 제출 실패");
   }
 
   return response.json();
@@ -378,20 +393,20 @@ export async function getRecommendedContents(
   }
 ): Promise<RecommendContentsResponse> {
   const response = await fetch(`${API_BASE_URL}/api/recommend/contents`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       user_id: userId,
       query: options?.query || null,
       city: options?.city || null,
       max_results: options?.maxResults || 5,
       use_rerank: options?.useRerank ?? true,
-    } as RecommendContentsRequest)
+    } as RecommendContentsRequest),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || '콘텐츠 추천 실패');
+    throw new Error(error.detail || "콘텐츠 추천 실패");
   }
 
   return response.json();
@@ -436,16 +451,20 @@ export interface PopularPlacesParams {
  * 인기 장소 추천 API
  * 도시별 인기 장소를 가중 점수 기반으로 추천
  */
-export async function getPopularPlaces(params: PopularPlacesParams): Promise<PopularPlacesResponse> {
+export async function getPopularPlaces(
+  params: PopularPlacesParams
+): Promise<PopularPlacesResponse> {
   const searchParams = new URLSearchParams({ city: params.city });
-  if (params.limit) searchParams.append('limit', String(params.limit));
-  if (params.category) searchParams.append('category', params.category);
+  if (params.limit) searchParams.append("limit", String(params.limit));
+  if (params.category) searchParams.append("category", params.category);
 
-  const response = await fetch(`${API_BASE_URL}/api/recommend/popular?${searchParams}`);
+  const response = await fetch(
+    `${API_BASE_URL}/api/recommend/popular?${searchParams}`
+  );
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || '인기 장소 조회 실패');
+    throw new Error(error.detail || "인기 장소 조회 실패");
   }
 
   return response.json();
@@ -465,13 +484,13 @@ export interface UserCheckResponse {
 export async function checkUserOnboarded(userId: string): Promise<boolean> {
   try {
     const response = await fetch(`${API_BASE_URL}/api/recommend/places`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         user_id: userId,
         max_results: 1,
-        use_rerank: false
-      })
+        use_rerank: false,
+      }),
     });
 
     if (!response.ok) {
@@ -482,14 +501,18 @@ export async function checkUserOnboarded(userId: string): Promise<boolean> {
     // profile_used가 true면 온보딩 완료된 사용자
     return data.metadata?.profile_used === true;
   } catch (error) {
-    console.error('사용자 확인 실패:', error);
+    console.error("사용자 확인 실패:", error);
     return false;
   }
 }
 
 // ============ 여행 노트 타입 정의 ============
 
-export type TripStatus = 'conversation_only' | 'planning' | 'ongoing' | 'completed';
+export type TripStatus =
+  | "conversation_only"
+  | "planning"
+  | "ongoing"
+  | "completed";
 
 export interface TravelNote {
   trip_id: string;
@@ -525,8 +548,12 @@ export interface TravelNotesResponse {
  * @param userId 사용자 ID
  * @returns 상태별 여행 노트 목록
  */
-export async function getTravelNotes(userId: string): Promise<TravelNotesResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/users/${userId}/travel-notes`);
+export async function getTravelNotes(
+  userId: string
+): Promise<TravelNotesResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/users/${userId}/travel-notes`
+  );
 
   if (!response.ok) {
     if (response.status === 404) {
@@ -546,7 +573,7 @@ export async function getTravelNotes(userId: string): Promise<TravelNotesRespons
       };
     }
     const error = await response.json();
-    throw new Error(error.detail || '여행 노트 조회 실패');
+    throw new Error(error.detail || "여행 노트 조회 실패");
   }
 
   return response.json();
@@ -555,10 +582,10 @@ export async function getTravelNotes(userId: string): Promise<TravelNotesRespons
 // ============ 로컬 스토리지 키 ============
 
 export const STORAGE_KEYS = {
-  USER_ID: 'moodtrip_user_id',
-  USER_NAME: 'moodtrip_user_name',
-  SIGNUP_COMPLETED: 'moodtrip_signup_completed',
-  SPLASH_SHOWN: 'moodtrip_splash_shown',
+  USER_ID: "moodtrip_user_id",
+  USER_NAME: "moodtrip_user_name",
+  SIGNUP_COMPLETED: "moodtrip_signup_completed",
+  SPLASH_SHOWN: "moodtrip_splash_shown",
 } as const;
 
 // ============ 유틸리티 함수 ============
@@ -567,7 +594,7 @@ export const STORAGE_KEYS = {
  * 사용자 ID 가져오기
  */
 export function getUserId(): string | null {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === "undefined") return null;
   return localStorage.getItem(STORAGE_KEYS.USER_ID);
 }
 
@@ -575,7 +602,7 @@ export function getUserId(): string | null {
  * 사용자 이름 가져오기
  */
 export function getUserName(): string | null {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === "undefined") return null;
   return localStorage.getItem(STORAGE_KEYS.USER_NAME);
 }
 
@@ -583,7 +610,7 @@ export function getUserName(): string | null {
  * 로그아웃 (모든 사용자 데이터 삭제)
  */
 export function logout(): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   localStorage.removeItem(STORAGE_KEYS.USER_ID);
   localStorage.removeItem(STORAGE_KEYS.USER_NAME);
   localStorage.removeItem(STORAGE_KEYS.SIGNUP_COMPLETED);
@@ -594,8 +621,8 @@ export function logout(): void {
  * 로그인 상태 확인
  */
 export function isLoggedIn(): boolean {
-  if (typeof window === 'undefined') return false;
-  return localStorage.getItem(STORAGE_KEYS.SIGNUP_COMPLETED) === 'true';
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(STORAGE_KEYS.SIGNUP_COMPLETED) === "true";
 }
 
 // ============ 콘텐츠 상세 조회 타입 정의 ============
@@ -622,13 +649,14 @@ export interface ContentDetail {
  * 콘텐츠 상세 조회 API
  * 홈 화면에서 콘텐츠(테마) 카드 클릭 시 상세 정보 조회
  */
-export async function getContentDetail(contentId: string): Promise<ContentDetail> {
+export async function getContentDetail(
+  contentId: string
+): Promise<ContentDetail> {
   const response = await fetch(`${API_BASE_URL}/api/contents/${contentId}`);
-  
+
   if (!response.ok) {
     throw new Error(`콘텐츠 상세 조회 실패: ${response.status}`);
   }
-  
+
   return response.json();
 }
-

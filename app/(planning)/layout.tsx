@@ -24,3 +24,4 @@ export default function PlanningLayout({
 }) {
   return <AppContainer>{children}</AppContainer>;
 }
+
