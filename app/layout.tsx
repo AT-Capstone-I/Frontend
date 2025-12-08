@@ -6,6 +6,9 @@ import { AppWrapper } from "./components";
 export const metadata: Metadata = {
   title: "MoodTrip - 나만의 특별한 여행",
   description: "당신의 기분에 맞는 여행지를 추천해드립니다",
+  icons: {
+    icon: "/assets/icons/logo.svg",
+  },
 };
 
 export const viewport: Viewport = {

@@ -1,6 +1,8 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import styled from "styled-components";
+import { BottomNavigation } from "@/app/components";
 
 const AppContainer = styled.div`
   width: 100%;
@@ -22,6 +24,16 @@ export default function PlanningLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <AppContainer>{children}</AppContainer>;
+  const pathname = usePathname();
+  
+  // /notes/[id] 상세 페이지에서는 네비게이션 숨기기
+  const isDetailPage = pathname?.match(/^\/notes\/[^/]+$/);
+
+  return (
+    <AppContainer>
+      {children}
+      {!isDetailPage && <BottomNavigation />}
+    </AppContainer>
+  );
 }
 

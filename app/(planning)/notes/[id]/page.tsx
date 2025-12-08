@@ -15,6 +15,23 @@ import {
   RouteData,
 } from "@/app/lib/routes";
 import { DUMMY_SCHEDULE_DATA } from "@/app/lib/dummyData";
+import {
+  DndContext,
+  closestCenter,
+  TouchSensor,
+  MouseSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import { restrictToVerticalAxis, restrictToParentElement } from "@dnd-kit/modifiers";
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 // 여행노트 데이터 타입
 interface TravelNoteData {
@@ -145,6 +162,14 @@ const SheetContent = styled.div`
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding-bottom: 20px;
+  
+  /* 스크롤바 숨기기 */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE, Edge */
+  
+  &::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Edge */
+  }
 `;
 
 const TabContainer = styled.div`
@@ -349,6 +374,211 @@ const TravelInfo = styled.div`
   margin-bottom: 8px;
 `;
 
+// ============ 편집 모드 스타일 ============
+const EditModeContainer = styled.div`
+  padding: 0 20px;
+`;
+
+const DeleteButton = styled.button`
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.5px solid var(--greyscale-400, #c4c2c6);
+  background-color: var(--greyscale-000, #ffffff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &::before {
+    content: "";
+    width: 10px;
+    height: 1.5px;
+    background-color: var(--greyscale-600, #918e94);
+  }
+`;
+
+const EditPlaceCard = styled.div`
+  flex: 1;
+  padding: 14px;
+  background-color: var(--greyscale-000, #ffffff);
+  border: 1px solid var(--greyscale-300, #e1e1e4);
+  border-radius: 12px;
+`;
+
+const DragHandleContainer = styled.div`
+  width: 24px;
+  height: 24px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: grab;
+  flex-shrink: 0;
+  touch-action: none;
+  
+  &:active {
+    cursor: grabbing;
+  }
+`;
+
+const DragHandleColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+
+  span {
+    display: block;
+    width: 3px;
+    height: 3px;
+    background-color: var(--greyscale-500, #aaa8ad);
+    border-radius: 50%;
+  }
+`;
+
+const SortableItemWrapper = styled.div<{ $isDragging?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  opacity: ${({ $isDragging }) => ($isDragging ? 0.5 : 1)};
+  background-color: ${({ $isDragging }) => ($isDragging ? 'var(--greyscale-100, #f5f5f5)' : 'transparent')};
+  border-radius: 12px;
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+`;
+
+const AddPlaceButton = styled.button`
+  width: 100%;
+  padding: 14px;
+  background-color: var(--greyscale-000, #ffffff);
+  border: 1px solid var(--greyscale-300, #e1e1e4);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-top: 8px;
+
+  svg {
+    width: 24px;
+    height: 24px;
+    color: var(--greyscale-600, #918e94);
+  }
+`;
+
+const EditBottomBar = styled.div`
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--greyscale-000, #ffffff);
+  padding: 12px 20px;
+  display: flex;
+  gap: 11px;
+  z-index: 30;
+`;
+
+const EditCancelButton = styled.button`
+  flex: 1;
+  padding: 18px 32px;
+  border: none;
+  border-radius: 12px;
+  font-family: "Pretendard", sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  background-color: var(--greyscale-200, #f2f1f2);
+  color: var(--greyscale-1000, #2b2a2c);
+`;
+
+const EditSaveButton = styled.button`
+  flex: 1;
+  padding: 18px 32px;
+  border: none;
+  border-radius: 12px;
+  font-family: "Pretendard", sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  background-color: var(--greyscale-900, #444246);
+  color: white;
+`;
+
+// 삭제/저장 확인 모달 스타일
+const EditModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+`;
+
+const EditModalBox = styled.div`
+  width: 280px;
+  background-color: var(--greyscale-000, #ffffff);
+  border-radius: 12px;
+  overflow: hidden;
+`;
+
+const EditModalContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 20px 24px;
+  text-align: center;
+`;
+
+const EditModalTitle = styled.h3`
+  font-family: "Pretendard", sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--greyscale-1200, #111111);
+  margin: 0;
+`;
+
+const EditModalDescription = styled.p`
+  font-family: "Pretendard", sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--greyscale-700, #77747b);
+  margin: 0;
+`;
+
+const EditModalButtonGroup = styled.div`
+  display: flex;
+  border-top: 1px solid var(--greyscale-300, #e1e1e4);
+`;
+
+const EditModalButton = styled.button<{ $primary?: boolean }>`
+  flex: 1;
+  padding: 16px;
+  background: none;
+  border: none;
+  font-family: "Pretendard", sans-serif;
+  font-size: 16px;
+  font-weight: ${({ $primary }) => ($primary ? 600 : 400)};
+  line-height: 1.4;
+  color: ${({ $primary }) =>
+    $primary
+      ? "var(--greyscale-1200, #111111)"
+      : "var(--greyscale-600, #918E94)"};
+  cursor: pointer;
+
+  &:first-child {
+    border-right: 1px solid var(--greyscale-300, #e1e1e4);
+  }
+`;
+
 const TravelInfoText = styled.span`
   font-family: "Pretendard", sans-serif;
   font-size: 11px;
@@ -500,7 +730,7 @@ const DatePickerOverlay = styled.div`
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: var(--greyscale-000, #ffffff);
   display: flex;
   flex-direction: column;
   z-index: 1000;
@@ -513,11 +743,37 @@ const DatePickerContainer = styled.div`
   flex-direction: column;
 `;
 
+// 뒤로가기 버튼이 있는 Top bar
+const DatePickerTopBar = styled.div`
+  display: flex;
+  align-items: center;
+  padding: 13px 20px;
+  height: 50px;
+`;
+
+const DatePickerBackButton = styled.button`
+  width: 24px;
+  height: 24px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--greyscale-900, #444246);
+
+  svg {
+    width: 24px;
+    height: 24px;
+  }
+`;
+
 const DatePickerHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 13px 20px;
+  padding: 0 20px 13px;
   border-bottom: 1px solid var(--greyscale-200, #f2f1f2);
 `;
 
@@ -536,6 +792,11 @@ const DatePickerDateRange = styled.div`
   font-family: "Pretendard", sans-serif;
   font-size: 13px;
   color: var(--greyscale-700, #77747b);
+`;
+
+const SmallCalendarIcon = styled.img`
+  width: 14px;
+  height: 14px;
 `;
 
 const MonthHeader = styled.div`
@@ -580,13 +841,18 @@ const CalendarGrid = styled.div`
   display: flex;
   flex-direction: column;
   gap: 28px;
-  padding: 0 29px;
+  padding: 0 20px;
 `;
 
 const WeekRow = styled.div`
   display: flex;
-  gap: 32px;
-  justify-content: center;
+  justify-content: space-between;
+`;
+
+const DayLabelRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  padding: 0 9px;
 `;
 
 const DayLabel = styled.span`
@@ -598,20 +864,44 @@ const DayLabel = styled.span`
   text-align: center;
 `;
 
-const DayCell = styled.button<{
-  $selected?: boolean;
+// 날짜 셀 래퍼 - 배경색 연결을 위해
+const DayCellWrapper = styled.div<{
   $inRange?: boolean;
-  $disabled?: boolean;
   $isStart?: boolean;
   $isEnd?: boolean;
+  $isStartAndEnd?: boolean;
+}>`
+  width: calc(100% / 7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  height: 28px;
+
+  /* 범위 배경 (시작~끝 사이 연결) */
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: ${({ $isStart }) => ($isStart ? "50%" : "0")};
+    right: ${({ $isEnd }) => ($isEnd ? "50%" : "0")};
+    background-color: ${({ $inRange, $isStart, $isEnd, $isStartAndEnd }) =>
+      $isStartAndEnd ? "transparent" : ($inRange || $isStart || $isEnd) ? "#F2F8FF" : "transparent"};
+    z-index: 0;
+  }
+`;
+
+const DayCell = styled.button<{
+  $selected?: boolean;
+  $disabled?: boolean;
 }>`
   width: 28px;
   height: 28px;
   border: none;
-  border-radius: ${({ $isStart, $isEnd }) =>
-    $isStart ? "18px 0 0 18px" : $isEnd ? "0 18px 18px 0" : "0"};
-  background-color: ${({ $selected, $inRange }) =>
-    $selected ? "#66B2FE" : $inRange ? "#F2F8FF" : "transparent"};
+  border-radius: 50%;
+  background-color: ${({ $selected }) =>
+    $selected ? "#66B2FE" : "transparent"};
   font-family: "Pretendard", sans-serif;
   font-size: 14px;
   font-weight: 500;
@@ -621,6 +911,8 @@ const DayCell = styled.button<{
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  z-index: 1;
 
   &:hover {
     background-color: ${({ $selected, $disabled }) =>
@@ -723,22 +1015,40 @@ const BackIcon = () => (
   </svg>
 );
 
+// 탭 아이콘 스타일 (SVG 파일 사용)
+const TabIcon = styled.img<{ $active?: boolean; $type: 'pin' | 'heart' }>`
+  width: 24px;
+  height: 24px;
+  /* active 상태에 따른 색상 필터 */
+  filter: ${({ $active, $type }) => {
+    if ($active) {
+      // active 상태: 파란색(일정) 또는 Red-400(즐겨찾기)
+      return $type === 'pin' 
+        ? 'brightness(0) saturate(100%) invert(55%) sepia(68%) saturate(456%) hue-rotate(175deg) brightness(97%) contrast(92%)'
+        : 'brightness(0) saturate(100%) invert(65%) sepia(30%) saturate(1000%) hue-rotate(314deg) brightness(100%) contrast(98%)'; // Red-400 (#FD818B)
+    }
+    // inactive 상태: 회색
+    return 'brightness(0) saturate(100%) invert(38%) sepia(5%) saturate(429%) hue-rotate(220deg) brightness(95%) contrast(88%)';
+  }};
+`;
+
 // Figma 디자인에 맞춘 아이콘
 const PinIcon = ({ active = false }: { active?: boolean }) => (
-  <svg viewBox="0 0 24 24" fill={active ? "#4F9DE8" : "#5E5B61"}>
-    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-  </svg>
+  <TabIcon 
+    src="/assets/icons/pin.svg" 
+    alt="일정" 
+    $active={active}
+    $type="pin"
+  />
 );
 
 const HeartIcon = ({ active = false }: { active?: boolean }) => (
-  <svg
-    viewBox="0 0 24 24"
-    fill={active ? "#FFB800" : "none"}
-    stroke={active ? "#FFB800" : "#5E5B61"}
-    strokeWidth="2"
-  >
-    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-  </svg>
+  <TabIcon 
+    src="/assets/icons/heart.svg" 
+    alt="즐겨찾기" 
+    $active={active}
+    $type="heart"
+  />
 );
 
 const ChevronLeftIcon = () => (
@@ -765,6 +1075,14 @@ const CalendarIcon = () => (
 const CheckIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
     <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+
+// 플러스 아이콘 (편집 모드)
+const PlusIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <line x1="12" y1="5" x2="12" y2="19" />
+    <line x1="5" y1="12" x2="19" y2="12" />
   </svg>
 );
 
@@ -859,6 +1177,49 @@ const generateScheduleFromNote = (noteData: TravelNoteData): ScheduleData => {
   };
 };
 
+// 드래그 가능한 장소 아이템 컴포넌트
+interface SortablePlaceItemProps {
+  place: PlaceData;
+  onDelete: (id: string) => void;
+}
+
+const SortablePlaceItem = ({ place, onDelete }: SortablePlaceItemProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: place.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <SortableItemWrapper
+      ref={setNodeRef}
+      style={style}
+      $isDragging={isDragging}
+    >
+      <DeleteButton onClick={() => onDelete(place.id)} />
+      <EditPlaceCard>
+        <PlaceName>{place.name}</PlaceName>
+      </EditPlaceCard>
+      <DragHandleContainer {...attributes} {...listeners}>
+        <DragHandleColumn>
+          <span /><span /><span />
+        </DragHandleColumn>
+        <DragHandleColumn>
+          <span /><span /><span />
+        </DragHandleColumn>
+      </DragHandleContainer>
+    </SortableItemWrapper>
+  );
+};
+
 export default function NoteDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -889,6 +1250,13 @@ export default function NoteDetailPage() {
   const [selectedStartDate, setSelectedStartDate] = useState<Date | null>(null);
   const [selectedEndDate, setSelectedEndDate] = useState<Date | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+
+  // 편집 모드 상태
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editPlaces, setEditPlaces] = useState<PlaceData[]>([]);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [placeToDelete, setPlaceToDelete] = useState<string | null>(null);
 
   // sessionStorage에서 여행노트 데이터 로드
   useEffect(() => {
@@ -1117,6 +1485,99 @@ export default function NoteDetailPage() {
     setShowConfirmModal(false);
     // 일정 확정 로직 - 여행 중으로 상태 변경 등
     router.push("/notes");
+  };
+
+  // ============ 편집 모드 관련 핸들러 ============
+  const handleStartEdit = () => {
+    if (currentDayData) {
+      setEditPlaces([...currentDayData.places]);
+      setIsEditMode(true);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditMode(false);
+    setEditPlaces([]);
+  };
+
+  const handleDeletePlace = (placeId: string) => {
+    setPlaceToDelete(placeId);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (placeToDelete) {
+      setEditPlaces(editPlaces.filter((p) => p.id !== placeToDelete));
+    }
+    setShowDeleteModal(false);
+    setPlaceToDelete(null);
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
+    setPlaceToDelete(null);
+  };
+
+  const handleSaveEdit = () => {
+    setShowSaveModal(true);
+  };
+
+  const handleConfirmSave = () => {
+    // 일정 데이터 업데이트
+    if (scheduleData) {
+      const updatedDays = scheduleData.days.map((day) => {
+        if (day.day === currentDay) {
+          return { ...day, places: editPlaces };
+        }
+        return day;
+      });
+      setScheduleData({ ...scheduleData, days: updatedDays });
+    }
+    setShowSaveModal(false);
+    setIsEditMode(false);
+    setEditPlaces([]);
+  };
+
+  const handleCancelSave = () => {
+    setShowSaveModal(false);
+  };
+
+  // dnd-kit 센서 설정 (롱프레스로 드래그 활성화)
+  const sensors = useSensors(
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        distance: 8, // 8px 이상 움직여야 드래그 시작
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200, // 200ms 롱프레스 후 드래그 활성화
+        tolerance: 5, // 5px 이내 움직임은 허용
+      },
+    })
+  );
+
+  // dnd-kit 드래그 종료 핸들러
+  const handleSortDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setEditPlaces((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
+  const handleAddPlace = () => {
+    // TODO: 장소 추가 기능 구현 (검색 모달 등)
+    const newPlace: PlaceData = {
+      id: `new-${Date.now()}`,
+      name: "새 여행지",
+      checked: false,
+    };
+    setEditPlaces([...editPlaces, newPlace]);
   };
 
   // 날짜 선택 관련 핸들러
@@ -1388,54 +1849,83 @@ export default function NoteDetailPage() {
                       {scheduleData.endDate && ` ~ ${scheduleData.endDate}`}
                     </DateText>
                   </DateInfo>
-                  <EditButton onClick={handleOpenDatePicker}>편집</EditButton>
+                  <EditButton onClick={handleStartEdit}>편집</EditButton>
                 </DateInfoRow>
 
-                <TimelineContainer>
-                  <TimelineLine />
-                  {currentDayData?.places.map((place, index) => {
-                    // 현재 장소와 다음 장소 사이의 경로 정보 찾기
-                    const segment = routeData?.segments.find(
-                      (seg) => seg.origin.id === place.id
-                    );
+                {isEditMode ? (
+                  // 편집 모드 UI
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleSortDragEnd}
+                    modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+                  >
+                    <SortableContext
+                      items={editPlaces.map((p) => p.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <EditModeContainer>
+                        {editPlaces.map((place) => (
+                          <SortablePlaceItem
+                            key={place.id}
+                            place={place}
+                            onDelete={handleDeletePlace}
+                          />
+                        ))}
+                        <AddPlaceButton onClick={handleAddPlace}>
+                          <PlusIcon />
+                        </AddPlaceButton>
+                      </EditModeContainer>
+                    </SortableContext>
+                  </DndContext>
+                ) : (
+                  // 일반 모드 UI
+                  <TimelineContainer>
+                    <TimelineLine />
+                    {currentDayData?.places.map((place, index) => {
+                      // 현재 장소와 다음 장소 사이의 경로 정보 찾기
+                      const segment = routeData?.segments.find(
+                        (seg) => seg.origin.id === place.id
+                      );
 
-                    return (
-                      <ScheduleItem key={place.id}>
-                        <MarkerContainer>
-                          <Marker $checked={place.checked}>
-                            {place.checked && <CheckIcon />}
-                          </Marker>
-                        </MarkerContainer>
-                        <PlaceCard>
-                          <PlaceName>{place.name}</PlaceName>
-                        </PlaceCard>
-                        {index < (currentDayData?.places.length || 0) - 1 && (
-                          <TravelInfo>
-                            {segment ? (
-                              <>
-                                <TravelInfoText>
-                                  {formatDistance(segment.distanceMeters)}
-                                </TravelInfoText>
-                                <TravelInfoText>
-                                  {formatDuration(
-                                    segment.travelDurationSeconds ||
-                                      segment.durationSeconds
-                                  )}
-                                </TravelInfoText>
-                              </>
-                            ) : isCalculatingRoute ? (
-                              <TravelInfoText>계산 중...</TravelInfoText>
-                            ) : (
-                              <>
-                                <TravelInfoText>거리 정보 없음</TravelInfoText>
-                              </>
-                            )}
-                          </TravelInfo>
-                        )}
-                      </ScheduleItem>
-                    );
-                  })}
-                </TimelineContainer>
+                      return (
+                        <ScheduleItem key={place.id}>
+                          <MarkerContainer>
+                            <Marker $checked={place.checked}>
+                              {place.checked && <CheckIcon />}
+                            </Marker>
+                          </MarkerContainer>
+                          <PlaceCard>
+                            <PlaceName>{place.name}</PlaceName>
+                          </PlaceCard>
+                          {index < (currentDayData?.places.length || 0) - 1 && (
+                            <TravelInfo>
+                              {segment ? (
+                                <>
+                                  <TravelInfoText>
+                                    {formatDistance(segment.distanceMeters)}
+                                  </TravelInfoText>
+                                  <TravelInfoText>
+                                    {formatDuration(
+                                      segment.travelDurationSeconds ||
+                                        segment.durationSeconds
+                                    )}
+                                  </TravelInfoText>
+                                </>
+                              ) : isCalculatingRoute ? (
+                                <TravelInfoText>계산 중...</TravelInfoText>
+                              ) : (
+                                <>
+                                  <TravelInfoText>거리 정보 없음</TravelInfoText>
+                                </>
+                              )}
+                            </TravelInfo>
+                          )}
+                        </ScheduleItem>
+                      );
+                    })}
+                  </TimelineContainer>
+                )}
               </>
             ) : (
               <EmptyFavorites>
@@ -1448,15 +1938,25 @@ export default function NoteDetailPage() {
       </BottomSheetContainer>
 
       {/* 플로팅 채팅 버튼 */}
-      <FloatingChatButton onClick={() => router.push("/chat")}>
-        <ChatIcon />
-      </FloatingChatButton>
+      {!isEditMode && (
+        <FloatingChatButton onClick={() => router.push("/chat")}>
+          <ChatIcon />
+        </FloatingChatButton>
+      )}
 
-      <BottomBar>
-        <ConfirmButton onClick={handleOpenConfirmModal}>
-          일정 확정하기
-        </ConfirmButton>
-      </BottomBar>
+      {/* 일반 모드: 일정 확정 버튼 / 편집 모드: 취소/저장 버튼 */}
+      {isEditMode ? (
+        <EditBottomBar>
+          <EditCancelButton onClick={handleCancelEdit}>취소</EditCancelButton>
+          <EditSaveButton onClick={handleSaveEdit}>저장</EditSaveButton>
+        </EditBottomBar>
+      ) : (
+        <BottomBar>
+          <ConfirmButton onClick={handleOpenConfirmModal}>
+            일정 확정하기
+          </ConfirmButton>
+        </BottomBar>
+      )}
 
       {/* 일정 확정 모달 */}
       {showConfirmModal && (
@@ -1476,14 +1976,57 @@ export default function NoteDetailPage() {
         </ModalOverlay>
       )}
 
+      {/* 삭제 확인 모달 */}
+      {showDeleteModal && (
+        <EditModalOverlay onClick={handleCancelDelete}>
+          <EditModalBox onClick={(e) => e.stopPropagation()}>
+            <EditModalContent>
+              <EditModalTitle>해당 여행지 삭제</EditModalTitle>
+              <EditModalDescription>여행지를 삭제합니다.</EditModalDescription>
+            </EditModalContent>
+            <EditModalButtonGroup>
+              <EditModalButton onClick={handleCancelDelete}>취소</EditModalButton>
+              <EditModalButton $primary onClick={handleConfirmDelete}>
+                확인
+              </EditModalButton>
+            </EditModalButtonGroup>
+          </EditModalBox>
+        </EditModalOverlay>
+      )}
+
+      {/* 저장 확인 모달 */}
+      {showSaveModal && (
+        <EditModalOverlay onClick={handleCancelSave}>
+          <EditModalBox onClick={(e) => e.stopPropagation()}>
+            <EditModalContent>
+              <EditModalTitle>여행 저장</EditModalTitle>
+              <EditModalDescription>즐거운 여행을 시작하세요.</EditModalDescription>
+            </EditModalContent>
+            <EditModalButtonGroup>
+              <EditModalButton onClick={handleCancelSave}>취소</EditModalButton>
+              <EditModalButton $primary onClick={handleConfirmSave}>
+                확인
+              </EditModalButton>
+            </EditModalButtonGroup>
+          </EditModalBox>
+        </EditModalOverlay>
+      )}
+
       {/* 날짜 선택 모달 */}
       {showDatePicker && (
         <DatePickerOverlay>
           <DatePickerContainer>
+            {/* 뒤로가기 버튼 */}
+            <DatePickerTopBar>
+              <DatePickerBackButton onClick={handleCloseDatePicker}>
+                <BackIcon />
+              </DatePickerBackButton>
+            </DatePickerTopBar>
+
             <DatePickerHeader>
               <DatePickerTitle>일정 선택</DatePickerTitle>
               <DatePickerDateRange>
-                <CalendarIcon />
+                <SmallCalendarIcon src="/assets/icons/calendar.svg" alt="캘린더" />
                 <span>
                   {scheduleData?.startDate}
                   {scheduleData?.endDate && ` ~ ${scheduleData.endDate}`}
@@ -1507,11 +2050,11 @@ export default function NoteDetailPage() {
             </MonthHeader>
 
             <CalendarGrid>
-              <WeekRow>
+              <DayLabelRow>
                 {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
                   <DayLabel key={day}>{day}</DayLabel>
                 ))}
-              </WeekRow>
+              </DayLabelRow>
               {Array.from({ length: 6 }).map((_, weekIndex) => (
                 <WeekRow key={weekIndex}>
                   {getCalendarDays()
@@ -1525,22 +2068,27 @@ export default function NoteDetailPage() {
                       const isEnd =
                         selectedEndDate?.toDateString() ===
                         dayData.date.toDateString();
+                      const isStartAndEnd = isStart && isEnd;
 
                       return (
-                        <DayCell
+                        <DayCellWrapper
                           key={dayIndex}
-                          $selected={isSelected}
                           $inRange={inRange}
-                          $disabled={!dayData.isCurrentMonth}
                           $isStart={isStart}
                           $isEnd={isEnd}
-                          onClick={() =>
-                            dayData.isCurrentMonth &&
-                            handleDateSelect(dayData.date)
-                          }
+                          $isStartAndEnd={isStartAndEnd}
                         >
-                          {dayData.date.getDate()}
-                        </DayCell>
+                          <DayCell
+                            $selected={isSelected}
+                            $disabled={!dayData.isCurrentMonth}
+                            onClick={() =>
+                              dayData.isCurrentMonth &&
+                              handleDateSelect(dayData.date)
+                            }
+                          >
+                            {dayData.date.getDate()}
+                          </DayCell>
+                        </DayCellWrapper>
                       );
                     })}
                 </WeekRow>

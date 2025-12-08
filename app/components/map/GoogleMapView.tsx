@@ -38,6 +38,20 @@ interface GoogleMapViewProps {
   routeSegments?: RouteSegment[];
 }
 
+// 번호별 색상 팔레트 (마커와 경로에 동일하게 적용)
+const MARKER_COLORS = [
+  { bg: "#4F9DE8", border: "#3D8BD6" }, // 1번: 파란색
+  { bg: "#FF6B6B", border: "#E85555" }, // 2번: 빨간색
+  { bg: "#51CF66", border: "#40C057" }, // 3번: 초록색
+  { bg: "#FFA94D", border: "#FF922B" }, // 4번: 주황색
+  { bg: "#CC5DE8", border: "#BE4BDB" }, // 5번: 보라색
+  { bg: "#20C997", border: "#12B886" }, // 6번: 청록색
+  { bg: "#F06595", border: "#E64980" }, // 7번: 핑크색
+  { bg: "#748FFC", border: "#5C7CFA" }, // 8번: 인디고
+  { bg: "#FCC419", border: "#FAB005" }, // 9번: 노란색
+  { bg: "#868E96", border: "#6c757d" }, // 10번: 회색
+];
+
 // 내부 Map 컴포넌트 (useMap 훅 사용을 위해 분리)
 const MapContent: React.FC<GoogleMapViewProps> = ({
   places,
@@ -76,10 +90,13 @@ const MapContent: React.FC<GoogleMapViewProps> = ({
           return;
         }
 
+        // 세그먼트 인덱스에 따라 다른 색상 적용
+        const routeColor = MARKER_COLORS[index % MARKER_COLORS.length].bg;
+
         const polyline = new window.google.maps.Polyline({
           path: path,
           geodesic: true,
-          strokeColor: "#66B2FE", // Primary-400 색상
+          strokeColor: routeColor, // 번호별 다른 색상
           strokeOpacity: 1,
           strokeWeight: 4,
           map: map,
@@ -118,18 +135,15 @@ const MapContent: React.FC<GoogleMapViewProps> = ({
     }
   }, [map, places]);
 
-  // 마커 색상 결정 (Primary-400 기반)
-  const getPinColor = (index: number, total: number) => {
-    if (index === 0) return { bg: "#66B2FE", border: "#4F9DE8" }; // 시작: Primary-400
-    if (index === total - 1 && total > 1)
-      return { bg: "#66B2FE", border: "#4F9DE8" }; // 끝: Primary-400
-    return { bg: "#66B2FE", border: "#4F9DE8" }; // 중간: Primary-400
+  // 마커 색상 결정 (인덱스에 따라 다른 색상)
+  const getPinColor = (index: number) => {
+    return MARKER_COLORS[index % MARKER_COLORS.length];
   };
 
   return (
     <>
       {places.map((place, index) => {
-        const colors = getPinColor(index, places.length);
+        const colors = getPinColor(index);
         return (
           <AdvancedMarker key={place.id} position={place.location}>
             <Pin

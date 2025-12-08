@@ -3,6 +3,9 @@
 import { useState } from "react";
 import styled from "styled-components";
 
+// Google Forms 설문 링크
+const SURVEY_URL = "https://docs.google.com/forms/d/e/1FAIpQLSdhvVMPwQN1QBTLc5g2TBaYnzjhQl0TufxPi9ObDvqEZAUWUg/viewform?usp=publish-editor";
+
 // ============ Styled Components - Figma 디자인 기반 ============
 const PageWrapper = styled.div`
   min-height: 100vh;
@@ -502,7 +505,159 @@ const ReviewContent = styled.p`
   margin: 0;
 `;
 
+// ============ 스토리 사진 생성 화면 스타일 ============
+const StoryCreatorWrapper = styled.div`
+  min-height: 100vh;
+  background-color: var(--greyscale-000, #ffffff);
+  display: flex;
+  flex-direction: column;
+`;
+
+const StoryHeader = styled.header`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--greyscale-200, #f2f1f2);
+`;
+
+const StoryBackButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: var(--greyscale-900, #444246);
+
+  svg {
+    width: 24px;
+    height: 24px;
+  }
+`;
+
+const StoryHeaderTitle = styled.h1`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--greyscale-1200, #111111);
+  margin: 0;
+`;
+
+const StoryHeaderSpacer = styled.div`
+  width: 24px;
+  height: 24px;
+`;
+
+const StoryContent = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  gap: 24px;
+`;
+
+const StoryImagePlaceholder = styled.div`
+  width: 280px;
+  height: 400px;
+  background-color: var(--greyscale-100, #f5f5f5);
+  border: 2px dashed var(--greyscale-300, #e1e1e4);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+`;
+
+const StoryPlaceholderIcon = styled.div`
+  width: 64px;
+  height: 64px;
+  background-color: var(--greyscale-200, #f2f1f2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--greyscale-500, #aaa8ad);
+
+  svg {
+    width: 32px;
+    height: 32px;
+  }
+`;
+
+const StoryPlaceholderText = styled.p`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--greyscale-600, #918e94);
+  text-align: center;
+  margin: 0;
+`;
+
+const StoryDescription = styled.p`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--greyscale-700, #77747b);
+  text-align: center;
+  max-width: 280px;
+  margin: 0;
+`;
+
+const StoryBottomBar = styled.div`
+  padding: 16px 20px;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--greyscale-200, #f2f1f2);
+`;
+
+const StoryGenerateButton = styled.button`
+  width: 100%;
+  height: 56px;
+  background-color: var(--greyscale-900, #444246);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: var(--greyscale-1000, #2b2a2c);
+  }
+
+  &:disabled {
+    background-color: var(--greyscale-300, #e1e1e4);
+    cursor: not-allowed;
+  }
+`;
+
 // ============ 아이콘 컴포넌트 ============
+const BackArrowIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M15 18l-6-6 6-6" />
+  </svg>
+);
+
+const ImageIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+    <circle cx="8.5" cy="8.5" r="1.5" />
+    <polyline points="21,15 16,10 5,21" />
+  </svg>
+);
+
 const CheckmarkIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
     <polyline points="20,6 9,17 4,12" />
@@ -618,11 +773,60 @@ const reviewData = [
 export default function SchedulePage() {
   const [activeTab, setActiveTab] = useState<"schedule" | "recommend" | "review">("schedule");
   const [selectedDate, setSelectedDate] = useState(0);
+  const [showStoryCreator, setShowStoryCreator] = useState(false);
 
-  const handleChatClick = () => {
-    // 채팅 페이지로 이동 또는 채팅 모달 열기
-    window.location.href = "/chat";
+  const handleTripEndClick = () => {
+    // 새 탭으로 설문 링크 열기
+    window.open(SURVEY_URL, "_blank");
+    // 현재 탭은 스토리 사진 생성 화면으로 전환
+    setShowStoryCreator(true);
   };
+
+  const handleBackFromStory = () => {
+    setShowStoryCreator(false);
+  };
+
+  const handleGenerateStory = () => {
+    // TODO: 스토리 사진 생성 로직 구현 예정
+    console.log("스토리 사진 생성");
+  };
+
+  // 스토리 사진 생성 화면
+  if (showStoryCreator) {
+    return (
+      <StoryCreatorWrapper>
+        <StoryHeader>
+          <StoryBackButton onClick={handleBackFromStory}>
+            <BackArrowIcon />
+          </StoryBackButton>
+          <StoryHeaderTitle>스토리 사진 생성</StoryHeaderTitle>
+          <StoryHeaderSpacer />
+        </StoryHeader>
+
+        <StoryContent>
+          <StoryImagePlaceholder>
+            <StoryPlaceholderIcon>
+              <ImageIcon />
+            </StoryPlaceholderIcon>
+            <StoryPlaceholderText>
+              여행 사진으로<br />스토리를 만들어보세요
+            </StoryPlaceholderText>
+          </StoryImagePlaceholder>
+
+          <StoryDescription>
+            오늘의 여행 사진들을 선택하면<br />
+            AI가 멋진 스토리 이미지를 생성해드려요
+          </StoryDescription>
+        </StoryContent>
+
+        <StoryBottomBar>
+          <StoryGenerateButton onClick={handleGenerateStory}>
+            스토리 만들기
+          </StoryGenerateButton>
+        </StoryBottomBar>
+      </StoryCreatorWrapper>
+    );
+  }
 
   return (
     <PageWrapper>
@@ -689,7 +893,7 @@ export default function SchedulePage() {
               ))}
             </Timeline>
 
-            <AskButton onClick={handleChatClick}>
+            <AskButton onClick={handleTripEndClick}>
               오늘 여행은 어떠셨나요?
             </AskButton>
           </>
