@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import styled from "styled-components";
 
 // Google Forms 설문 링크
@@ -771,15 +772,20 @@ const reviewData = [
 
 // ============ 메인 컴포넌트 ============
 export default function SchedulePage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"schedule" | "recommend" | "review">("schedule");
   const [selectedDate, setSelectedDate] = useState(0);
   const [showStoryCreator, setShowStoryCreator] = useState(false);
 
+  // 여행지 ID (실제로는 서버에서 받아오거나 상태로 관리)
+  // URL 쿼리 파라미터나 컨텍스트에서 가져올 수 있음
+  const currentTripRegion = "yeosu"; // 여수 여행 샘플
+
   const handleTripEndClick = () => {
     // 새 탭으로 설문 링크 열기
     window.open(SURVEY_URL, "_blank");
-    // 현재 탭은 스토리 사진 생성 화면으로 전환
-    setShowStoryCreator(true);
+    // 스토리 페이지로 이동 (지역별 URL)
+    router.push(`/schedule/story/${currentTripRegion}`);
   };
 
   const handleBackFromStory = () => {
