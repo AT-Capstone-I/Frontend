@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { supabase } from '@/app/lib/supabase';
 
@@ -158,7 +158,25 @@ const TermsText = styled.p`
 
 export default function SignupPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
+
+  // 로그인 페이지 진입 시 기존 세션 정리 (삭제된 사용자 대응)
+  useEffect(() => {
+    const clearOldSession = async () => {
+      const hasError = searchParams.get('error');
+      
+      // 에러가 있거나 첫 진입 시 기존 세션 정리
+      if (hasError) {
+        console.log('🧹 이전 세션 정리 중...');
+        await supabase.auth.signOut();
+        // 관련 localStorage 정리
+        localStorage.removeItem('temp_supabase_user_id');
+      }
+    };
+    
+    clearOldSession();
+  }, [searchParams]);
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
@@ -189,9 +207,8 @@ export default function SignupPage() {
   };
 
   const handleGuestLogin = () => {
-    // 게스트 로그인 - 설문조사 페이지로 이동
-    localStorage.setItem('moodtrip_user_name', '여행자');
-    router.push('/survey');
+    // 게스트 로그인 - 이름 입력 페이지로 이동
+    router.push('/guest-name');
   };
 
   return (

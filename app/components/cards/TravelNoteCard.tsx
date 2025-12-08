@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import styled from "styled-components";
 
 // Figma Design: 작성 중인 여행 노트 카드
@@ -59,13 +60,23 @@ const CardTitle = styled.p`
 `;
 
 interface TravelNoteCardProps {
+  tripId?: string;
   title: string;
   image: string;
 }
 
-export default function TravelNoteCard({ title, image }: TravelNoteCardProps) {
+export default function TravelNoteCard({ tripId, title, image }: TravelNoteCardProps) {
+  const router = useRouter();
+
+  const handleClick = () => {
+    if (tripId) {
+      // trip_id가 있으면 여행노트 페이지로 이동
+      router.push(`/travel/${tripId}`);
+    }
+  };
+
   return (
-    <Card>
+    <Card onClick={handleClick}>
       <CardImageWrapper>
         <CardImage src={image} alt={title} />
       </CardImageWrapper>

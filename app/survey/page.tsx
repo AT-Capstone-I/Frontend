@@ -239,10 +239,11 @@ export default function SurveyPage() {
     // URL에서 파라미터 읽기 (useSearchParams 대신 직접 읽기)
     const urlParams = new URLSearchParams(window.location.search);
     const fromGoogle = urlParams.get('from_google');
+    const isGuest = urlParams.get('guest');
     const urlUserId = urlParams.get('user_id');
     const urlUserName = urlParams.get('user_name');
     
-    console.log('📋 URL 파라미터:', { fromGoogle, urlUserId, urlUserName });
+    console.log('📋 URL 파라미터:', { fromGoogle, isGuest, urlUserId, urlUserName });
     
     // 1. URL 파라미터에서 Google 로그인 정보 확인
     if (fromGoogle === 'true' && urlUserId && urlUserName) {
@@ -256,7 +257,19 @@ export default function SurveyPage() {
       return;
     }
     
-    // 2. localStorage 확인
+    // 2. 게스트 로그인인 경우 - temp_supabase_user_id 사용하지 않음
+    if (isGuest === 'true') {
+      const savedName = localStorage.getItem(STORAGE_KEYS.USER_NAME);
+      console.log('👤 게스트 로그인:', savedName);
+      // 게스트이므로 temp_supabase_user_id 확실히 삭제
+      localStorage.removeItem('temp_supabase_user_id');
+      setUserName(savedName || '여행자');
+      setSupabaseUserId(null);  // 명시적으로 null 설정
+      setIsLoading(false);
+      return;
+    }
+    
+    // 3. localStorage 확인 (Google 로그인 후 새로고침 등의 경우)
     const savedName = localStorage.getItem(STORAGE_KEYS.USER_NAME);
     const tempUserId = localStorage.getItem('temp_supabase_user_id');
     
@@ -264,6 +277,9 @@ export default function SurveyPage() {
     
     if (savedName) {
       setUserName(savedName);
+      // temp_supabase_user_id는 Google 로그인 플로우에서만 사용
+      // (from_google 파라미터가 없지만 temp_supabase_user_id가 있는 경우는 
+      //  Google 로그인 후 새로고침한 경우이므로 허용)
       if (tempUserId) {
         setSupabaseUserId(tempUserId);
       }
@@ -271,7 +287,7 @@ export default function SurveyPage() {
       return;
     }
     
-    // 3. 아무것도 없으면 기본값 사용 (리다이렉트 하지 않음)
+    // 4. 아무것도 없으면 기본값 사용 (리다이렉트 하지 않음)
     console.log('⚠️ 사용자 정보 없음, 기본값 사용');
     setUserName('여행자');
     setIsLoading(false);

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styled from 'styled-components';
 import { supabase } from '@/app/lib/supabase';
-import { STORAGE_KEYS } from '@/app/lib/api';
+import { STORAGE_KEYS, checkUserOnboarded } from '@/app/lib/api';
 
 const Container = styled.div`
   position: relative;
@@ -56,7 +56,10 @@ export default function AuthCallbackPage() {
         
         if (error) {
           console.error('OAuth 에러:', error);
-          setStatus('로그인 실패');
+          // 에러 발생 시 기존 세션 정리 (삭제된 사용자 등 대응)
+          await supabase.auth.signOut();
+          localStorage.removeItem('temp_supabase_user_id');
+          setStatus('로그인 실패 - 다시 시도해주세요');
           router.push('/signup?error=auth');
           return;
         }
@@ -86,10 +89,34 @@ export default function AuthCallbackPage() {
           localStorage.setItem('temp_supabase_user_id', user.id);
           
           console.log('✅ 로그인 성공:', userName);
-          setStatus('로그인 성공! 이동 중...');
+          setStatus('온보딩 상태 확인 중...');
           
-          // survey 페이지로 이동
-          router.push(`/survey?user_id=${user.id}&user_name=${encodeURIComponent(userName)}&from_google=true`);
+          // 1. localStorage 먼저 확인 (빠른 체크)
+          const signupCompleted = localStorage.getItem(STORAGE_KEYS.SIGNUP_COMPLETED);
+          const existingUserId = localStorage.getItem(STORAGE_KEYS.USER_ID);
+          
+          if (signupCompleted === 'true' && existingUserId) {
+            console.log('✅ localStorage에서 기존 사용자 확인 → 홈으로 이동');
+            router.push('/');
+            return;
+          }
+          
+          // 2. 백엔드 API로 온보딩 완료 여부 확인
+          console.log('🔍 백엔드에서 온보딩 상태 확인 중...');
+          const isOnboarded = await checkUserOnboarded(user.id);
+          
+          if (isOnboarded) {
+            // 백엔드에 프로필 있음 → localStorage 복구 후 홈으로 이동
+            console.log('✅ 백엔드에서 기존 사용자 확인 → 홈으로 이동');
+            localStorage.setItem(STORAGE_KEYS.USER_ID, user.id);
+            localStorage.setItem(STORAGE_KEYS.SIGNUP_COMPLETED, 'true');
+            router.push('/');
+          } else {
+            // 신규 사용자 → 설문 페이지로 이동
+            console.log('📝 신규 사용자 → 설문으로 이동');
+            setStatus('설문 페이지로 이동 중...');
+            router.push(`/survey?user_id=${user.id}&user_name=${encodeURIComponent(userName)}&from_google=true`);
+          }
         } else {
           // 세션이 없으면 signup으로
           console.log('❌ 사용자 없음');
@@ -115,4 +142,5 @@ export default function AuthCallbackPage() {
     </Container>
   );
 }
+
 

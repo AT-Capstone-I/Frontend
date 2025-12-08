@@ -155,6 +155,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({
             width={200}
             height={40}
             priority
+            style={{ width: '200px', height: 'auto' }}
           />
         </LogoWrapper>
         <TaglineText $isVisible={isLoaded}>

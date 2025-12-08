@@ -18,7 +18,7 @@ const HeaderWrapper = styled.header`
 const LogoContainer = styled.div`
   display: flex;
   align-items: center;
-  height: 24px;
+  height: 18px;
 `;
 
 const LogoutButton = styled.button`
@@ -66,8 +66,8 @@ export default function Header({ showLogout = true }: HeaderProps) {
         <Image
           src="/assets/icons/icon.svg"
           alt="MoodTrip"
-          width={120}
-          height={24}
+          width={94}
+          height={18}
           priority
         />
       </LogoContainer>

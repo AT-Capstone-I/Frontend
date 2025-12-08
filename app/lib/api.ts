@@ -300,6 +300,229 @@ export async function submitClarifierAnswer(
   return response.json();
 }
 
+// ============ 콘텐츠(여행) 추천 타입 정의 ============
+
+export interface ContentRecommendation {
+  content_id: string;
+  city_name: string;
+  theme_phrase: string;
+  content_text: string;
+  embedding_summary: string;
+  place_ids: string[];
+  theme_keywords?: string[];
+  recommended_for?: string[];
+  relevance_score: number;
+  similarity_score: number;
+}
+
+export interface RecommendContentsRequest {
+  user_id: string;
+  query?: string;
+  city?: string;
+  max_results?: number;
+  use_rerank?: boolean;
+}
+
+export interface RecommendContentsResponse {
+  contents: ContentRecommendation[];
+  total: number;
+  metadata: {
+    user_id: string;
+    profile_used: boolean;
+    reranked: boolean;
+    city: string | null;
+    query: string | null;
+  };
+}
+
+/**
+ * 콘텐츠(여행 테마) 추천 API
+ * 사용자 선호도 기반 테마 콘텐츠 추천
+ */
+export async function getRecommendedContents(
+  userId: string,
+  options?: {
+    query?: string;
+    city?: string;
+    maxResults?: number;
+    useRerank?: boolean;
+  }
+): Promise<RecommendContentsResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/recommend/contents`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      user_id: userId,
+      query: options?.query || null,
+      city: options?.city || null,
+      max_results: options?.maxResults || 5,
+      use_rerank: options?.useRerank ?? true,
+    } as RecommendContentsRequest)
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || '콘텐츠 추천 실패');
+  }
+
+  return response.json();
+}
+
+// ============ 인기 장소 추천 타입 정의 ============
+
+export interface PopularPlace {
+  place_id: string;
+  name: string;
+  city: string | null;
+  category: string | null;
+  subcategory: string | null;
+  rating: number | null;
+  user_ratings_total: number | null;
+  address: string | null;
+  images: string[];
+  description: string | null;
+  weighted_score: number | null;
+}
+
+export interface PopularPlacesResponse {
+  places: PopularPlace[];
+  total: number;
+  metadata: {
+    city: string;
+    city_variants: string[];
+    match_type: string;
+    supports_rag: boolean;
+    category: string | null;
+    scoring_method: string;
+  };
+}
+
+export interface PopularPlacesParams {
+  city: string;
+  limit?: number;
+  category?: string;
+}
+
+/**
+ * 인기 장소 추천 API
+ * 도시별 인기 장소를 가중 점수 기반으로 추천
+ */
+export async function getPopularPlaces(params: PopularPlacesParams): Promise<PopularPlacesResponse> {
+  const searchParams = new URLSearchParams({ city: params.city });
+  if (params.limit) searchParams.append('limit', String(params.limit));
+  if (params.category) searchParams.append('category', params.category);
+
+  const response = await fetch(`${API_BASE_URL}/api/recommend/popular?${searchParams}`);
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || '인기 장소 조회 실패');
+  }
+
+  return response.json();
+}
+
+// ============ 사용자 온보딩 상태 확인 ============
+
+export interface UserCheckResponse {
+  exists: boolean;
+  user_id?: string;
+}
+
+/**
+ * 사용자가 이미 온보딩을 완료했는지 확인
+ * 추천 API를 활용하여 프로필 존재 여부 확인
+ */
+export async function checkUserOnboarded(userId: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/recommend/places`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: userId,
+        max_results: 1,
+        use_rerank: false
+      })
+    });
+
+    if (!response.ok) {
+      return false;
+    }
+
+    const data = await response.json();
+    // profile_used가 true면 온보딩 완료된 사용자
+    return data.metadata?.profile_used === true;
+  } catch (error) {
+    console.error('사용자 확인 실패:', error);
+    return false;
+  }
+}
+
+// ============ 여행 노트 타입 정의 ============
+
+export type TripStatus = 'conversation_only' | 'planning' | 'ongoing' | 'completed';
+
+export interface TravelNote {
+  trip_id: string;
+  final_city: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  trip_status: TripStatus;
+  schedule_confirmed: boolean;
+  schedule_confirmed_at: string | null;
+  trip_completed_at: string | null;
+  selected_theme: string | null;
+  selected_city: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TravelNotesResponse {
+  conversation_only: TravelNote[];
+  planning: TravelNote[];
+  ongoing: TravelNote[];
+  completed: TravelNote[];
+  counts: {
+    conversation_only: number;
+    planning: number;
+    ongoing: number;
+    completed: number;
+    total: number;
+  };
+}
+
+/**
+ * 여행 노트 목록 조회 API
+ * @param userId 사용자 ID
+ * @returns 상태별 여행 노트 목록
+ */
+export async function getTravelNotes(userId: string): Promise<TravelNotesResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/users/${userId}/travel-notes`);
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      // 사용자가 없는 경우 빈 응답 반환
+      return {
+        conversation_only: [],
+        planning: [],
+        ongoing: [],
+        completed: [],
+        counts: {
+          conversation_only: 0,
+          planning: 0,
+          ongoing: 0,
+          completed: 0,
+          total: 0,
+        },
+      };
+    }
+    const error = await response.json();
+    throw new Error(error.detail || '여행 노트 조회 실패');
+  }
+
+  return response.json();
+}
+
 // ============ 로컬 스토리지 키 ============
 
 export const STORAGE_KEYS = {
@@ -344,5 +567,39 @@ export function logout(): void {
 export function isLoggedIn(): boolean {
   if (typeof window === 'undefined') return false;
   return localStorage.getItem(STORAGE_KEYS.SIGNUP_COMPLETED) === 'true';
+}
+
+// ============ 콘텐츠 상세 조회 타입 정의 ============
+
+export interface CarouselImage {
+  place_id: string;
+  name: string;
+  images: string[];
+}
+
+export interface ContentDetail {
+  content_id: string;
+  city_name: string;
+  theme_phrase: string;
+  content_text: string;
+  representative_image: string | null;
+  carousel_images: CarouselImage[];
+  place_ids: string[];
+  place_count: number;
+  created_at: string;
+}
+
+/**
+ * 콘텐츠 상세 조회 API
+ * 홈 화면에서 콘텐츠(테마) 카드 클릭 시 상세 정보 조회
+ */
+export async function getContentDetail(contentId: string): Promise<ContentDetail> {
+  const response = await fetch(`${API_BASE_URL}/api/contents/${contentId}`);
+  
+  if (!response.ok) {
+    throw new Error(`콘텐츠 상세 조회 실패: ${response.status}`);
+  }
+  
+  return response.json();
 }
 

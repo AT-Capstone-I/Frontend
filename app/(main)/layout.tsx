@@ -8,9 +8,11 @@ const AppContainer = styled.div`
   width: 100%;
   max-width: 430px;
   min-height: 100vh;
+  height: 100vh;
   background-color: var(--background);
   position: relative;
   overflow-x: hidden;
+  overflow-y: auto;
 
   @media (min-width: 768px) {
     max-width: 100%;

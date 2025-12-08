@@ -3,7 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import styled, { keyframes } from "styled-components";
 import { usePlaceDetailStream } from "@/app/hooks/usePlaceDetailStream";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 // ============ Animations ============
 const fadeIn = keyframes`
@@ -677,6 +677,23 @@ export default function PlaceDetailPage() {
   const [isLiked, setIsLiked] = useState(false);
   const [showAllHours, setShowAllHours] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
+
+  // 이미지 URL을 프록시 URL로 변환 (Google/외부 이미지)
+  const getProxiedImageUrl = (url: string): string => {
+    if (!url) return '';
+    if (url.startsWith('/api/')) return url;
+    if (url.startsWith('/')) return url;
+    if (url.startsWith('http')) {
+      return `/api/image-proxy?url=${encodeURIComponent(url)}`;
+    }
+    return url;
+  };
+
+  // 이미지 로드 에러 핸들러
+  const handleImageError = (index: number) => {
+    setImageErrors(prev => new Set(prev).add(index));
+  };
 
   // 주소 복사 핸들러
   const handleCopyAddress = async (address: string) => {
@@ -697,6 +714,33 @@ export default function PlaceDetailPage() {
     error,
     refetch,
   } = usePlaceDetailStream(placeId);
+
+  // 자동 슬라이드 기능
+  useEffect(() => {
+    // details가 없으면 스킵
+    if (!details) return;
+    
+    const detailsAny = details as Record<string, unknown>;
+    const possibleFields = ['photos', 'photo_urls', 'images', 'image_urls', 'photo'];
+    let photosLength = 0;
+    
+    for (const field of possibleFields) {
+      const value = detailsAny[field];
+      if (Array.isArray(value) && value.length > 0) {
+        photosLength = value.length;
+        break;
+      }
+    }
+    
+    // 사진이 2장 이상일 때만 자동 슬라이드
+    if (photosLength <= 1) return;
+    
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % photosLength);
+    }, 4000); // 4초마다 슬라이드
+    
+    return () => clearInterval(interval);
+  }, [details]);
 
   // 에러 상태
   if (error) {
@@ -734,9 +778,32 @@ export default function PlaceDetailPage() {
 
   if (!details) return null;
 
-  const photos = details.photos && details.photos.length > 0 
-    ? details.photos 
-    : ['https://images.unsplash.com/photo-1518005020951-eccb494ad742?w=600&h=450&fit=crop'];
+  // 다양한 필드명으로 photos 찾기
+  const detailsAny = details as Record<string, unknown>;
+
+  const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1518005020951-eccb494ad742?w=600&h=450&fit=crop';
+  
+  // 여러 가능한 필드명 체크
+  const getPhotosArray = (): string[] => {
+    const possibleFields = ['photos', 'photo_urls', 'images', 'image_urls', 'photo'];
+    for (const field of possibleFields) {
+      const value = detailsAny[field];
+      if (Array.isArray(value) && value.length > 0) {
+        return value as string[];
+      }
+    }
+    return [DEFAULT_IMAGE];
+  };
+  
+  const photos = getPhotosArray();
+
+  // 현재 표시할 이미지 URL 계산
+  const getCurrentImageUrl = (index: number): string => {
+    if (imageErrors.has(index)) {
+      return DEFAULT_IMAGE;
+    }
+    return getProxiedImageUrl(photos[index]);
+  };
 
   // 네이버 지도 URL 생성 (도로명 주소만 사용)
   const naverMapUrl = `https://map.naver.com/v5/search/${encodeURIComponent(details.address)}`;
@@ -781,12 +848,16 @@ export default function PlaceDetailPage() {
       {/* 이미지 슬라이더 */}
       <ImageSection>
         <ImageWrapper>
-          <MainImage src={photos[currentImageIndex]} alt={details.name} />
+          <MainImage 
+            src={getCurrentImageUrl(currentImageIndex)} 
+            alt={details.name}
+            onError={() => handleImageError(currentImageIndex)}
+          />
         </ImageWrapper>
         {photos.length > 1 && (
           <ImageDots>
             {photos.slice(0, 4).map((_, index) => (
-              <ImageDot 
+<ImageDot
                 key={index}
                 $active={index === currentImageIndex}
                 onClick={() => setCurrentImageIndex(index)}
