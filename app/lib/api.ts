@@ -236,6 +236,13 @@ export interface ContentActionResponse {
   clarifier: ClarifierData;
 }
 
+// Back 액션 응답 타입 (테마 카드 목록으로 돌아갈 때)
+export interface ContentActionBackResponse {
+  status: 'theme_cards';
+  trip_id: string;
+  themes: ThemePreview[];
+}
+
 export interface ClarifierAnswerRequest {
   trip_id: string;
   answers: Record<string, string>;
@@ -268,6 +275,28 @@ export async function requestContentAction(tripId: string): Promise<ContentActio
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.detail || '요청 실패');
+  }
+
+  return response.json();
+}
+
+/**
+ * 콘텐츠 액션 API - "뒤로가기" 클릭 시 호출
+ * 테마 카드 목록으로 돌아감 (LangGraph 인터럽트 상태 복원)
+ */
+export async function requestContentActionBack(tripId: string): Promise<ContentActionBackResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/agents/home/content/action`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      trip_id: tripId,
+      action: 'back'
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || '뒤로가기 요청 실패');
   }
 
   return response.json();
@@ -571,7 +600,7 @@ export function isLoggedIn(): boolean {
 
 // ============ 콘텐츠 상세 조회 타입 정의 ============
 
-export interface CarouselImage {
+export interface ContentCarouselImage {
   place_id: string;
   name: string;
   images: string[];
@@ -583,7 +612,7 @@ export interface ContentDetail {
   theme_phrase: string;
   content_text: string;
   representative_image: string | null;
-  carousel_images: CarouselImage[];
+  carousel_images: ContentCarouselImage[];
   place_ids: string[];
   place_count: number;
   created_at: string;

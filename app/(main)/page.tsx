@@ -12,12 +12,12 @@ import {
   TravelNoteCard,
   PopularPlaceCard,
 } from "@/app/components";
-import { 
-  getRecommendedPlaces, 
+import {
+  getRecommendedPlaces,
   getPopularPlaces,
   getRecommendedContents,
   getTravelNotes,
-  getUserId, 
+  getUserId,
   getUserName,
   PlaceRecommendation,
   PopularPlace,
@@ -27,17 +27,17 @@ import {
 
 // ============ sessionStorage 헬퍼 함수 ============
 const STORAGE_KEYS = {
-  SEEN_RECOMMENDED: 'moodtrip_seen_recommended_ids',
-  SEEN_POPULAR: 'moodtrip_seen_popular_ids',
-  SEEN_CONTENTS: 'moodtrip_seen_contents_ids',
-  CACHED_RECOMMENDED: 'moodtrip_cached_recommended',
-  CACHED_POPULAR: 'moodtrip_cached_popular',
-  CACHED_CONTENTS: 'moodtrip_cached_contents',
+  SEEN_RECOMMENDED: "moodtrip_seen_recommended_ids",
+  SEEN_POPULAR: "moodtrip_seen_popular_ids",
+  SEEN_CONTENTS: "moodtrip_seen_contents_ids",
+  CACHED_RECOMMENDED: "moodtrip_cached_recommended",
+  CACHED_POPULAR: "moodtrip_cached_popular",
+  CACHED_CONTENTS: "moodtrip_cached_contents",
 };
 
 // seen IDs 가져오기
 const getSeenIds = (key: string): Set<string> => {
-  if (typeof window === 'undefined') return new Set();
+  if (typeof window === "undefined") return new Set();
   try {
     const saved = sessionStorage.getItem(key);
     return saved ? new Set(JSON.parse(saved)) : new Set();
@@ -48,13 +48,15 @@ const getSeenIds = (key: string): Set<string> => {
 
 // seen IDs 저장하기
 const saveSeenIds = (key: string, ids: Set<string>) => {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   sessionStorage.setItem(key, JSON.stringify([...ids]));
 };
 
 // 캐시된 추천 장소 가져오기
-const getCachedRecommendedPlaces = (key: string): PlaceRecommendation[] | null => {
-  if (typeof window === 'undefined') return null;
+const getCachedRecommendedPlaces = (
+  key: string
+): PlaceRecommendation[] | null => {
+  if (typeof window === "undefined") return null;
   try {
     const saved = sessionStorage.getItem(key);
     return saved ? JSON.parse(saved) : null;
@@ -65,7 +67,7 @@ const getCachedRecommendedPlaces = (key: string): PlaceRecommendation[] | null =
 
 // 캐시된 인기 장소 가져오기
 const getCachedPopularPlaces = (key: string): PopularPlace[] | null => {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === "undefined") return null;
   try {
     const saved = sessionStorage.getItem(key);
     return saved ? JSON.parse(saved) : null;
@@ -76,19 +78,19 @@ const getCachedPopularPlaces = (key: string): PopularPlace[] | null => {
 
 // 추천 장소 캐시하기
 const cacheRecommendedPlaces = (key: string, places: PlaceRecommendation[]) => {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   sessionStorage.setItem(key, JSON.stringify(places));
 };
 
 // 인기 장소 캐시하기
 const cachePopularPlaces = (key: string, places: PopularPlace[]) => {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   sessionStorage.setItem(key, JSON.stringify(places));
 };
 
 // 캐시된 콘텐츠 가져오기
 const getCachedContents = (key: string): ContentRecommendation[] | null => {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === "undefined") return null;
   try {
     const saved = sessionStorage.getItem(key);
     return saved ? JSON.parse(saved) : null;
@@ -99,13 +101,13 @@ const getCachedContents = (key: string): ContentRecommendation[] | null => {
 
 // 콘텐츠 캐시하기
 const cacheContents = (key: string, contents: ContentRecommendation[]) => {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   sessionStorage.setItem(key, JSON.stringify(contents));
 };
 
 // seen IDs 초기화
 const clearSeenIds = (key: string) => {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   sessionStorage.removeItem(key);
 };
 
@@ -234,18 +236,20 @@ const RefreshButton = styled.button<{ $isLoading?: boolean }>`
   color: var(--greyscale-700);
   background: none;
   border: none;
-  cursor: ${({ $isLoading }) => ($isLoading ? 'not-allowed' : 'pointer')};
+  cursor: ${({ $isLoading }) => ($isLoading ? "not-allowed" : "pointer")};
   transition: color 0.2s ease;
   opacity: ${({ $isLoading }) => ($isLoading ? 0.6 : 1)};
 
   &:hover {
-    color: ${({ $isLoading }) => ($isLoading ? 'var(--greyscale-700)' : 'var(--primary-500)')};
+    color: ${({ $isLoading }) =>
+      $isLoading ? "var(--greyscale-700)" : "var(--primary-500)"};
   }
 
   svg {
     width: 14px;
     height: 14px;
-    animation: ${({ $isLoading }) => ($isLoading ? spin : 'none')} 1s linear infinite;
+    animation: ${({ $isLoading }) => ($isLoading ? spin : "none")} 1s linear
+      infinite;
   }
 
   @media (min-width: 1024px) {
@@ -427,51 +431,57 @@ const AddNoteText = styled.p`
 `;
 
 // 기본 이미지 (사진이 없을 때 사용)
-const DEFAULT_PLACE_IMAGE = "https://images.unsplash.com/photo-1518005020951-eccb494ad742?w=400&h=300&fit=crop";
+const DEFAULT_PLACE_IMAGE =
+  "https://images.unsplash.com/photo-1518005020951-eccb494ad742?w=400&h=300&fit=crop";
 
 // 여행 노트 기본 이미지 (도시별)
 const TRAVEL_NOTE_DEFAULT_IMAGES: Record<string, string> = {
-  '여수': 'https://images.unsplash.com/photo-1596402184320-417e7178b2cd?w=400&h=400&fit=crop',
-  '전주': 'https://images.unsplash.com/photo-1534274867514-d5b47ef89ed7?w=400&h=400&fit=crop',
-  '제주': 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=400&h=400&fit=crop',
-  '부산': 'https://images.unsplash.com/photo-1538485399081-7191377e8241?w=400&h=400&fit=crop',
-  '서울': 'https://images.unsplash.com/photo-1534274867514-d5b47ef89ed7?w=400&h=400&fit=crop',
-  '경주': 'https://images.unsplash.com/photo-1596402184320-417e7178b2cd?w=400&h=400&fit=crop',
-  '강릉': 'https://images.unsplash.com/photo-1596402184320-417e7178b2cd?w=400&h=400&fit=crop',
-  '대전': 'https://images.unsplash.com/photo-1534274867514-d5b47ef89ed7?w=400&h=400&fit=crop',
-  'default': 'https://images.unsplash.com/photo-1488085061387-422e29b40080?w=400&h=400&fit=crop',
+  여수: "https://images.unsplash.com/photo-1596402184320-417e7178b2cd?w=400&h=400&fit=crop",
+  전주: "https://images.unsplash.com/photo-1534274867514-d5b47ef89ed7?w=400&h=400&fit=crop",
+  제주: "https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=400&h=400&fit=crop",
+  부산: "https://images.unsplash.com/photo-1538485399081-7191377e8241?w=400&h=400&fit=crop",
+  서울: "https://images.unsplash.com/photo-1534274867514-d5b47ef89ed7?w=400&h=400&fit=crop",
+  경주: "https://images.unsplash.com/photo-1596402184320-417e7178b2cd?w=400&h=400&fit=crop",
+  강릉: "https://images.unsplash.com/photo-1596402184320-417e7178b2cd?w=400&h=400&fit=crop",
+  대전: "https://images.unsplash.com/photo-1534274867514-d5b47ef89ed7?w=400&h=400&fit=crop",
+  default:
+    "https://images.unsplash.com/photo-1488085061387-422e29b40080?w=400&h=400&fit=crop",
 };
 
 // 여행 콘텐츠 기본 이미지 (도시별)
 const TRAVEL_DEFAULT_IMAGES: Record<string, string> = {
-  '여수': 'https://images.unsplash.com/photo-1596402184320-417e7178b2cd?w=400&h=300&fit=crop',
-  '전주': 'https://images.unsplash.com/photo-1534274867514-d5b47ef89ed7?w=400&h=300&fit=crop',
-  '제주': 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=400&h=300&fit=crop',
-  '부산': 'https://images.unsplash.com/photo-1538485399081-7191377e8241?w=400&h=300&fit=crop',
-  '서울': 'https://images.unsplash.com/photo-1534274867514-d5b47ef89ed7?w=400&h=300&fit=crop',
-  '경주': 'https://images.unsplash.com/photo-1596402184320-417e7178b2cd?w=400&h=300&fit=crop',
-  'default': 'https://images.unsplash.com/photo-1488085061387-422e29b40080?w=400&h=300&fit=crop',
+  여수: "https://images.unsplash.com/photo-1596402184320-417e7178b2cd?w=400&h=300&fit=crop",
+  전주: "https://images.unsplash.com/photo-1534274867514-d5b47ef89ed7?w=400&h=300&fit=crop",
+  제주: "https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=400&h=300&fit=crop",
+  부산: "https://images.unsplash.com/photo-1538485399081-7191377e8241?w=400&h=300&fit=crop",
+  서울: "https://images.unsplash.com/photo-1534274867514-d5b47ef89ed7?w=400&h=300&fit=crop",
+  경주: "https://images.unsplash.com/photo-1596402184320-417e7178b2cd?w=400&h=300&fit=crop",
+  default:
+    "https://images.unsplash.com/photo-1488085061387-422e29b40080?w=400&h=300&fit=crop",
 };
 
 // 시간대별 인사말 생성
-function getGreeting(userName: string | null): { line1: string; line2: string } {
+function getGreeting(userName: string | null): {
+  line1: string;
+  line2: string;
+} {
   const hour = new Date().getHours();
-  const name = userName || '여행자';
-  
+  const name = userName || "여행자";
+
   if (hour >= 5 && hour < 12) {
     return {
       line1: `좋은 아침이에요, ${name}님!`,
-      line2: "오늘 하루도 좋은 여행 되세요 ✨"
+      line2: "오늘도 좋은 하루 되세요 ✨",
     };
   } else if (hour >= 12 && hour < 18) {
     return {
       line1: `안녕하세요, ${name}님!`,
-      line2: "이런 장소는 어떨까요?"
+      line2: "이런 장소는 어떨까요?",
     };
   } else {
     return {
       line1: `좋은 저녁이에요, ${name}님!`,
-      line2: "나만을 위한 특별한 여행을 만나볼까요?"
+      line2: "나만을 위한 특별한 여행을 만나볼까요?",
     };
   }
 }
@@ -479,11 +489,11 @@ function getGreeting(userName: string | null): { line1: string; line2: string } 
 // 새로고침 아이콘 컴포넌트
 const RefreshIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path 
-      d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C15.3019 3 18.1885 4.77814 19.7545 7.42909M21 3V8H16" 
-      stroke="currentColor" 
-      strokeWidth="2" 
-      strokeLinecap="round" 
+    <path
+      d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C15.3019 3 18.1885 4.77814 19.7545 7.42909M21 3V8H16"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
       strokeLinejoin="round"
     />
   </svg>
@@ -492,11 +502,11 @@ const RefreshIcon = () => (
 // + 아이콘 컴포넌트
 const PlusIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path 
-      d="M12 5V19M5 12H19" 
-      stroke="currentColor" 
-      strokeWidth="2" 
-      strokeLinecap="round" 
+    <path
+      d="M12 5V19M5 12H19"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
       strokeLinejoin="round"
     />
   </svg>
@@ -506,9 +516,13 @@ export default function HomePage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"place" | "travel">("place");
   const [userName, setUserName] = useState<string | null>(null);
-  const [recommendedPlaces, setRecommendedPlaces] = useState<PlaceRecommendation[]>([]);
+  const [recommendedPlaces, setRecommendedPlaces] = useState<
+    PlaceRecommendation[]
+  >([]);
   const [popularPlaces, setPopularPlaces] = useState<PopularPlace[]>([]);
-  const [travelContents, setTravelContents] = useState<ContentRecommendation[]>([]);
+  const [travelContents, setTravelContents] = useState<ContentRecommendation[]>(
+    []
+  );
   const [planningNotes, setPlanningNotes] = useState<TravelNote[]>([]);
   const [isLoadingRecommend, setIsLoadingRecommend] = useState(true);
   const [isLoadingPopular, setIsLoadingPopular] = useState(true);
@@ -517,65 +531,70 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
 
   // 맞춤 추천 장소 가져오기 (새로고침 버튼용)
-  const fetchRecommendedPlaces = useCallback(async (isRefresh: boolean = false) => {
-    const userId = getUserId();
-    if (!userId) return;
+  const fetchRecommendedPlaces = useCallback(
+    async (isRefresh: boolean = false) => {
+      const userId = getUserId();
+      if (!userId) return;
 
-    // 초기 로딩이고 캐시가 있으면 캐시 사용
-    if (!isRefresh) {
-      const cached = getCachedRecommendedPlaces(STORAGE_KEYS.CACHED_RECOMMENDED);
-      if (cached && cached.length > 0) {
-        setRecommendedPlaces(cached);
-        setIsLoadingRecommend(false);
-        return;
-      }
-    }
-
-    setIsLoadingRecommend(true);
-    
-    try {
-      // 더 많은 결과를 요청해서 이전에 본 장소 필터링
-      const maxResults = isRefresh ? 15 : 5;
-      const result = await getRecommendedPlaces(userId, '경기 안성시', {
-        domain: 'unified',
-        maxResults: maxResults,
-        useRerank: true,
-      });
-
-      let newPlaces = result.places;
-      const seenIds = getSeenIds(STORAGE_KEYS.SEEN_RECOMMENDED);
-      
-      // 새로고침인 경우, 이전에 본 장소 제외
-      if (isRefresh && seenIds.size > 0) {
-        newPlaces = result.places.filter(
-          place => !seenIds.has(place.place_id)
+      // 초기 로딩이고 캐시가 있으면 캐시 사용
+      if (!isRefresh) {
+        const cached = getCachedRecommendedPlaces(
+          STORAGE_KEYS.CACHED_RECOMMENDED
         );
-        
-        // 필터링 후 장소가 없으면 캐시 초기화하고 전체 반환
-        if (newPlaces.length === 0) {
-          clearSeenIds(STORAGE_KEYS.SEEN_RECOMMENDED);
-          newPlaces = result.places;
+        if (cached && cached.length > 0) {
+          setRecommendedPlaces(cached);
+          setIsLoadingRecommend(false);
+          return;
         }
       }
 
-      // 최대 5개만 표시
-      newPlaces = newPlaces.slice(0, 5);
-      
-      // 현재 표시할 장소들을 seen에 추가
-      newPlaces.forEach(place => seenIds.add(place.place_id));
-      saveSeenIds(STORAGE_KEYS.SEEN_RECOMMENDED, seenIds);
-      
-      // 현재 장소를 캐시에 저장
-      cacheRecommendedPlaces(STORAGE_KEYS.CACHED_RECOMMENDED, newPlaces);
-      
-      setRecommendedPlaces(newPlaces);
-    } catch (err) {
-      console.error('추천 데이터 로딩 실패:', err);
-      setError('추천 장소를 불러오는데 실패했습니다.');
-    } finally {
-      setIsLoadingRecommend(false);
-    }
-  }, []);
+      setIsLoadingRecommend(true);
+
+      try {
+        // 더 많은 결과를 요청해서 이전에 본 장소 필터링
+        const maxResults = isRefresh ? 15 : 5;
+        const result = await getRecommendedPlaces(userId, "경기 안성시", {
+          domain: "unified",
+          maxResults: maxResults,
+          useRerank: true,
+        });
+
+        let newPlaces = result.places;
+        const seenIds = getSeenIds(STORAGE_KEYS.SEEN_RECOMMENDED);
+
+        // 새로고침인 경우, 이전에 본 장소 제외
+        if (isRefresh && seenIds.size > 0) {
+          newPlaces = result.places.filter(
+            (place) => !seenIds.has(place.place_id)
+          );
+
+          // 필터링 후 장소가 없으면 캐시 초기화하고 전체 반환
+          if (newPlaces.length === 0) {
+            clearSeenIds(STORAGE_KEYS.SEEN_RECOMMENDED);
+            newPlaces = result.places;
+          }
+        }
+
+        // 최대 5개만 표시
+        newPlaces = newPlaces.slice(0, 5);
+
+        // 현재 표시할 장소들을 seen에 추가
+        newPlaces.forEach((place) => seenIds.add(place.place_id));
+        saveSeenIds(STORAGE_KEYS.SEEN_RECOMMENDED, seenIds);
+
+        // 현재 장소를 캐시에 저장
+        cacheRecommendedPlaces(STORAGE_KEYS.CACHED_RECOMMENDED, newPlaces);
+
+        setRecommendedPlaces(newPlaces);
+      } catch (err) {
+        console.error("추천 데이터 로딩 실패:", err);
+        setError("추천 장소를 불러오는데 실패했습니다.");
+      } finally {
+        setIsLoadingRecommend(false);
+      }
+    },
+    []
+  );
 
   // 인기 장소 가져오기 (새로고침 버튼용) - 새 API 사용
   const fetchPopularPlaces = useCallback(async (isRefresh: boolean = false) => {
@@ -590,99 +609,102 @@ export default function HomePage() {
     }
 
     setIsLoadingPopular(true);
-    
+
     try {
       const limit = isRefresh ? 30 : 20;
       const result = await getPopularPlaces({
-        city: '안성',
+        city: "안성",
         limit: limit,
       });
 
       let newPlaces = result.places;
       const seenIds = getSeenIds(STORAGE_KEYS.SEEN_POPULAR);
-      
+
       // 새로고침인 경우, 이전에 본 장소 제외
       if (isRefresh && seenIds.size > 0) {
         newPlaces = result.places.filter(
-          place => !seenIds.has(place.place_id)
+          (place) => !seenIds.has(place.place_id)
         );
-        
+
         if (newPlaces.length === 0) {
           clearSeenIds(STORAGE_KEYS.SEEN_POPULAR);
           newPlaces = result.places;
         }
       }
 
-newPlaces = newPlaces.slice(0, 10);
+      newPlaces = newPlaces.slice(0, 10);
 
-      newPlaces.forEach(place => seenIds.add(place.place_id));
+      newPlaces.forEach((place) => seenIds.add(place.place_id));
       saveSeenIds(STORAGE_KEYS.SEEN_POPULAR, seenIds);
-      
+
       // 현재 장소를 캐시에 저장
       cachePopularPlaces(STORAGE_KEYS.CACHED_POPULAR, newPlaces);
-      
+
       setPopularPlaces(newPlaces);
     } catch (err) {
-      console.error('인기 장소 로딩 실패:', err);
+      console.error("인기 장소 로딩 실패:", err);
     } finally {
       setIsLoadingPopular(false);
     }
   }, []);
 
   // 여행 콘텐츠 가져오기 (새로고침 버튼용)
-  const fetchTravelContents = useCallback(async (isRefresh: boolean = false) => {
-    const userId = getUserId();
-    if (!userId) return;
+  const fetchTravelContents = useCallback(
+    async (isRefresh: boolean = false) => {
+      const userId = getUserId();
+      if (!userId) return;
 
-    // 초기 로딩이고 캐시가 있으면 캐시 사용
-    if (!isRefresh) {
-      const cached = getCachedContents(STORAGE_KEYS.CACHED_CONTENTS);
-      if (cached && cached.length > 0) {
-        setTravelContents(cached);
-        setIsLoadingContents(false);
-        return;
-      }
-    }
-
-    setIsLoadingContents(true);
-    
-    try {
-      const maxResults = isRefresh ? 10 : 5;
-      const result = await getRecommendedContents(userId, {
-        maxResults: maxResults,
-        useRerank: true,
-      });
-
-      let newContents = result.contents;
-      const seenIds = getSeenIds(STORAGE_KEYS.SEEN_CONTENTS);
-      
-      // 새로고침인 경우, 이전에 본 콘텐츠 제외
-      if (isRefresh && seenIds.size > 0) {
-        newContents = result.contents.filter(
-          content => !seenIds.has(content.content_id)
-        );
-        
-        if (newContents.length === 0) {
-          clearSeenIds(STORAGE_KEYS.SEEN_CONTENTS);
-          newContents = result.contents;
+      // 초기 로딩이고 캐시가 있으면 캐시 사용
+      if (!isRefresh) {
+        const cached = getCachedContents(STORAGE_KEYS.CACHED_CONTENTS);
+        if (cached && cached.length > 0) {
+          setTravelContents(cached);
+          setIsLoadingContents(false);
+          return;
         }
       }
 
-      newContents = newContents.slice(0, 5);
-      
-      newContents.forEach(content => seenIds.add(content.content_id));
-      saveSeenIds(STORAGE_KEYS.SEEN_CONTENTS, seenIds);
-      
-      // 현재 콘텐츠를 캐시에 저장
-      cacheContents(STORAGE_KEYS.CACHED_CONTENTS, newContents);
-      
-      setTravelContents(newContents);
-    } catch (err) {
-      console.error('여행 콘텐츠 로딩 실패:', err);
-    } finally {
-      setIsLoadingContents(false);
-    }
-  }, []);
+      setIsLoadingContents(true);
+
+      try {
+        const maxResults = isRefresh ? 10 : 5;
+        const result = await getRecommendedContents(userId, {
+          maxResults: maxResults,
+          useRerank: true,
+        });
+
+        let newContents = result.contents;
+        const seenIds = getSeenIds(STORAGE_KEYS.SEEN_CONTENTS);
+
+        // 새로고침인 경우, 이전에 본 콘텐츠 제외
+        if (isRefresh && seenIds.size > 0) {
+          newContents = result.contents.filter(
+            (content) => !seenIds.has(content.content_id)
+          );
+
+          if (newContents.length === 0) {
+            clearSeenIds(STORAGE_KEYS.SEEN_CONTENTS);
+            newContents = result.contents;
+          }
+        }
+
+        newContents = newContents.slice(0, 5);
+
+        newContents.forEach((content) => seenIds.add(content.content_id));
+        saveSeenIds(STORAGE_KEYS.SEEN_CONTENTS, seenIds);
+
+        // 현재 콘텐츠를 캐시에 저장
+        cacheContents(STORAGE_KEYS.CACHED_CONTENTS, newContents);
+
+        setTravelContents(newContents);
+      } catch (err) {
+        console.error("여행 콘텐츠 로딩 실패:", err);
+      } finally {
+        setIsLoadingContents(false);
+      }
+    },
+    []
+  );
 
   // 여행 노트 가져오기 (planning 상태만 홈에서 표시)
   const fetchPlanningNotes = useCallback(async () => {
@@ -693,13 +715,13 @@ newPlaces = newPlaces.slice(0, 10);
     }
 
     setIsLoadingNotes(true);
-    
+
     try {
       const result = await getTravelNotes(userId);
       // home 화면에서는 planning 상태의 노트만 표시
       setPlanningNotes(result.planning);
     } catch (err) {
-      console.error('여행 노트 로딩 실패:', err);
+      console.error("여행 노트 로딩 실패:", err);
     } finally {
       setIsLoadingNotes(false);
     }
@@ -709,12 +731,17 @@ newPlaces = newPlaces.slice(0, 10);
   useEffect(() => {
     const name = getUserName();
     setUserName(name);
-    
+
     fetchRecommendedPlaces(false);
     fetchPopularPlaces(false);
     fetchTravelContents(false);
     fetchPlanningNotes();
-  }, [fetchRecommendedPlaces, fetchPopularPlaces, fetchTravelContents, fetchPlanningNotes]);
+  }, [
+    fetchRecommendedPlaces,
+    fetchPopularPlaces,
+    fetchTravelContents,
+    fetchPlanningNotes,
+  ]);
 
   const greeting = getGreeting(userName);
 
@@ -736,27 +763,32 @@ newPlaces = newPlaces.slice(0, 10);
 
   // 장소 설명 가져오기 (한줄평 또는 주소)
   const getPlaceDescription = (place: PlaceRecommendation): string => {
-    if (place.summary && place.summary['한줄평']) {
-      return place.summary['한줄평'];
+    if (place.summary && place.summary["한줄평"]) {
+      return place.summary["한줄평"];
     }
-    return place.address || place.city || '';
+    return place.address || place.city || "";
   };
 
   // 콘텐츠 이미지 가져오기 (도시별 기본 이미지)
   const getContentImage = (content: ContentRecommendation): string => {
-    const cityName = content.city_name || '';
-    return TRAVEL_DEFAULT_IMAGES[cityName] || TRAVEL_DEFAULT_IMAGES['default'];
+    const cityName = content.city_name || "";
+    return TRAVEL_DEFAULT_IMAGES[cityName] || TRAVEL_DEFAULT_IMAGES["default"];
   };
 
   // 여행 노트 이미지 가져오기 (도시별 기본 이미지)
   const getTravelNoteImage = (note: TravelNote): string => {
-    const cityName = note.final_city || note.selected_city || '';
-    return TRAVEL_NOTE_DEFAULT_IMAGES[cityName] || TRAVEL_NOTE_DEFAULT_IMAGES['default'];
+    const cityName = note.final_city || note.selected_city || "";
+    return (
+      TRAVEL_NOTE_DEFAULT_IMAGES[cityName] ||
+      TRAVEL_NOTE_DEFAULT_IMAGES["default"]
+    );
   };
 
   // 여행 노트 제목 가져오기
   const getTravelNoteTitle = (note: TravelNote): string => {
-    return note.final_city || note.selected_city || note.selected_theme || '새 여행';
+    return (
+      note.final_city || note.selected_city || note.selected_theme || "새 여행"
+    );
   };
 
   // 새로고침 핸들러
@@ -780,7 +812,7 @@ newPlaces = newPlaces.slice(0, 10);
 
   // 새 여행 노트 추가 핸들러
   const handleAddNewTrip = () => {
-    router.push('/chat');
+    router.push("/chat");
   };
 
   return (
@@ -801,8 +833,8 @@ newPlaces = newPlaces.slice(0, 10);
             <Section>
               <SectionHeader>
                 <SectionTitle>맞춤 추천 장소</SectionTitle>
-                <RefreshButton 
-                  onClick={handleRefreshRecommended} 
+                <RefreshButton
+                  onClick={handleRefreshRecommended}
                   $isLoading={isLoadingRecommend}
                   disabled={isLoadingRecommend}
                 >
@@ -823,14 +855,18 @@ newPlaces = newPlaces.slice(0, 10);
                   </EmptyState>
                 ) : recommendedPlaces.length === 0 ? (
                   <EmptyState>
-                    <p>추천 장소가 없습니다.<br />나중에 다시 시도해주세요.</p>
+                    <p>
+                      추천 장소가 없습니다.
+                      <br />
+                      나중에 다시 시도해주세요.
+                    </p>
                   </EmptyState>
                 ) : (
                   recommendedPlaces.map((place) => (
                     <PlaceCard
                       key={place.place_id}
                       id={place.place_id}
-                      title={place.name || '장소'}
+                      title={place.name || "장소"}
                       description={getPlaceDescription(place)}
                       image={getPlaceImage(place)}
                     />
@@ -842,8 +878,8 @@ newPlaces = newPlaces.slice(0, 10);
             <Section>
               <SectionHeader>
                 <SectionTitle>인기 장소</SectionTitle>
-                <RefreshButton 
-                  onClick={handleRefreshPopular} 
+                <RefreshButton
+                  onClick={handleRefreshPopular}
                   $isLoading={isLoadingPopular}
                   disabled={isLoadingPopular}
                 >
@@ -867,8 +903,8 @@ newPlaces = newPlaces.slice(0, 10);
                     <PopularPlaceCard
                       key={place.place_id}
                       id={place.place_id}
-                      title={place.name || '장소'}
-                      description={place.address || place.city || ''}
+                      title={place.name || "장소"}
+                      description={place.address || place.city || ""}
                       image={getPopularPlaceImage(place)}
                     />
                   ))
@@ -919,8 +955,8 @@ newPlaces = newPlaces.slice(0, 10);
             <Section>
               <SectionHeader>
                 <SectionTitle>여행 추천</SectionTitle>
-                <RefreshButton 
-                  onClick={handleRefreshContents} 
+                <RefreshButton
+                  onClick={handleRefreshContents}
                   $isLoading={isLoadingContents}
                   disabled={isLoadingContents}
                 >

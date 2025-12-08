@@ -27,10 +27,9 @@ export default function MainLayout({
   const pathname = usePathname();
   
   // 상세 페이지들에서는 ChatFab, BottomNavigation 숨기기
-  const isNoteDetailPage = pathname?.startsWith('/notes/') && pathname !== '/notes';
   const isPlaceDetailPage = pathname?.includes('/place/');
   const isTravelDetailPage = pathname?.includes('/travel/');
-  const hideNavigation = isNoteDetailPage || isPlaceDetailPage || isTravelDetailPage;
+  const hideNavigation = isPlaceDetailPage || isTravelDetailPage;
 
   return (
     <AppContainer>

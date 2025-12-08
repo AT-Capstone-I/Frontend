@@ -1,0 +1,34 @@
+/* Google Maps Place Autocomplete Customization */
+gmp-place-autocomplete {
+  --gmp-place-autocomplete-background: var(--bg-primary);
+  --gmp-place-autocomplete-color: var(--text-primary);
+  --gmp-place-autocomplete-border-color: var(--border);
+  --gmp-place-autocomplete-border-radius: 0.5rem;
+  /* --gmp-place-autocomplete-font-family: 'Inter', sans-serif; */
+}
+
+gmp-place-autocomplete::part(input) {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+  padding: 0.75rem 1rem;
+}
+
+gmp-place-autocomplete::part(list) {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+gmp-place-autocomplete::part(option) {
+  color: var(--text-primary);
+}
+
+gmp-place-autocomplete::part(option):hover,
+gmp-place-autocomplete::part(option):focus {
+  background-color: var(--accent);
+  color: white;
+}

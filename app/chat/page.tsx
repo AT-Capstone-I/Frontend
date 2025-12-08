@@ -1457,11 +1457,10 @@ export default function ChatPage() {
       if (response.ok) {
         const data: ThemeSelectResponse = await response.json();
         
-        // sessionStorage에 테마 콘텐츠 데이터 저장
-        sessionStorage.setItem('selectedThemeContent', JSON.stringify(data.content));
-        // 콘텐츠 뷰 표시
+        // 콘텐츠 뷰 표시 (sessionStorage 대신 API로 조회하므로 저장 불필요)
         setSelectedContent(data.content);
-        router.push(`/travel/${currentTripId}`);
+        // content_id로 상세 페이지 이동 (API로 다시 조회)
+        router.push(`/travel/${data.content.content_id}`);
         return;
       } else {
         throw new Error('API 요청 실패');
@@ -1517,25 +1516,35 @@ export default function ChatPage() {
       return;
     }
 
-    // Clarifier 데이터가 없거나 스킵을 눌렀을 때 여행노트로 이동
-    if (!clarifierData || skip) {
+    // Clarifier 데이터가 없으면 이동만 (API 호출 불가)
+    if (!clarifierData) {
       router.push(`/notes/${currentTripId}`);
       return;
     }
 
+    // 로딩 오버레이 표시
+    setOverlayTitle("여행 준비중...");
+    setOverlaySubtitle(skip ? "질문을 건너뛰고 있어요" : "답변을 저장하고 있어요");
+    setIsSelectingTheme(true);
     setIsSubmittingClarifier(true);
+
     try {
+      // 스킵이든 완료든 항상 API 호출 (fire and forget 금지)
       await submitClarifierAnswer(
         currentTripId,
-        answers,
+        skip ? {} : answers,  // 스킵이면 빈 답변
         skip
       );
 
       router.push(`/notes/${currentTripId}`);
     } catch (e) {
       console.error('Clarifier 제출 에러:', e);
+      // 에러 시에도 이동 (폴백)
+      router.push(`/notes/${currentTripId}`);
     } finally {
       setIsSubmittingClarifier(false);
+      setIsSelectingTheme(false);
+      setDefaultOverlayText();
     }
   };
 

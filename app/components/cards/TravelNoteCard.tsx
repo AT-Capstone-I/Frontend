@@ -70,8 +70,8 @@ export default function TravelNoteCard({ tripId, title, image }: TravelNoteCardP
 
   const handleClick = () => {
     if (tripId) {
-      // trip_id가 있으면 여행노트 페이지로 이동
-      router.push(`/travel/${tripId}`);
+      // trip_id가 있으면 계획 페이지(여행노트 상세)로 이동
+      router.push(`/notes/${tripId}`);
     }
   };
 
