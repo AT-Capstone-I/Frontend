@@ -172,6 +172,32 @@ const HeaderSpacer = styled.div`
   height: 24px;
 `;
 
+const ResetButton = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+
+  &:active {
+    background-color: rgba(0, 0, 0, 0.1);
+  }
+
+  svg {
+    width: 22px;
+    height: 22px;
+    color: var(--greyscale-700, #77747B);
+  }
+`;
+
 const ChatContent = styled.div`
   flex: 1;
   overflow-y: auto;
@@ -687,6 +713,16 @@ const ChevronDownIcon = () => (
   </svg>
 );
 
+const TrashIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 6h18" />
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    <line x1="10" y1="11" x2="10" y2="17" />
+    <line x1="14" y1="11" x2="14" y2="17" />
+  </svg>
+);
+
 // 로딩 메시지 ID 상수
 const LOADING_MESSAGE_ID = -999;
 
@@ -711,6 +747,13 @@ const loadChatMessages = (): Message[] | null => {
   } catch {
     return null;
   }
+};
+
+// 채팅 메시지 초기화
+const clearChatMessages = () => {
+  if (typeof window === 'undefined') return;
+  sessionStorage.removeItem(CHAT_STORAGE_KEY);
+  sessionStorage.removeItem(TRIP_ID_STORAGE_KEY);
 };
 
 // Trip ID 저장/복원
@@ -1104,6 +1147,24 @@ export default function ChatPage() {
     }
   };
 
+  // 대화 초기화 핸들러
+  const handleReset = () => {
+    if (confirm('대화를 초기화하시겠습니까?\n모든 대화 내용이 삭제됩니다.')) {
+      // 스트리밍 연결 종료
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+      
+      // 상태 초기화
+      clearChatMessages();
+      setMessages([]);
+      setCurrentTripId(null);
+      setExpandedThemes(new Set());
+      setInputValue('');
+    }
+  };
+
   const handleThemeSelect = async (theme: ThemePreview) => {
     // 중복 요청 방지
     if (!currentTripId || isSelectingTheme) return;
@@ -1237,7 +1298,9 @@ export default function ChatPage() {
           <BackIcon />
         </BackButton>
         <HeaderLogo src="/assets/icons/icon.svg" alt="MoodTrip" />
-        <HeaderSpacer />
+        <ResetButton onClick={handleReset} title="대화 초기화">
+          <TrashIcon />
+        </ResetButton>
       </ChatHeader>
 
       <ChatContent ref={chatContentRef}>

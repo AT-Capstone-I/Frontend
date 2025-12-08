@@ -21,6 +21,9 @@
   "homepage": "https://github.com/AT-Capstone-I/Frontend#readme",
   "description": "",
   "dependencies": {
+    "@supabase/auth-helpers-nextjs": "^0.15.0",
+    "@supabase/ssr": "^0.8.0",
+    "@supabase/supabase-js": "^2.86.2",
     "next": "^16.0.6",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

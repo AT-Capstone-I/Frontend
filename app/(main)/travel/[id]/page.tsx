@@ -348,140 +348,109 @@ const LoadingWrapper = styled.div`
   font-size: 14px;
 `;
 
-// ============ Clarifier Modal 스타일 ============
+// ============ Clarifier 전체화면 스타일 (Survey 스타일) ============
 
-const ModalOverlay = styled.div`
+const ClarifierOverlay = styled.div`
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
-`;
-
-const ModalContainer = styled.div`
-  width: 100%;
-  max-width: 400px;
-  max-height: 90vh;
   background-color: var(--greyscale-000, #FFFFFF);
-  border-radius: 20px;
-  overflow: hidden;
+  z-index: 1000;
   display: flex;
   flex-direction: column;
 `;
 
-const ModalHeader = styled.div`
-  padding: 24px 20px 16px;
-  border-bottom: 1px solid var(--greyscale-200, #F2F1F2);
-`;
-
-const ModalTitle = styled.h2`
-  font-family: 'Pretendard', sans-serif;
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1.4;
-  color: var(--greyscale-1100, #111112);
-  margin: 0 0 8px 0;
-`;
-
-const ModalSubtitle = styled.p`
-  font-family: 'Pretendard', sans-serif;
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1.5;
-  color: var(--greyscale-700, #77747B);
-  margin: 0;
-`;
-
-const ModalContent = styled.div`
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px;
-`;
-
-const QuestionItem = styled.div`
-  margin-bottom: 24px;
-  
-  &:last-child {
-    margin-bottom: 0;
-  }
-`;
-
-const QuestionLabel = styled.label`
+const ClarifierContainer = styled.div`
+  width: 100%;
+  max-width: 430px;
+  min-height: 100vh;
+  margin: 0 auto;
+  background-color: var(--greyscale-000, #FFFFFF);
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin-bottom: 12px;
+  flex-direction: column;
 `;
 
-const QuestionNumber = styled.span`
+const ClarifierTopBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 20px;
+  height: 50px;
+`;
+
+const ClarifierBackButton = styled.button`
+  width: 24px;
+  height: 24px;
+  background: none;
+  border: none;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
+`;
+
+const ClarifierSpacer = styled.div`
   width: 24px;
   height: 24px;
-  border-radius: 50%;
-  background-color: var(--primary-100, #E0F0FF);
-  color: var(--primary-500, #4F9DE8);
-  font-family: 'Pretendard', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  flex-shrink: 0;
 `;
 
-const QuestionText = styled.span`
-  font-family: 'Pretendard', sans-serif;
-  font-size: 15px;
-  font-weight: 500;
-  line-height: 1.5;
-  color: var(--greyscale-1000, #2B2A2C);
-`;
-
-const PriorityBadge = styled.span<{ $priority: string }>`
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-family: 'Pretendard', sans-serif;
-  font-size: 11px;
-  font-weight: 500;
-  margin-left: auto;
-  flex-shrink: 0;
+const ClarifierContent = styled.div`
+  flex: 1;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 0.3s ease-out;
   
-  ${({ $priority }) => {
-    switch ($priority) {
-      case 'high':
-        return `
-          background-color: var(--error-100, #FFE5E5);
-          color: var(--error-500, #E85050);
-        `;
-      case 'medium':
-        return `
-          background-color: var(--warning-100, #FFF3E0);
-          color: var(--warning-500, #FF9800);
-        `;
-      default:
-        return `
-          background-color: var(--greyscale-200, #F2F1F2);
-          color: var(--greyscale-700, #77747B);
-        `;
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
     }
-  }}
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
 `;
 
-const AnswerInput = styled.input`
+const ClarifierQuestionNumber = styled.p`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: -0.042px;
+  color: var(--primary-500, #4F9DE8);
+  margin-bottom: 8px;
+`;
+
+const ClarifierTitle = styled.h1`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.132px;
+  color: var(--greyscale-1100, #111112);
+  margin-bottom: 28px;
+`;
+
+const ClarifierInputWrapper = styled.div`
+  margin-bottom: 20px;
+`;
+
+const ClarifierTextArea = styled.textarea`
   width: 100%;
-  padding: 14px 16px;
+  min-height: 120px;
+  padding: 16px;
   border: 1px solid var(--greyscale-300, #E1E1E4);
   border-radius: 12px;
   font-family: 'Pretendard', sans-serif;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.5;
   color: var(--greyscale-1100, #111112);
+  resize: none;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
   
   &::placeholder {
@@ -495,6 +464,81 @@ const AnswerInput = styled.input`
   }
 `;
 
+const ClarifierPageIndicator = styled.p`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: -0.042px;
+  color: var(--greyscale-400, #C4C2C6);
+  text-align: center;
+  margin-top: auto;
+  margin-bottom: 20px;
+`;
+
+const ClarifierBottomBar = styled.div`
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px 18px 34px;
+  background-color: var(--greyscale-000, #FFFFFF);
+  box-shadow: 0px -3px 8px rgba(0, 0, 0, 0.06);
+`;
+
+const ClarifierButtonRow = styled.div`
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+`;
+
+const ClarifierNextButton = styled.button<{ $isActive: boolean }>`
+  flex: 1;
+  height: 56px;
+  border: none;
+  border-radius: 12px;
+  background-color: ${({ $isActive }) => 
+    $isActive ? 'var(--greyscale-900, #444246)' : 'var(--greyscale-300, #E1E1E4)'};
+  color: var(--greyscale-000, #FFFFFF);
+  font-family: 'Pretendard', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: -0.096px;
+  cursor: ${({ $isActive }) => ($isActive ? 'pointer' : 'not-allowed')};
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: ${({ $isActive }) => 
+      $isActive ? 'var(--greyscale-1000, #2B2A2C)' : 'var(--greyscale-300, #E1E1E4)'};
+  }
+`;
+
+const ClarifierSkipAllButton = styled.button`
+  width: 100%;
+  height: 48px;
+  padding: 12px 20px;
+  background-color: var(--greyscale-200, #F2F1F2);
+  border: none;
+  border-radius: 12px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--greyscale-700, #77747B);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background-color: var(--greyscale-300, #E1E1E4);
+    color: var(--greyscale-800, #5E5B61);
+  }
+  
+  &:active {
+    transform: scale(0.98);
+  }
+`;
+
+// 기존 Modal 스타일 (호환성 유지용)
 const ModalFooter = styled.div`
   padding: 16px 20px 24px;
   border-top: 1px solid var(--greyscale-200, #F2F1F2);
@@ -667,9 +711,10 @@ export default function TravelDetailPage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
   // Clarifier 관련 상태
-  const [showClarifierModal, setShowClarifierModal] = useState(false);
+  const [showClarifier, setShowClarifier] = useState(false);
   const [clarifierData, setClarifierData] = useState<ClarifierData | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
 
@@ -729,7 +774,8 @@ export default function TravelDetailPage() {
           initialAnswers[q.field_name] = '';
         });
         setAnswers(initialAnswers);
-        setShowClarifierModal(true);
+        setCurrentQuestionIndex(0);
+        setShowClarifier(true);
       }
     } catch (error) {
       console.error('Content action 에러:', error);
@@ -748,6 +794,31 @@ export default function TravelDetailPage() {
     }));
   };
   
+  // 다음 질문으로 이동 또는 제출
+  const handleNextQuestion = () => {
+    if (!clarifierData) return;
+    
+    const isLastQuestion = currentQuestionIndex === clarifierData.questions.length - 1;
+    
+    if (isLastQuestion) {
+      // 마지막 질문이면 제출
+      handleSubmitAnswers();
+    } else {
+      // 다음 질문으로 이동
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+    }
+  };
+  
+  // 이전 질문으로 이동
+  const handlePrevQuestion = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(currentQuestionIndex - 1);
+    } else {
+      // 첫 번째 질문에서 뒤로가기 - Clarifier 닫기
+      setShowClarifier(false);
+    }
+  };
+  
   // 답변 제출 핸들러
   const handleSubmitAnswers = async () => {
     const tripId = params.id as string;
@@ -755,7 +826,7 @@ export default function TravelDetailPage() {
     
     setIsSubmitting(true);
     setLoadingMessage('여행 노트를 생성하고 있어요...');
-    setShowClarifierModal(false);
+    setShowClarifier(false);
     
     try {
       // 빈 답변 제거
@@ -785,21 +856,21 @@ export default function TravelDetailPage() {
     } catch (error) {
       console.error('답변 제출 에러:', error);
       alert('답변 제출 중 오류가 발생했습니다. 다시 시도해주세요.');
-      setShowClarifierModal(true);
+      setShowClarifier(true);
     } finally {
       setIsSubmitting(false);
       setLoadingMessage('');
     }
   };
   
-  // 건너뛰기 핸들러
-  const handleSkip = async () => {
+  // 건너뛰기 핸들러 (모든 질문 건너뛰기)
+  const handleSkipAll = async () => {
     const tripId = params.id as string;
     if (!tripId) return;
     
     setIsSubmitting(true);
     setLoadingMessage('여행 노트를 생성하고 있어요...');
-    setShowClarifierModal(false);
+    setShowClarifier(false);
     
     try {
       const result = await submitClarifierAnswer(tripId, {}, true);
@@ -821,7 +892,7 @@ export default function TravelDetailPage() {
     } catch (error) {
       console.error('건너뛰기 에러:', error);
       alert('처리 중 오류가 발생했습니다. 다시 시도해주세요.');
-      setShowClarifierModal(true);
+      setShowClarifier(true);
     } finally {
       setIsSubmitting(false);
       setLoadingMessage('');
@@ -937,50 +1008,64 @@ export default function TravelDetailPage() {
         </ButtonWrapper>
       </Content>
 
-      {/* Clarifier 질문 모달 */}
-      {showClarifierModal && clarifierData && (
-        <ModalOverlay onClick={() => setShowClarifierModal(false)}>
-          <ModalContainer onClick={(e) => e.stopPropagation()}>
-            <ModalHeader>
-              <ModalTitle>여행 정보를 알려주세요</ModalTitle>
-              <ModalSubtitle>
-                더 정확한 여행 계획을 위해 몇 가지 질문에 답해주세요
-              </ModalSubtitle>
-            </ModalHeader>
-            
-            <ModalContent>
-              {clarifierData.questions.map((question, idx) => (
-                <QuestionItem key={question.field_name}>
-                  <QuestionLabel>
-                    <QuestionNumber>{idx + 1}</QuestionNumber>
-                    <QuestionText>{question.question}</QuestionText>
-                    {question.priority === 'high' && (
-                      <PriorityBadge $priority={question.priority}>필수</PriorityBadge>
-                    )}
-                  </QuestionLabel>
-                  <AnswerInput
-                    type="text"
-                    placeholder="답변을 입력해주세요"
-                    value={answers[question.field_name] || ''}
-                    onChange={(e) => handleAnswerChange(question.field_name, e.target.value)}
+      {/* Clarifier 질문 전체화면 (Survey 스타일) */}
+      {showClarifier && clarifierData && clarifierData.questions.length > 0 && (
+        <ClarifierOverlay>
+          <ClarifierContainer>
+            <ClarifierTopBar>
+              <ClarifierBackButton onClick={handlePrevQuestion}>
+                <svg width="8" height="16" viewBox="0 0 8 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path 
+                    d="M7 1L1 8L7 15" 
+                    stroke="#111111" 
+                    strokeWidth="1.5" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
                   />
-                </QuestionItem>
-              ))}
-            </ModalContent>
-            
-            <ModalFooter>
-              <SubmitButton onClick={handleSubmitAnswers}>
-                답변 완료
-              </SubmitButton>
-              <SkipButton onClick={handleSkip}>
-                {clarifierData.skip_button.label}
-              </SkipButton>
-              <SkipDescription>
-                {clarifierData.skip_button.description}
-              </SkipDescription>
-            </ModalFooter>
-          </ModalContainer>
-        </ModalOverlay>
+                </svg>
+              </ClarifierBackButton>
+              <ClarifierSpacer />
+            </ClarifierTopBar>
+
+            <ClarifierContent key={currentQuestionIndex}>
+              <ClarifierQuestionNumber>
+                질문 {currentQuestionIndex + 1}/{clarifierData.questions.length}
+              </ClarifierQuestionNumber>
+              <ClarifierTitle>
+                {clarifierData.questions[currentQuestionIndex].question}
+              </ClarifierTitle>
+
+              <ClarifierInputWrapper>
+                <ClarifierTextArea
+                  placeholder="답변을 입력해주세요 (선택사항)"
+                  value={answers[clarifierData.questions[currentQuestionIndex].field_name] || ''}
+                  onChange={(e) => handleAnswerChange(
+                    clarifierData.questions[currentQuestionIndex].field_name, 
+                    e.target.value
+                  )}
+                />
+              </ClarifierInputWrapper>
+
+              <ClarifierPageIndicator>
+                {currentQuestionIndex + 1}/{clarifierData.questions.length}
+              </ClarifierPageIndicator>
+            </ClarifierContent>
+
+            <ClarifierBottomBar>
+              <ClarifierButtonRow>
+                <ClarifierNextButton 
+                  $isActive={true}
+                  onClick={handleNextQuestion}
+                >
+                  {currentQuestionIndex === clarifierData.questions.length - 1 ? '완료' : '다음'}
+                </ClarifierNextButton>
+              </ClarifierButtonRow>
+              <ClarifierSkipAllButton onClick={handleSkipAll}>
+                {clarifierData.skip_button.label || '질문 건너뛰기'}
+              </ClarifierSkipAllButton>
+            </ClarifierBottomBar>
+          </ClarifierContainer>
+        </ClarifierOverlay>
       )}
 
       {/* 로딩 오버레이 */}

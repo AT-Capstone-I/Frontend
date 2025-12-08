@@ -229,17 +229,53 @@ export default function SurveyPage() {
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userName, setUserName] = useState<string>('');
+  const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // 이름 가져오기
+    // 클라이언트에서만 실행
+    if (typeof window === 'undefined') return;
+    
+    // URL에서 파라미터 읽기 (useSearchParams 대신 직접 읽기)
+    const urlParams = new URLSearchParams(window.location.search);
+    const fromGoogle = urlParams.get('from_google');
+    const urlUserId = urlParams.get('user_id');
+    const urlUserName = urlParams.get('user_name');
+    
+    console.log('📋 URL 파라미터:', { fromGoogle, urlUserId, urlUserName });
+    
+    // 1. URL 파라미터에서 Google 로그인 정보 확인
+    if (fromGoogle === 'true' && urlUserId && urlUserName) {
+      const decodedName = decodeURIComponent(urlUserName);
+      console.log('✅ Google 로그인 사용자:', decodedName, urlUserId);
+      setUserName(decodedName);
+      setSupabaseUserId(urlUserId);
+      localStorage.setItem(STORAGE_KEYS.USER_NAME, decodedName);
+      localStorage.setItem('temp_supabase_user_id', urlUserId);
+      setIsLoading(false);
+      return;
+    }
+    
+    // 2. localStorage 확인
     const savedName = localStorage.getItem(STORAGE_KEYS.USER_NAME);
+    const tempUserId = localStorage.getItem('temp_supabase_user_id');
+    
+    console.log('📋 localStorage:', { savedName, tempUserId });
+    
     if (savedName) {
       setUserName(savedName);
-    } else {
-      // 이름이 없으면 signup 페이지로 리다이렉트
-      router.push('/signup');
+      if (tempUserId) {
+        setSupabaseUserId(tempUserId);
+      }
+      setIsLoading(false);
+      return;
     }
-  }, [router]);
+    
+    // 3. 아무것도 없으면 기본값 사용 (리다이렉트 하지 않음)
+    console.log('⚠️ 사용자 정보 없음, 기본값 사용');
+    setUserName('여행자');
+    setIsLoading(false);
+  }, []);
 
   const currentQuestion = SURVEY_QUESTIONS[currentQuestionIndex];
   const currentAnswer = answers[currentQuestionIndex];
@@ -273,11 +309,16 @@ export default function SurveyPage() {
           selected_option: answer!,
         }));
 
-        const result = await submitOnboarding(userName, onboardingAnswers);
+        // Supabase user_id가 있으면 전달 (Google 로그인한 경우)
+        const result = await submitOnboarding(userName, onboardingAnswers, supabaseUserId);
         
-        // user_id 저장
-        localStorage.setItem(STORAGE_KEYS.USER_ID, result.user_id);
+        // user_id 저장 (Supabase ID 또는 API에서 반환된 ID 사용)
+        const finalUserId = supabaseUserId || result.user_id;
+        localStorage.setItem(STORAGE_KEYS.USER_ID, finalUserId);
         localStorage.setItem(STORAGE_KEYS.SIGNUP_COMPLETED, 'true');
+        
+        // 임시 저장된 Supabase user_id 삭제
+        localStorage.removeItem('temp_supabase_user_id');
         
         // 홈 화면으로 이동
         router.push('/');
@@ -292,6 +333,17 @@ export default function SurveyPage() {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     }
   };
+
+  // 로딩 중일 때
+  if (isLoading) {
+    return (
+      <Container>
+        <Content>
+          <Title>로딩 중...</Title>
+        </Content>
+      </Container>
+    );
+  }
 
   return (
     <Container>

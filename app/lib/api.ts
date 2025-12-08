@@ -68,7 +68,8 @@ export interface RecommendPlacesResponse {
  */
 export async function submitOnboarding(
   userName: string,
-  answers: OnboardingAnswer[]
+  answers: OnboardingAnswer[],
+  userId?: string | null
 ): Promise<OnboardingResponse> {
   const response = await fetch(`${API_BASE_URL}/api/agents/onboarding`, {
     method: 'POST',
@@ -76,7 +77,7 @@ export async function submitOnboarding(
     body: JSON.stringify({
       user_name: userName,
       answers: answers,
-      user_id: null
+      user_id: userId || null
     } as OnboardingRequest)
   });
 
@@ -248,52 +249,6 @@ export interface ClarifierAnswerResponse {
   clarification_answers: Record<string, string>;
 }
 
-// ============ 로컬 스토리지 키 ============
-
-export const STORAGE_KEYS = {
-  USER_ID: 'moodtrip_user_id',
-  USER_NAME: 'moodtrip_user_name',
-  SIGNUP_COMPLETED: 'moodtrip_signup_completed',
-  SPLASH_SHOWN: 'moodtrip_splash_shown',
-} as const;
-
-// ============ 유틸리티 함수 ============
-
-/**
- * 사용자 ID 가져오기
- */
-export function getUserId(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(STORAGE_KEYS.USER_ID);
-}
-
-/**
- * 사용자 이름 가져오기
- */
-export function getUserName(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(STORAGE_KEYS.USER_NAME);
-}
-
-/**
- * 로그아웃 (모든 사용자 데이터 삭제)
- */
-export function logout(): void {
-  if (typeof window === 'undefined') return;
-  localStorage.removeItem(STORAGE_KEYS.USER_ID);
-  localStorage.removeItem(STORAGE_KEYS.USER_NAME);
-  localStorage.removeItem(STORAGE_KEYS.SIGNUP_COMPLETED);
-  sessionStorage.removeItem(STORAGE_KEYS.SPLASH_SHOWN);
-}
-
-/**
- * 로그인 상태 확인
- */
-export function isLoggedIn(): boolean {
-  if (typeof window === 'undefined') return false;
-  return localStorage.getItem(STORAGE_KEYS.SIGNUP_COMPLETED) === 'true';
-}
-
 // ============ Clarifier API 함수 ============
 
 /**
@@ -343,5 +298,51 @@ export async function submitClarifierAnswer(
   }
 
   return response.json();
+}
+
+// ============ 로컬 스토리지 키 ============
+
+export const STORAGE_KEYS = {
+  USER_ID: 'moodtrip_user_id',
+  USER_NAME: 'moodtrip_user_name',
+  SIGNUP_COMPLETED: 'moodtrip_signup_completed',
+  SPLASH_SHOWN: 'moodtrip_splash_shown',
+} as const;
+
+// ============ 유틸리티 함수 ============
+
+/**
+ * 사용자 ID 가져오기
+ */
+export function getUserId(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(STORAGE_KEYS.USER_ID);
+}
+
+/**
+ * 사용자 이름 가져오기
+ */
+export function getUserName(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(STORAGE_KEYS.USER_NAME);
+}
+
+/**
+ * 로그아웃 (모든 사용자 데이터 삭제)
+ */
+export function logout(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(STORAGE_KEYS.USER_ID);
+  localStorage.removeItem(STORAGE_KEYS.USER_NAME);
+  localStorage.removeItem(STORAGE_KEYS.SIGNUP_COMPLETED);
+  sessionStorage.removeItem(STORAGE_KEYS.SPLASH_SHOWN);
+}
+
+/**
+ * 로그인 상태 확인
+ */
+export function isLoggedIn(): boolean {
+  if (typeof window === 'undefined') return false;
+  return localStorage.getItem(STORAGE_KEYS.SIGNUP_COMPLETED) === 'true';
 }
 

@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { supabase } from '@/app/lib/supabase';
 
 const Container = styled.div`
   position: relative;
@@ -69,13 +70,18 @@ const GoogleLoginButton = styled.button`
   cursor: pointer;
   transition: all 0.2s ease;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background-color: ${({ theme }) => theme.colors.greyscale100};
     border-color: ${({ theme }) => theme.colors.greyscale400};
   }
 
-  &:active {
+  &:active:not(:disabled) {
     transform: scale(0.98);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
   }
 `;
 
@@ -152,12 +158,34 @@ const TermsText = styled.p`
 
 export default function SignupPage() {
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleGoogleLogin = () => {
-    // TODO: 실제 Google OAuth 연동
-    // 현재는 임시로 설문조사 페이지로 이동
-    localStorage.setItem('moodtrip_user_name', '사용자');
-    router.push('/survey');
+  const handleGoogleLogin = async () => {
+    setIsLoading(true);
+    
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      });
+
+      if (error) {
+        console.error('로그인 에러:', error.message);
+        alert('로그인에 실패했습니다.');
+        setIsLoading(false);
+      }
+      // 성공 시 자동으로 Google 로그인 페이지로 리다이렉트됨
+    } catch (error) {
+      console.error('로그인 에러:', error);
+      alert('로그인 중 오류가 발생했습니다.');
+      setIsLoading(false);
+    }
   };
 
   const handleGuestLogin = () => {
@@ -183,9 +211,15 @@ export default function SignupPage() {
 
       <BottomSection>
         <LoginSection>
-          <GoogleLoginButton onClick={handleGoogleLogin}>
-            <GoogleIcon />
-            Google로 계속하기
+          <GoogleLoginButton onClick={handleGoogleLogin} disabled={isLoading}>
+            {isLoading ? (
+              '로그인 중...'
+            ) : (
+              <>
+                <GoogleIcon />
+                Google로 계속하기
+              </>
+            )}
           </GoogleLoginButton>
 
           <Divider>
