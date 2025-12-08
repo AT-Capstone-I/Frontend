@@ -601,6 +601,7 @@ export default function HomePage() {
                   recommendedPlaces.map((place) => (
                     <PlaceCard
                       key={place.place_id}
+                      id={place.place_id}
                       title={place.name || '장소'}
                       description={getPlaceDescription(place)}
                       image={getPlaceImage(place)}
@@ -634,10 +635,10 @@ export default function HomePage() {
                     <p>인기 장소가 없습니다.</p>
                   </EmptyState>
                 ) : (
-                  popularPlaces.map((place, index) => (
+                  popularPlaces.map((place) => (
                     <PopularPlaceCard
                       key={place.place_id}
-                      id={index + 1}
+                      id={place.place_id}
                       title={place.name || '장소'}
                       description={place.address || place.city || ''}
                       image={getPlaceImage(place)}

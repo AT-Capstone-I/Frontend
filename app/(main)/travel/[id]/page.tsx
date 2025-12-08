@@ -17,7 +17,7 @@ import {
 const PageWrapper = styled.div`
   min-height: 100vh;
   background-color: var(--greyscale-000, #FFFFFF);
-  padding-bottom: 100px;
+  padding-bottom: 20px;
 `;
 
 const Header = styled.header`

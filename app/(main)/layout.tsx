@@ -24,14 +24,17 @@ export default function MainLayout({
 }) {
   const pathname = usePathname();
   
-  // 노트 상세 페이지에서는 ChatFab, BottomNavigation 숨기기
+  // 상세 페이지들에서는 ChatFab, BottomNavigation 숨기기
   const isNoteDetailPage = pathname?.startsWith('/notes/') && pathname !== '/notes';
+  const isPlaceDetailPage = pathname?.includes('/place/');
+  const isTravelDetailPage = pathname?.includes('/travel/');
+  const hideNavigation = isNoteDetailPage || isPlaceDetailPage || isTravelDetailPage;
 
   return (
     <AppContainer>
       {children}
-      {!isNoteDetailPage && <ChatFab />}
-      {!isNoteDetailPage && <BottomNavigation />}
+      {!hideNavigation && <ChatFab />}
+      {!hideNavigation && <BottomNavigation />}
     </AppContainer>
   );
 }
