@@ -2303,12 +2303,7 @@ export default function ChatPage() {
         <ClarifierOverlay>
           <ClarifierContainer>
             <ClarifierTopBar>
-              <ClarifierBackButton
-                onClick={handleClarifierPrev}
-                disabled={currentQuestionIndex === 0}
-              >
-                <ChevronDownIcon />
-              </ClarifierBackButton>
+              <ClarifierSpacer />
               <ClarifierSpacer />
             </ClarifierTopBar>
 

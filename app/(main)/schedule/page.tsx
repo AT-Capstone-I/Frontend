@@ -1,11 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import styled from "styled-components";
+import Image from "next/image";
+import styled, { keyframes } from "styled-components";
+import {
+  getTravelNotes,
+  getActivePlan,
+  getUserId,
+  TravelNote,
+  ActivePlanResponse,
+  ActivePlanDay,
+  ActivePlanItem,
+} from "@/app/lib/api";
+import {
+  calculateRoute,
+  formatDistance,
+  formatDuration,
+  RouteData,
+} from "@/app/lib/routes";
+import { PlaceLocation } from "@/app/components/map/GoogleMapView";
 
 // Google Forms 설문 링크
 const SURVEY_URL = "https://docs.google.com/forms/d/e/1FAIpQLSdhvVMPwQN1QBTLc5g2TBaYnzjhQl0TufxPi9ObDvqEZAUWUg/viewform?usp=publish-editor";
+
+// ============ Animations ============
+const shimmer = keyframes`
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+`;
+
+const fadeIn = keyframes`
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+`;
 
 // ============ Styled Components - Figma 디자인 기반 ============
 const PageWrapper = styled.div`
@@ -82,6 +110,37 @@ const TripSubtitle = styled.p`
   color: var(--greyscale-600, #918e94);
 `;
 
+// 여행 선택 토글 영역
+const TripTitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+`;
+
+const TripToggleButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: var(--greyscale-700, #77747b);
+  transition: color 0.2s ease, transform 0.2s ease;
+
+  &:hover {
+    color: var(--greyscale-900, #444246);
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+`;
+
 const TripTitle = styled.h1`
   font-family: 'Pretendard', sans-serif;
   font-size: 20px;
@@ -91,11 +150,70 @@ const TripTitle = styled.h1`
   color: var(--greyscale-1200, #111111);
 `;
 
+// 여행 선택 드롭다운
+const TripDropdown = styled.div<{ $isOpen: boolean }>`
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 8px;
+  background-color: var(--greyscale-000, #ffffff);
+  border: 1px solid var(--greyscale-300, #e1e1e4);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  min-width: 200px;
+  max-width: 280px;
+  z-index: 100;
+  overflow: hidden;
+  display: ${({ $isOpen }) => ($isOpen ? "block" : "none")};
+  animation: ${fadeIn} 0.2s ease;
+`;
+
+const TripDropdownItem = styled.button<{ $active?: boolean }>`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 14px 16px;
+  background-color: ${({ $active }) => ($active ? "var(--primary-050, #f2f8ff)" : "transparent")};
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: ${({ $active }) => ($active ? "var(--primary-050, #f2f8ff)" : "var(--greyscale-100, #f5f5f5)")};
+  }
+
+  &:not(:last-child) {
+    border-bottom: 1px solid var(--greyscale-200, #f2f1f2);
+  }
+`;
+
+const TripDropdownName = styled.span<{ $active?: boolean }>`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  font-weight: ${({ $active }) => ($active ? "600" : "500")};
+  color: ${({ $active }) => ($active ? "var(--primary-500, #4f9de8)" : "var(--greyscale-1000, #2b2a2c)")};
+`;
+
+const TripDropdownDate = styled.span`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--greyscale-600, #918e94);
+`;
+
 // 날짜 선택 버튼
 const DateSelector = styled.div`
   display: flex;
   gap: 8px;
   margin-bottom: 16px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  
+  &::-webkit-scrollbar {
+    display: none;
+  }
 `;
 
 const DateButton = styled.button<{ $active: boolean }>`
@@ -114,6 +232,7 @@ const DateButton = styled.button<{ $active: boolean }>`
   color: ${({ $active }) => ($active ? "#ffffff" : "var(--greyscale-900, #444246)")};
   cursor: pointer;
   transition: all 0.2s ease;
+  flex-shrink: 0;
 
   &:hover {
     background-color: ${({ $active }) => ($active ? "var(--greyscale-900, #444246)" : "var(--greyscale-100, #f5f5f5)")};
@@ -154,33 +273,39 @@ const EditButton = styled.button`
   }
 `;
 
-// 타임라인
+// 타임라인 - 연속 세로선 포함
 const Timeline = styled.div`
   position: relative;
   padding-left: 31px;
-`;
 
-const TimelineItem = styled.div<{ $isLast?: boolean }>`
-  position: relative;
-  margin-bottom: 8px;
-
-  /* 마커 중심에서 다음 아이템 마커 중심까지 연결선 */
+  /* 연속적인 세로 연결선 */
   &::before {
     content: '';
     position: absolute;
-    left: -23.5px; /* -31px + 7.5px = 마커 중심 */
-    top: 7.5px; /* 마커 중심 (15px/2) */
+    left: 7.5px; /* 마커 중심 위치 (31px - 23.5px = 7.5px) */
+    top: 0;
+    bottom: 0;
     width: 1px;
-    background-color: ${({ $isLast }) => ($isLast ? 'transparent' : 'var(--greyscale-300, #e1e1e4)')};
-    height: ${({ $isLast }) => ($isLast ? '0' : 'calc(100% - 7.5px + 8px + 7.5px)')}; /* 현재 마커 중심부터 다음 마커 중심까지 */
+    background-color: var(--greyscale-300, #e1e1e4);
   }
 `;
 
-// 체크 아이콘
+const TimelineItem = styled.div`
+  position: relative;
+  margin-bottom: 8px;
+`;
+
+// 카드와 마커를 함께 감싸는 wrapper
+const CardWrapper = styled.div`
+  position: relative;
+`;
+
+// 체크 아이콘 (마커) - 카드 중앙에 위치
 const CheckIcon = styled.div<{ $completed: boolean }>`
   position: absolute;
   left: -31px;
-  top: 0;
+  top: 50%;
+  transform: translateY(-50%);
   width: 15px;
   height: 15px;
   border-radius: 50%;
@@ -189,7 +314,7 @@ const CheckIcon = styled.div<{ $completed: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1;
+  z-index: 2;
 
   svg {
     width: 9px;
@@ -197,6 +322,11 @@ const CheckIcon = styled.div<{ $completed: boolean }>`
     color: #ffffff;
     display: ${({ $completed }) => ($completed ? "block" : "none")};
   }
+`;
+
+// 이동 정보 영역
+const TransitLine = styled.div`
+  position: relative;
 `;
 
 // 일정 카드
@@ -238,6 +368,13 @@ const PlaceAddress = styled.p`
   line-height: 1.2;
   letter-spacing: -0.033px;
   color: var(--greyscale-600, #918e94);
+`;
+
+const PlaceTime = styled.span`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--greyscale-500, #aaa8ad);
 `;
 
 const ReviewButton = styled.button`
@@ -300,6 +437,69 @@ const AskButton = styled.button`
 
   &:hover {
     background-color: var(--greyscale-1000, #2b2a2c);
+  }
+`;
+
+// ============ 로딩/에러 상태 스타일 ============
+const LoadingWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+`;
+
+const SkeletonBox = styled.div<{ $width?: string; $height?: string }>`
+  width: ${({ $width }) => $width || "100%"};
+  height: ${({ $height }) => $height || "20px"};
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200px 100%;
+  animation: ${shimmer} 1.5s infinite;
+  border-radius: 8px;
+`;
+
+const EmptyState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+`;
+
+const EmptyIcon = styled.div`
+  font-size: 48px;
+  margin-bottom: 16px;
+`;
+
+const EmptyTitle = styled.h3`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--greyscale-900, #444246);
+  margin-bottom: 8px;
+`;
+
+const EmptyDescription = styled.p`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  color: var(--greyscale-600, #918e94);
+  margin-bottom: 24px;
+`;
+
+const EmptyButton = styled.button`
+  padding: 14px 32px;
+  background: var(--greyscale-900, #444246);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: var(--greyscale-1000, #2b2a2c);
   }
 `;
 
@@ -369,17 +569,11 @@ const HeartButton = styled.button<{ $filled?: boolean }>`
   align-items: center;
   justify-content: center;
   transition: transform 0.2s ease;
+  opacity: ${({ $filled }) => ($filled ? 1 : 0.7)};
 
   &:hover {
     transform: scale(1.1);
-  }
-
-  svg {
-    width: 18px;
-    height: 15px;
-    fill: ${({ $filled }) => ($filled ? '#FD818B' : 'none')};
-    stroke: ${({ $filled }) => ($filled ? '#FD818B' : '#ffffff')};
-    stroke-width: 2;
+    opacity: 1;
   }
 `;
 
@@ -499,201 +693,29 @@ const ReviewContent = styled.p`
   margin: 0;
 `;
 
-// ============ 스토리 사진 생성 화면 스타일 ============
-const StoryCreatorWrapper = styled.div`
-  min-height: 100vh;
-  background-color: var(--greyscale-000, #ffffff);
-  display: flex;
-  flex-direction: column;
-`;
-
-const StoryHeader = styled.header`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--greyscale-200, #f2f1f2);
-`;
-
-const StoryBackButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  color: var(--greyscale-900, #444246);
-
-  svg {
-    width: 24px;
-    height: 24px;
-  }
-`;
-
-const StoryHeaderTitle = styled.h1`
-  font-family: 'Pretendard', sans-serif;
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 1.4;
-  color: var(--greyscale-1200, #111111);
-  margin: 0;
-`;
-
-const StoryHeaderSpacer = styled.div`
-  width: 24px;
-  height: 24px;
-`;
-
-const StoryContent = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
-  gap: 24px;
-`;
-
-const StoryImagePlaceholder = styled.div`
-  width: 280px;
-  height: 400px;
-  background-color: var(--greyscale-100, #f5f5f5);
-  border: 2px dashed var(--greyscale-300, #e1e1e4);
-  border-radius: 16px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-`;
-
-const StoryPlaceholderIcon = styled.div`
-  width: 64px;
-  height: 64px;
-  background-color: var(--greyscale-200, #f2f1f2);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--greyscale-500, #aaa8ad);
-
-  svg {
-    width: 32px;
-    height: 32px;
-  }
-`;
-
-const StoryPlaceholderText = styled.p`
-  font-family: 'Pretendard', sans-serif;
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1.5;
-  color: var(--greyscale-600, #918e94);
-  text-align: center;
-  margin: 0;
-`;
-
-const StoryDescription = styled.p`
-  font-family: 'Pretendard', sans-serif;
-  font-size: 13px;
-  font-weight: 400;
-  line-height: 1.5;
-  color: var(--greyscale-700, #77747b);
-  text-align: center;
-  max-width: 280px;
-  margin: 0;
-`;
-
-const StoryBottomBar = styled.div`
-  padding: 16px 20px;
-  padding-bottom: max(16px, env(safe-area-inset-bottom));
-  border-top: 1px solid var(--greyscale-200, #f2f1f2);
-`;
-
-const StoryGenerateButton = styled.button`
-  width: 100%;
-  height: 56px;
-  background-color: var(--greyscale-900, #444246);
-  color: #ffffff;
-  border: none;
-  border-radius: 12px;
-  font-family: 'Pretendard', sans-serif;
-  font-size: 16px;
-  font-weight: 500;
-  line-height: 1.4;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-
-  &:hover {
-    background-color: var(--greyscale-1000, #2b2a2c);
-  }
-
-  &:disabled {
-    background-color: var(--greyscale-300, #e1e1e4);
-    cursor: not-allowed;
-  }
-`;
-
 // ============ 아이콘 컴포넌트 ============
-const BackArrowIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M15 18l-6-6 6-6" />
-  </svg>
-);
-
-const ImageIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-    <circle cx="8.5" cy="8.5" r="1.5" />
-    <polyline points="21,15 16,10 5,21" />
-  </svg>
-);
-
 const CheckmarkIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
     <polyline points="20,6 9,17 4,12" />
   </svg>
 );
 
-const HeartIcon = () => (
-  <svg viewBox="0 0 18 15" xmlns="http://www.w3.org/2000/svg">
-    <path d="M9 14.5L1.5 7.5C0.5 6.5 0 5.5 0 4C0 1.5 2 0 4.5 0C6 0 7.5 0.8 9 2.5C10.5 0.8 12 0 13.5 0C16 0 18 1.5 18 4C18 5.5 17.5 6.5 16.5 7.5L9 14.5Z" />
+
+const ChevronDownIcon = ({ $isOpen }: { $isOpen?: boolean }) => (
+  <svg 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+    style={{ transform: $isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}
+  >
+    <polyline points="6,9 12,15 18,9" />
   </svg>
 );
 
-// ============ 샘플 데이터 ============
-const scheduleData = {
-  tripTitle: "여수 여행",
-  tripSubtitle: "바다와 함께하는 카페 투어",
-  dates: ["11. 12", "11. 13", "11. 14", "11. 15"],
-  places: [
-    {
-      id: 1,
-      name: "여행지 이름",
-      address: "주소가 들어갑니다. 주소가 들어갑니다.",
-      completed: true,
-      transit: { distance: "도보 385m", duration: "20분" },
-    },
-    {
-      id: 2,
-      name: "여행지 이름",
-      address: "주소가 들어갑니다. 주소가 들어갑니다.",
-      completed: true,
-      transit: { distance: "도보 385m", duration: "20분" },
-    },
-    {
-      id: 3,
-      name: "여행지 이름",
-      address: "주소가 들어갑니다. 주소가 들어갑니다.",
-      completed: false,
-      transit: { distance: "도보 385m", duration: "20분" },
-    },
-  ],
-};
-
+// ============ 샘플 데이터 (추천/리뷰 탭용) ============
 const weatherRecommendData = [
   {
     id: 1,
@@ -742,37 +764,214 @@ const foodRecommendData = [
   },
 ];
 
-const reviewData = [
-  {
-    id: 1,
-    placeName: "여행지 이름",
-    images: [
-      "https://images.unsplash.com/photo-1534256958597-7fe685cbd745?w=300&h=300&fit=crop",
-    ],
-    content: "리뷰 내용이 들어갑니다. 리뷰 내용이 들어갑니다. 리뷰 내용이 들어갑니다. 리뷰 내용이 들어갑니다. 리뷰 내용이 들어갑니다. 리뷰 내용이 들어갑니다. 리뷰 내용이 들어갑니다.",
-  },
-  {
-    id: 2,
-    placeName: "여행지 이름",
-    images: [
-      "https://images.unsplash.com/photo-1567521464027-f127ff144326?w=300&h=300&fit=crop",
-      "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=300&h=300&fit=crop",
-      "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300&h=300&fit=crop",
-    ],
-    content: "리뷰 내용이 들어갑니다. 리뷰 내용이 들어갑니다. 리뷰 내용이 들어갑니다. 리뷰 내용이 들어갑니다. 리뷰 내용이 들어갑니다. 리뷰 내용이 들어갑니다. 리뷰 내용이 들어갑니다.",
-  },
-];
+// ============ 유틸리티 함수 ============
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return `${date.getMonth() + 1}. ${date.getDate()}`;
+};
+
+const formatDateRange = (startDate: string | null, endDate: string | null) => {
+  if (!startDate) return "";
+  const start = new Date(startDate);
+  const startStr = `${start.getMonth() + 1}/${start.getDate()}`;
+  if (!endDate) return startStr;
+  const end = new Date(endDate);
+  const endStr = `${end.getMonth() + 1}/${end.getDate()}`;
+  return `${startStr} - ${endStr}`;
+};
 
 // ============ 메인 컴포넌트 ============
 export default function SchedulePage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"schedule" | "recommend" | "review">("schedule");
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  const [activeTab, setActiveTab] = useState<"schedule" | "recommend">("schedule");
   const [selectedDate, setSelectedDate] = useState(0);
-  const [showStoryCreator, setShowStoryCreator] = useState(false);
+  
+  // API 상태
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // 여행 목록 및 선택된 여행
+  const [trips, setTrips] = useState<TravelNote[]>([]);
+  const [selectedTrip, setSelectedTrip] = useState<TravelNote | null>(null);
+  const [planData, setPlanData] = useState<ActivePlanResponse | null>(null);
+  
+  // 토글 드롭다운 상태
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  
+  // 경로 계산 상태
+  const [routeData, setRouteData] = useState<RouteData | null>(null);
+  const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
+
+  // 드롭다운 외부 클릭 감지
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // API에서 여행 목록 로드
+  useEffect(() => {
+    const fetchTrips = async () => {
+      const userId = getUserId();
+      if (!userId) {
+        setError("로그인이 필요합니다.");
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        
+        // 사용자의 여행 노트 조회
+        const notesData = await getTravelNotes(userId);
+        
+        // ongoing과 planning 상태의 여행 합치기 (ongoing 우선)
+        const availableTrips = [
+          ...notesData.ongoing,
+          ...notesData.planning,
+        ];
+        
+        if (availableTrips.length === 0) {
+          setError("진행 중인 여행이 없습니다.");
+          setIsLoading(false);
+          return;
+        }
+        
+        setTrips(availableTrips);
+        
+        // 첫 번째 여행 선택
+        const firstTrip = availableTrips[0];
+        setSelectedTrip(firstTrip);
+        
+        // 해당 trip의 활성 일정 조회
+        await loadPlanForTrip(firstTrip.trip_id);
+        
+      } catch (err) {
+        console.error("여행 목록 로드 실패:", err);
+        setError("여행 정보를 불러오는데 실패했습니다.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTrips();
+  }, []);
+
+  // 특정 여행의 일정 로드
+  const loadPlanForTrip = async (tripId: string) => {
+    try {
+      const plan = await getActivePlan(tripId);
+      setPlanData(plan);
+      setSelectedDate(0); // 날짜 선택 초기화
+      setRouteData(null); // 경로 데이터 초기화
+    } catch (err) {
+      console.error("일정 로드 실패:", err);
+      setPlanData(null);
+      setRouteData(null);
+    }
+  };
+
+  // 여행 선택 변경
+  const handleTripSelect = async (trip: TravelNote) => {
+    setSelectedTrip(trip);
+    setIsDropdownOpen(false);
+    setIsLoading(true);
+    
+    try {
+      await loadPlanForTrip(trip.trip_id);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 여행 이름 생성
+  const getTripName = (trip: TravelNote | null) => {
+    if (!trip) return "여행";
+    return trip.final_city 
+      ? `${trip.final_city} 여행` 
+      : trip.selected_city 
+        ? `${trip.selected_city} 여행`
+        : "여행";
+  };
+
+  // 여행 테마/서브타이틀
+  const getTripSubtitle = (trip: TravelNote | null) => {
+    if (!trip) return "";
+    return trip.selected_theme || formatDateRange(trip.start_date, trip.end_date) || "";
+  };
+
+  // 현재 선택된 날짜의 일정
+  const currentDaySchedule: ActivePlanDay | null = planData?.days?.[selectedDate] || null;
+
+  // 지도에 표시할 장소 데이터 변환 (경로 계산용)
+  const mapPlaces: PlaceLocation[] = useMemo(() => {
+    if (!currentDaySchedule) return [];
+
+    return currentDaySchedule.items
+      .filter((item) => item.latitude && item.longitude) // 위치 정보가 있는 장소만
+      .map((item) => ({
+        id: item.place_id,
+        name: item.name,
+        location: {
+          lat: item.latitude!,
+          lng: item.longitude!,
+        },
+      }));
+  }, [currentDaySchedule]);
+
+  // 경로 계산 (장소가 변경될 때마다)
+  // Google Maps API가 로드된 경우에만 실행
+  useEffect(() => {
+    const fetchRoute = async () => {
+      // Google Maps가 로드되지 않았으면 스킵 (지도 없는 페이지에서는 정상)
+      if (typeof google === "undefined" || !google.maps) {
+        setRouteData(null);
+        return;
+      }
+
+      if (mapPlaces.length > 1) {
+        setIsCalculatingRoute(true);
+        try {
+          const route = await calculateRoute(mapPlaces);
+          if (route) {
+            setRouteData(route);
+          } else {
+            setRouteData(null);
+          }
+        } catch (error) {
+          console.error("Route calculation failed:", error);
+          setRouteData(null);
+        } finally {
+          setIsCalculatingRoute(false);
+        }
+      } else {
+        setRouteData(null);
+      }
+    };
+
+    fetchRoute();
+  }, [mapPlaces]);
+
+  // 특정 인덱스의 이동 정보 가져오기
+  const getTransitInfo = useCallback((index: number) => {
+    if (!routeData || !routeData.segments[index]) {
+      return null;
+    }
+    const segment = routeData.segments[index];
+    return {
+      distance: formatDistance(segment.distanceMeters),
+      duration: formatDuration(segment.travelDurationSeconds || segment.durationSeconds),
+    };
+  }, [routeData]);
 
   // 여행지 ID (실제로는 서버에서 받아오거나 상태로 관리)
-  // URL 쿼리 파라미터나 컨텍스트에서 가져올 수 있음
-  const currentTripRegion = "yeosu"; // 여수 여행 샘플
+  const currentTripRegion = selectedTrip?.final_city || selectedTrip?.selected_city || "travel";
 
   const handleTripEndClick = () => {
     // 새 탭으로 설문 링크 열기
@@ -781,49 +980,45 @@ export default function SchedulePage() {
     router.push(`/schedule/story/${currentTripRegion}`);
   };
 
-  const handleBackFromStory = () => {
-    setShowStoryCreator(false);
-  };
-
-  const handleGenerateStory = () => {
-    // TODO: 스토리 사진 생성 로직 구현 예정
-    console.log("스토리 사진 생성");
-  };
-
-  // 스토리 사진 생성 화면
-  if (showStoryCreator) {
+  // 로딩 상태
+  if (isLoading) {
     return (
-      <StoryCreatorWrapper>
-        <StoryHeader>
-          <StoryBackButton onClick={handleBackFromStory}>
-            <BackArrowIcon />
-          </StoryBackButton>
-          <StoryHeaderTitle>스토리 사진 생성</StoryHeaderTitle>
-          <StoryHeaderSpacer />
-        </StoryHeader>
+      <PageWrapper>
+        <TabNavigation>
+          <TabButton $active={true}>내 일정</TabButton>
+          <TabButton $active={false}>실시간 추천</TabButton>
+        </TabNavigation>
+        <LoadingWrapper>
+          <SkeletonBox $width="60%" $height="16px" />
+          <SkeletonBox $width="40%" $height="28px" />
+          <SkeletonBox $width="100%" $height="32px" />
+          <SkeletonBox $width="100%" $height="100px" />
+          <SkeletonBox $width="100%" $height="100px" />
+          <SkeletonBox $width="100%" $height="100px" />
+        </LoadingWrapper>
+      </PageWrapper>
+    );
+  }
 
-        <StoryContent>
-          <StoryImagePlaceholder>
-            <StoryPlaceholderIcon>
-              <ImageIcon />
-            </StoryPlaceholderIcon>
-            <StoryPlaceholderText>
-              여행 사진으로<br />스토리를 만들어보세요
-            </StoryPlaceholderText>
-          </StoryImagePlaceholder>
-
-          <StoryDescription>
-            오늘의 여행 사진들을 선택하면<br />
-            AI가 멋진 스토리 이미지를 생성해드려요
-          </StoryDescription>
-        </StoryContent>
-
-        <StoryBottomBar>
-          <StoryGenerateButton onClick={handleGenerateStory}>
-            스토리 만들기
-          </StoryGenerateButton>
-        </StoryBottomBar>
-      </StoryCreatorWrapper>
+  // 에러/빈 상태
+  if (error || trips.length === 0) {
+    return (
+      <PageWrapper>
+        <TabNavigation>
+          <TabButton $active={true}>내 일정</TabButton>
+          <TabButton $active={false}>실시간 추천</TabButton>
+        </TabNavigation>
+        <EmptyState>
+          <EmptyIcon>📅</EmptyIcon>
+          <EmptyTitle>{error || "진행 중인 여행이 없습니다"}</EmptyTitle>
+          <EmptyDescription>
+            새로운 여행을 계획하고<br />일정을 확인해보세요!
+          </EmptyDescription>
+          <EmptyButton onClick={() => router.push("/chat")}>
+            여행 계획하기
+          </EmptyButton>
+        </EmptyState>
+      </PageWrapper>
     );
   }
 
@@ -836,72 +1031,139 @@ export default function SchedulePage() {
         <TabButton $active={activeTab === "recommend"} onClick={() => setActiveTab("recommend")}>
           실시간 추천
         </TabButton>
-        <TabButton $active={activeTab === "review"} onClick={() => setActiveTab("review")}>
-          작성한 리뷰
-        </TabButton>
       </TabNavigation>
 
       <Content>
         {activeTab === "schedule" && (
           <>
             <TripHeader>
-              <TripSubtitle>{scheduleData.tripSubtitle}</TripSubtitle>
-              <TripTitle>{scheduleData.tripTitle}</TripTitle>
+              <TripSubtitle>{getTripSubtitle(selectedTrip)}</TripSubtitle>
+              <TripTitleRow ref={dropdownRef}>
+                <TripToggleButton onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
+                  <ChevronDownIcon $isOpen={isDropdownOpen} />
+                </TripToggleButton>
+                <TripTitle>{getTripName(selectedTrip)}</TripTitle>
+                
+                {/* 여행 선택 드롭다운 */}
+                <TripDropdown $isOpen={isDropdownOpen}>
+                  {trips.map((trip) => (
+                    <TripDropdownItem
+                      key={trip.trip_id}
+                      $active={selectedTrip?.trip_id === trip.trip_id}
+                      onClick={() => handleTripSelect(trip)}
+                    >
+                      <TripDropdownName $active={selectedTrip?.trip_id === trip.trip_id}>
+                        {getTripName(trip)}
+                      </TripDropdownName>
+                      <TripDropdownDate>
+                        {formatDateRange(trip.start_date, trip.end_date) || "날짜 미정"}
+                      </TripDropdownDate>
+                    </TripDropdownItem>
+                  ))}
+                </TripDropdown>
+              </TripTitleRow>
             </TripHeader>
 
-            <DateSelector>
-              {scheduleData.dates.map((date, index) => (
-                <DateButton
-                  key={date}
-                  $active={selectedDate === index}
-                  onClick={() => setSelectedDate(index)}
-                >
-                  {date}
-                </DateButton>
-              ))}
-            </DateSelector>
+            {/* 일정이 없는 경우 */}
+            {!planData || !planData.days || planData.days.length === 0 ? (
+              <EmptyState>
+                <EmptyIcon>🗓️</EmptyIcon>
+                <EmptyTitle>아직 일정이 없습니다</EmptyTitle>
+                <EmptyDescription>
+                  여행 노트에서 일정을 생성해주세요.
+                </EmptyDescription>
+                <EmptyButton onClick={() => router.push(`/notes/${selectedTrip?.trip_id}`)}>
+                  일정 만들기
+                </EmptyButton>
+              </EmptyState>
+            ) : (
+              <>
+                <DateSelector>
+                  {planData.days.map((day, index) => (
+                    <DateButton
+                      key={day.date}
+                      $active={selectedDate === index}
+                      onClick={() => setSelectedDate(index)}
+                    >
+                      {formatDate(day.date)}
+                    </DateButton>
+                  ))}
+                </DateSelector>
 
-            <DayHeader>
-              <DayLabel>{selectedDate + 1}일차</DayLabel>
-              <EditButton>편집</EditButton>
-            </DayHeader>
+                <DayHeader>
+                  <DayLabel>{selectedDate + 1}일차</DayLabel>
+                  <EditButton onClick={() => router.push(`/notes/${selectedTrip?.trip_id}`)}>
+                    편집
+                  </EditButton>
+                </DayHeader>
 
-            <Timeline>
-              {scheduleData.places.map((place, index) => (
-                <TimelineItem key={place.id} $isLast={index === scheduleData.places.length - 1}>
-                  <CheckIcon $completed={place.completed}>
-                    <CheckmarkIcon />
-                  </CheckIcon>
-                  <ScheduleCard>
-                    <CardContent>
-                      <PlaceInfo>
-                        <PlaceName>{place.name}</PlaceName>
-                        <PlaceAddress>{place.address}</PlaceAddress>
-                      </PlaceInfo>
-                      <ReviewButton>리뷰 작성하기</ReviewButton>
-                    </CardContent>
-                  </ScheduleCard>
-                  {index < scheduleData.places.length - 1 && (
-                    <TransitInfo>
-                      <TransitText>{place.transit.distance}</TransitText>
-                      <TransitText>{place.transit.duration}</TransitText>
-                    </TransitInfo>
-                  )}
-                </TimelineItem>
-              ))}
-            </Timeline>
+                {currentDaySchedule && currentDaySchedule.items.length > 0 ? (
+                  <Timeline>
+                    {currentDaySchedule.items.map((item, index) => {
+                      const transitInfo = getTransitInfo(index);
+                      const isLast = index === currentDaySchedule.items.length - 1;
+                      return (
+                        <TimelineItem key={`${item.place_id}-${index}`}>
+                          <CardWrapper>
+                            <CheckIcon $completed={index < 2}>
+                              <CheckmarkIcon />
+                            </CheckIcon>
+                            <ScheduleCard>
+                              <CardContent>
+                                <PlaceInfo>
+                                  <PlaceName>{item.name}</PlaceName>
+                                  {item.address && <PlaceAddress>{item.address}</PlaceAddress>}
+                                  {item.start && item.end && (
+                                    <PlaceTime>{item.start} - {item.end}</PlaceTime>
+                                  )}
+                                </PlaceInfo>
+                                <ReviewButton>리뷰 작성하기</ReviewButton>
+                              </CardContent>
+                            </ScheduleCard>
+                          </CardWrapper>
+                          {!isLast && (
+                            <TransitLine>
+                              <TransitInfo>
+                                {isCalculatingRoute ? (
+                                  <TransitText>경로 계산 중...</TransitText>
+                                ) : transitInfo ? (
+                                  <>
+                                    <TransitText>{transitInfo.distance}</TransitText>
+                                    <TransitText>{transitInfo.duration}</TransitText>
+                                  </>
+                                ) : item.eta_min ? (
+                                  <TransitText>약 {item.eta_min}분</TransitText>
+                                ) : null}
+                              </TransitInfo>
+                            </TransitLine>
+                          )}
+                        </TimelineItem>
+                      );
+                    })}
+                  </Timeline>
+                ) : (
+                  <EmptyState>
+                    <EmptyIcon>📍</EmptyIcon>
+                    <EmptyTitle>이 날의 일정이 없습니다</EmptyTitle>
+                    <EmptyDescription>
+                      여행 노트에서 일정을 추가해보세요.
+                    </EmptyDescription>
+                  </EmptyState>
+                )}
 
-            <AskButton onClick={handleTripEndClick}>
-              오늘 여행은 어떠셨나요?
-            </AskButton>
+                <AskButton onClick={handleTripEndClick}>
+                  오늘 여행은 어떠셨나요?
+                </AskButton>
+              </>
+            )}
           </>
         )}
 
         {activeTab === "recommend" && (
           <>
             <TripHeader>
-              <TripSubtitle>바다와 함께하는 카페 투어</TripSubtitle>
-              <TripTitle>여수 여행</TripTitle>
+              <TripSubtitle>{getTripSubtitle(selectedTrip)}</TripSubtitle>
+              <TripTitle>{getTripName(selectedTrip)}</TripTitle>
             </TripHeader>
 
             {/* 날씨 기반 추천 */}
@@ -916,7 +1178,12 @@ export default function SchedulePage() {
                     <RecommendImageWrapper>
                       <RecommendImage src={item.image} alt={item.name} />
                       <HeartButton $filled={item.liked}>
-                        <HeartIcon />
+                        <Image
+                          src="/assets/icons/heart.svg"
+                          alt="즐겨찾기"
+                          width={24}
+                          height={24}
+                        />
                       </HeartButton>
                     </RecommendImageWrapper>
                     <RecommendInfo>
@@ -939,7 +1206,12 @@ export default function SchedulePage() {
                     <RecommendImageWrapper>
                       <RecommendImage src={item.image} alt={item.name} />
                       <HeartButton $filled={item.liked}>
-                        <HeartIcon />
+                        <Image
+                          src="/assets/icons/heart.svg"
+                          alt="즐겨찾기"
+                          width={24}
+                          height={24}
+                        />
                       </HeartButton>
                     </RecommendImageWrapper>
                     <RecommendInfo>
@@ -952,50 +1224,7 @@ export default function SchedulePage() {
             </RecommendSection>
           </>
         )}
-
-        {activeTab === "review" && (
-          <>
-            <TripHeader>
-              <TripSubtitle>바다와 함께하는 카페 투어</TripSubtitle>
-              <TripTitle>여수 여행</TripTitle>
-            </TripHeader>
-
-            <DateSelector>
-              {scheduleData.dates.map((date, index) => (
-                <DateButton
-                  key={date}
-                  $active={selectedDate === index}
-                  onClick={() => setSelectedDate(index)}
-                >
-                  {date}
-                </DateButton>
-              ))}
-            </DateSelector>
-
-            {reviewData.map((review, index) => (
-              <ReviewItem key={review.id}>
-                <ReviewHeader>
-                  <ReviewTitle>{index + 1}. {review.placeName}</ReviewTitle>
-                  <ReviewEditButton>편집</ReviewEditButton>
-                </ReviewHeader>
-                {review.images && review.images.length > 0 && (
-                  <ReviewImageScroll>
-                    {review.images.map((image, imgIndex) => (
-                      <ReviewImageBox key={imgIndex}>
-                        <ReviewImage src={image} alt={`리뷰 이미지 ${imgIndex + 1}`} />
-                      </ReviewImageBox>
-                    ))}
-                  </ReviewImageScroll>
-                )}
-                {review.content && (
-                  <ReviewContent>{review.content}</ReviewContent>
-                )}
-              </ReviewItem>
-            ))}
-          </>
-        )}
       </Content>
-
     </PageWrapper>
   );
 }

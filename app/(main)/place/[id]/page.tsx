@@ -3,7 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import styled, { keyframes } from "styled-components";
 import { usePlaceDetailStream } from "@/app/hooks/usePlaceDetailStream";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 
 // ============ Animations ============
 const fadeIn = keyframes`
@@ -715,32 +715,46 @@ export default function PlaceDetailPage() {
     refetch,
   } = usePlaceDetailStream(placeId);
 
-  // 자동 슬라이드 기능
-  useEffect(() => {
-    // details가 없으면 스킵
-    if (!details) return;
+  const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1518005020951-eccb494ad742?w=600&h=450&fit=crop';
+  
+  // 랜덤으로 최대 5개의 이미지만 선택
+  const photos = useMemo(() => {
+    if (!details) return [DEFAULT_IMAGE];
     
     const detailsAny = details as Record<string, unknown>;
     const possibleFields = ['photos', 'photo_urls', 'images', 'image_urls', 'photo'];
-    let photosLength = 0;
     
+    let allPhotos: string[] = [DEFAULT_IMAGE];
     for (const field of possibleFields) {
       const value = detailsAny[field];
       if (Array.isArray(value) && value.length > 0) {
-        photosLength = value.length;
+        allPhotos = value as string[];
         break;
       }
     }
     
+    if (allPhotos.length <= 5) return allPhotos;
+    
+    // Fisher-Yates 셔플로 랜덤 선택
+    const shuffled = [...allPhotos];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled.slice(0, 5);
+  }, [details]);
+
+  // 자동 슬라이드 기능
+  useEffect(() => {
     // 사진이 2장 이상일 때만 자동 슬라이드
-    if (photosLength <= 1) return;
+    if (photos.length <= 1) return;
     
     const interval = setInterval(() => {
-      setCurrentImageIndex((prev) => (prev + 1) % photosLength);
+      setCurrentImageIndex((prev) => (prev + 1) % photos.length);
     }, 4000); // 4초마다 슬라이드
     
     return () => clearInterval(interval);
-  }, [details]);
+  }, [photos.length]);
 
   // 에러 상태
   if (error) {
@@ -777,25 +791,6 @@ export default function PlaceDetailPage() {
   }
 
   if (!details) return null;
-
-  // 다양한 필드명으로 photos 찾기
-  const detailsAny = details as Record<string, unknown>;
-
-  const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1518005020951-eccb494ad742?w=600&h=450&fit=crop';
-  
-  // 여러 가능한 필드명 체크
-  const getPhotosArray = (): string[] => {
-    const possibleFields = ['photos', 'photo_urls', 'images', 'image_urls', 'photo'];
-    for (const field of possibleFields) {
-      const value = detailsAny[field];
-      if (Array.isArray(value) && value.length > 0) {
-        return value as string[];
-      }
-    }
-    return [DEFAULT_IMAGE];
-  };
-  
-  const photos = getPhotosArray();
 
   // 현재 표시할 이미지 URL 계산
   const getCurrentImageUrl = (index: number): string => {
@@ -856,8 +851,8 @@ export default function PlaceDetailPage() {
         </ImageWrapper>
         {photos.length > 1 && (
           <ImageDots>
-            {photos.slice(0, 4).map((_, index) => (
-<ImageDot
+            {photos.map((_, index) => (
+              <ImageDot
                 key={index}
                 $active={index === currentImageIndex}
                 onClick={() => setCurrentImageIndex(index)}
@@ -1019,3 +1014,4 @@ export default function PlaceDetailPage() {
     </PageWrapper>
   );
 }
+

@@ -841,7 +841,7 @@ export default function MyPage() {
         <AppInfoSection>
           <AppLogo>MoodTrip</AppLogo>
           <AppVersion>Version 1.0.0</AppVersion>
-          <AppCopyright>© 2024 MoodTrip. All rights reserved.</AppCopyright>
+          <AppCopyright>© 2025 MoodTrip. All rights reserved.</AppCopyright>
         </AppInfoSection>
       </MainContent>
     </>
