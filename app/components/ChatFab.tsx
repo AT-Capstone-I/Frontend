@@ -60,7 +60,7 @@ export default function ChatFab() {
   const pathname = usePathname();
 
   const handleClick = () => {
-    router.push("/chat");
+    router.push("/chat?reset=1");
   };
 
   // travel 상세 페이지, place 상세 페이지에서는 숨기기

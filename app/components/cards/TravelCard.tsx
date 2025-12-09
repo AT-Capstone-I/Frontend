@@ -62,6 +62,7 @@ const CardInfo = styled.div`
   justify-content: center;
 `;
 
+// 테마 (볼드)
 const CardTitle = styled.h4`
   font-size: 14px;
   font-weight: 700;
@@ -77,6 +78,7 @@ const CardTitle = styled.h4`
   }
 `;
 
+// 장소명 (레귤러)
 const CardDesc = styled.p`
   font-size: 13px;
   font-weight: 400;

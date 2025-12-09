@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
+import { getTravelNotes, TravelNote, TravelNotesResponse, getUserId } from "@/app/lib/api";
 
 // Styled Components - Figma Design System 적용
 const PageWrapper = styled.div`
@@ -268,41 +269,19 @@ const SortIconSvg = () => (
   </svg>
 );
 
-// 샘플 데이터
-const notesData = [
-  {
-    id: 1,
-    name: "여행지 이름",
-    address: "주소가 들어갑니다. 주소가 들어갑니다.",
-    startDate: "2025.11.12",
-    endDate: "11.15",
-    status: "before" as const,
-  },
-  {
-    id: 2,
-    name: "여행지 이름",
-    address: "주소가 들어갑니다. 주소가 들어갑니다.",
-    startDate: "2025.11.12",
-    endDate: "11.15",
-    status: "during" as const,
-  },
-  {
-    id: 3,
-    name: "여행지 이름",
-    address: "주소가 들어갑니다. 주소가 들어갑니다.",
-    startDate: "2025.11.12",
-    endDate: "11.15",
-    status: "during" as const,
-  },
-  {
-    id: 4,
-    name: "여행지 이름",
-    address: "주소가 들어갑니다. 주소가 들어갑니다.",
-    startDate: "2025.11.12",
-    endDate: "11.15",
-    status: "after" as const,
-  },
-];
+// API 상태를 UI 상태로 매핑
+const tripStatusToUIStatus = (tripStatus: string): "before" | "during" | "after" => {
+  switch (tripStatus) {
+    case "planning":
+      return "before";
+    case "ongoing":
+      return "during";
+    case "completed":
+      return "after";
+    default:
+      return "before";
+  }
+};
 
 const statusLabel = {
   before: "여행 전",
@@ -310,18 +289,82 @@ const statusLabel = {
   after: "여행 후",
 };
 
+// 날짜 포맷 헬퍼
+const formatDate = (dateStr: string | null): string => {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")}`;
+};
+
+const formatShortDate = (dateStr: string | null): string => {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+  return `${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")}`;
+};
+
 export default function NotesPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"all" | "before" | "during" | "after">("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [notes, setNotes] = useState<TravelNote[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleNoteClick = (noteId: number) => {
-    router.push(`/notes/${noteId}`);
+  // API 호출
+  useEffect(() => {
+    const fetchNotes = async () => {
+      const userId = getUserId();
+      if (!userId) {
+        setIsLoading(false);
+        setError("로그인이 필요합니다.");
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const data: TravelNotesResponse = await getTravelNotes(userId);
+        
+        // conversation_only는 제외하고, planning/ongoing/completed만 합침
+        const allNotes = [
+          ...data.planning,
+          ...data.ongoing,
+          ...data.completed,
+        ];
+        
+        // 최신순 정렬
+        allNotes.sort((a, b) => 
+          new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+        );
+        
+        setNotes(allNotes);
+        setError(null);
+      } catch (e) {
+        console.error("여행 노트 조회 실패:", e);
+        setError("여행 노트를 불러오는데 실패했습니다.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchNotes();
+  }, []);
+
+  const handleNoteClick = (tripId: string) => {
+    router.push(`/notes/${tripId}`);
   };
 
-  const filteredNotes = notesData.filter((note) => {
-    if (activeTab !== "all" && note.status !== activeTab) return false;
-    if (searchQuery && !note.name.includes(searchQuery)) return false;
+  // 필터링된 노트
+  const filteredNotes = notes.filter((note) => {
+    const uiStatus = tripStatusToUIStatus(note.trip_status);
+    if (activeTab !== "all" && uiStatus !== activeTab) return false;
+    
+    // 검색어 필터 (테마, 도시명으로 검색)
+    if (searchQuery) {
+      const searchLower = searchQuery.toLowerCase();
+      const themeMatch = note.selected_theme?.toLowerCase().includes(searchLower);
+      const cityMatch = note.final_city?.toLowerCase().includes(searchLower);
+      if (!themeMatch && !cityMatch) return false;
+    }
     return true;
   });
 
@@ -365,20 +408,45 @@ export default function NotesPage() {
           </SortButton>
         </ListHeader>
 
-        {filteredNotes.length > 0 ? (
+        {isLoading ? (
+          <EmptyState>
+            <p>여행 노트를 불러오는 중...</p>
+          </EmptyState>
+        ) : error ? (
+          <EmptyState>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <p>{error}</p>
+          </EmptyState>
+        ) : filteredNotes.length > 0 ? (
           <NoteList>
-            {filteredNotes.map((note) => (
-              <NoteCard key={note.id} onClick={() => handleNoteClick(note.id)}>
-                <NoteInfo>
-                  <NoteTextGroup>
-                    <NoteName>{note.name}</NoteName>
-                    <NoteAddress>{note.address}</NoteAddress>
-                  </NoteTextGroup>
-                  <NoteDate>{note.startDate} ~ {note.endDate}</NoteDate>
-                </NoteInfo>
-                <StatusBadge $status={note.status}>{statusLabel[note.status]}</StatusBadge>
-              </NoteCard>
-            ))}
+            {filteredNotes.map((note) => {
+              const uiStatus = tripStatusToUIStatus(note.trip_status);
+              const displayName = note.selected_theme || note.final_city || "새 여행";
+              const displayAddress = note.final_city || "";
+              const startDateFormatted = formatDate(note.start_date);
+              const endDateFormatted = formatShortDate(note.end_date);
+              
+              return (
+                <NoteCard key={note.trip_id} onClick={() => handleNoteClick(note.trip_id)}>
+                  <NoteInfo>
+                    <NoteTextGroup>
+                      <NoteName>{displayName}</NoteName>
+                      {displayAddress && <NoteAddress>{displayAddress}</NoteAddress>}
+                    </NoteTextGroup>
+                    {note.start_date && note.end_date ? (
+                      <NoteDate>{startDateFormatted} ~ {endDateFormatted}</NoteDate>
+                    ) : (
+                      <NoteDate>날짜 미정</NoteDate>
+                    )}
+                  </NoteInfo>
+                  <StatusBadge $status={uiStatus}>{statusLabel[uiStatus]}</StatusBadge>
+                </NoteCard>
+              );
+            })}
           </NoteList>
         ) : (
           <EmptyState>
@@ -388,7 +456,7 @@ export default function NotesPage() {
               <line x1="16" y1="13" x2="8" y2="13" />
               <line x1="16" y1="17" x2="8" y2="17" />
             </svg>
-            <p>검색 결과가 없습니다.</p>
+            <p>{searchQuery ? "검색 결과가 없습니다." : "아직 여행 노트가 없습니다."}</p>
           </EmptyState>
         )}
       </Content>

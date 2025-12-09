@@ -36,6 +36,7 @@ export interface RouteSegment {
 interface GoogleMapViewProps {
   places: PlaceLocation[];
   routeSegments?: RouteSegment[];
+  bottomPadding?: number; // 바텀시트 높이에 따른 동적 패딩
 }
 
 // 번호별 색상 팔레트 (마커와 경로에 동일하게 적용)
@@ -56,10 +57,12 @@ const MARKER_COLORS = [
 const MapContent: React.FC<GoogleMapViewProps> = ({
   places,
   routeSegments,
+  bottomPadding = 40,
 }) => {
   const map = useMap();
   const geometryLibrary = useMapsLibrary("geometry");
   const polylinesRef = useRef<google.maps.Polyline[]>([]);
+  const fitBoundsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // 경로 Polyline 렌더링
   useEffect(() => {
@@ -114,26 +117,46 @@ const MapContent: React.FC<GoogleMapViewProps> = ({
     };
   }, [map, geometryLibrary, routeSegments]);
 
-  // Fit Bounds - 모든 장소가 보이도록 조정 (적당한 여유)
+  // Fit Bounds - 모든 장소가 보이도록 조정 (바텀시트 높이에 따라 동적 패딩)
   useEffect(() => {
     if (map && places.length > 0) {
-      const bounds = new window.google.maps.LatLngBounds();
-      places.forEach((place) => {
-        bounds.extend(place.location);
-      });
-
-      // 적당한 패딩으로 여유 있게 표시
-      map.fitBounds(bounds, { top: 40, right: 30, bottom: 40, left: 30 });
-
-      // 장소가 1개일 때만 줌 레벨 조정
-      if (places.length === 1) {
-        const listener = map.addListener("idle", () => {
-          map.setZoom(14);
-          window.google.maps.event.removeListener(listener);
-        });
+      // 기존 타이머 취소 (debounce)
+      if (fitBoundsTimeoutRef.current) {
+        clearTimeout(fitBoundsTimeoutRef.current);
       }
+
+      // 약간의 딜레이로 너무 빈번한 호출 방지
+      fitBoundsTimeoutRef.current = setTimeout(() => {
+        const bounds = new window.google.maps.LatLngBounds();
+        places.forEach((place) => {
+          bounds.extend(place.location);
+        });
+
+        // 바텀시트 높이에 따른 동적 패딩
+        // 상단: 80px (뒤로가기 버튼 여유), 하단: bottomPadding + 여유
+        map.fitBounds(bounds, { 
+          top: 80, 
+          right: 40, 
+          bottom: bottomPadding + 20, 
+          left: 40 
+        });
+
+        // 장소가 1개일 때만 줌 레벨 조정
+        if (places.length === 1) {
+          const listener = map.addListener("idle", () => {
+            map.setZoom(14);
+            window.google.maps.event.removeListener(listener);
+          });
+        }
+      }, 150); // 150ms debounce
     }
-  }, [map, places]);
+
+    return () => {
+      if (fitBoundsTimeoutRef.current) {
+        clearTimeout(fitBoundsTimeoutRef.current);
+      }
+    };
+  }, [map, places, bottomPadding]);
 
   // 마커 색상 결정 (인덱스에 따라 다른 색상)
   const getPinColor = (index: number) => {
@@ -164,6 +187,7 @@ const MapContent: React.FC<GoogleMapViewProps> = ({
 const GoogleMapView: React.FC<GoogleMapViewProps> = ({
   places,
   routeSegments,
+  bottomPadding = 40,
 }) => {
   const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
   const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "";
@@ -204,7 +228,7 @@ const GoogleMapView: React.FC<GoogleMapViewProps> = ({
         streetViewControl={false}
         fullscreenControl={false}
       >
-        <MapContent places={places} routeSegments={routeSegments} />
+        <MapContent places={places} routeSegments={routeSegments} bottomPadding={bottomPadding} />
       </GoogleMap>
     </APIProvider>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import styled, { keyframes } from "styled-components";
 import { getContentDetail, ContentDetail } from "@/app/lib/api";
@@ -581,7 +581,11 @@ const extractLastMessage = (text: string): string => {
 export default function TravelDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const contentId = params.id as string;
+  
+  // 채팅에서 넘어온 경우에만 trip_id가 있음 (홈에서 접근 시에는 없음)
+  const tripIdFromQuery = searchParams?.get("trip_id");
 
   // API로 콘텐츠 조회
   const [content, setContent] = useState<ContentDetail | null>(null);
@@ -591,7 +595,7 @@ export default function TravelDetailPage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // 뒤로가기 핸들러
+  // 뒤로가기 핸들러 (back API는 채팅 페이지에서 재선택 시 호출됨)
   const handleBack = useCallback(() => {
     router.back();
   }, [router]);
@@ -824,14 +828,16 @@ export default function TravelDetailPage() {
         </LastMessageSection>
       </Content>
 
-      {/* 하단 고정 버튼 */}
-      <BottomButtonWrapper>
-        <BottomButton
-          onClick={() => router.push(`/chat?trip_id=${contentId}&confirm=1`)}
-        >
-          여기로 결정하기
-        </BottomButton>
-      </BottomButtonWrapper>
+      {/* 하단 고정 버튼 - 채팅에서 접근한 경우에만 표시 */}
+      {tripIdFromQuery && (
+        <BottomButtonWrapper>
+          <BottomButton
+            onClick={() => router.push(`/chat?trip_id=${tripIdFromQuery}&confirm=1`)}
+          >
+            여기로 결정하기
+          </BottomButton>
+        </BottomButtonWrapper>
+      )}
     </PageWrapper>
   );
 }

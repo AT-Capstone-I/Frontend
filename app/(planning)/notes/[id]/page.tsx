@@ -2,8 +2,15 @@
 
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
-import styled from "styled-components";
-import { ThemeContent } from "@/app/lib/api";
+import styled, { keyframes } from "styled-components";
+import {
+  ThemeContent,
+  createPlan,
+  PlanResponse,
+  getActivePlan,
+  ActivePlanResponse,
+  ActivePlanDay,
+} from "@/app/lib/api";
 import GoogleMapView, {
   PlaceLocation,
   RouteSegment,
@@ -24,7 +31,10 @@ import {
   useSensors,
   DragEndEvent,
 } from "@dnd-kit/core";
-import { restrictToVerticalAxis, restrictToParentElement } from "@dnd-kit/modifiers";
+import {
+  restrictToVerticalAxis,
+  restrictToParentElement,
+} from "@dnd-kit/modifiers";
 import {
   arrayMove,
   SortableContext,
@@ -162,14 +172,6 @@ const SheetContent = styled.div`
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding-bottom: 20px;
-  
-  /* 스크롤바 숨기기 */
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE, Edge */
-  
-  &::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Edge */
-  }
 `;
 
 const TabContainer = styled.div`
@@ -302,18 +304,26 @@ const TimelineContainer = styled.div`
   padding: 0 20px;
 `;
 
-const TimelineLine = styled.div`
-  position: absolute;
-  left: 27px;
-  top: 0;
-  bottom: 20px;
-  width: 1px;
-  background-color: var(--greyscale-300, #e1e1e4);
-`;
-
-const ScheduleItem = styled.div`
+const ScheduleItem = styled.div<{ $isLast?: boolean }>`
   position: relative;
   margin-bottom: 24px;
+
+  /* 마커 중심에서 다음 아이템 마커 중심까지 연결선 */
+  &::before {
+    content: "";
+    position: absolute;
+    left: 7.5px;
+    top: 21.5px; /* 마커 중심 (top: 14px + 15px/2) */
+    bottom: ${({ $isLast }) =>
+      $isLast ? "auto" : "-24px"}; /* margin-bottom 만큼 아래로 */
+    width: 1px;
+    background-color: ${({ $isLast }) =>
+      $isLast ? "transparent" : "var(--greyscale-300, #e1e1e4)"};
+    height: ${({ $isLast }) =>
+      $isLast
+        ? "0"
+        : "calc(100% - 21.5px + 24px + 21.5px)"}; /* 현재 마커 중심부터 다음 마커 중심까지 */
+  }
 `;
 
 const MarkerContainer = styled.div`
@@ -418,7 +428,7 @@ const DragHandleContainer = styled.div`
   cursor: grab;
   flex-shrink: 0;
   touch-action: none;
-  
+
   &:active {
     cursor: grabbing;
   }
@@ -444,7 +454,8 @@ const SortableItemWrapper = styled.div<{ $isDragging?: boolean }>`
   gap: 12px;
   margin-bottom: 12px;
   opacity: ${({ $isDragging }) => ($isDragging ? 0.5 : 1)};
-  background-color: ${({ $isDragging }) => ($isDragging ? 'var(--greyscale-100, #f5f5f5)' : 'transparent')};
+  background-color: ${({ $isDragging }) =>
+    $isDragging ? "var(--greyscale-100, #f5f5f5)" : "transparent"};
   border-radius: 12px;
   transition: opacity 0.2s ease, background-color 0.2s ease;
 `;
@@ -887,7 +898,11 @@ const DayCellWrapper = styled.div<{
     left: ${({ $isStart }) => ($isStart ? "50%" : "0")};
     right: ${({ $isEnd }) => ($isEnd ? "50%" : "0")};
     background-color: ${({ $inRange, $isStart, $isEnd, $isStartAndEnd }) =>
-      $isStartAndEnd ? "transparent" : ($inRange || $isStart || $isEnd) ? "#F2F8FF" : "transparent"};
+      $isStartAndEnd
+        ? "transparent"
+        : $inRange || $isStart || $isEnd
+        ? "#F2F8FF"
+        : "transparent"};
     z-index: 0;
   }
 `;
@@ -1008,6 +1023,174 @@ const FloatingChatButton = styled.button`
   }
 `;
 
+// ============ 로딩 UI 스타일 ============
+
+const float = keyframes`
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+`;
+
+const pulse = keyframes`
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+`;
+
+const rotate = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+`;
+
+const LoadingContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: linear-gradient(180deg, #f8fbff 0%, #e8f4ff 100%);
+  padding: 20px;
+`;
+
+const LoadingIllustration = styled.div`
+  width: 200px;
+  height: 200px;
+  margin-bottom: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: ${float} 3s ease-in-out infinite;
+`;
+
+const AirplaneIcon = styled.div`
+  font-size: 80px;
+  filter: drop-shadow(0 10px 20px rgba(102, 178, 254, 0.3));
+`;
+
+const LoadingTitle = styled.h1`
+  font-family: "Pretendard", sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--greyscale-1200, #111111);
+  margin: 0 0 12px 0;
+  text-align: center;
+`;
+
+const LoadingStage = styled.p`
+  font-family: "Pretendard", sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--primary-500, #3399ff);
+  margin: 0 0 32px 0;
+  text-align: center;
+  min-height: 24px;
+  animation: ${pulse} 1.5s ease-in-out infinite;
+`;
+
+const ProgressBarContainer = styled.div`
+  width: 100%;
+  max-width: 300px;
+  height: 8px;
+  background-color: var(--greyscale-200, #f2f1f2);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 16px;
+`;
+
+const ProgressBar = styled.div<{ $progress: number }>`
+  height: 100%;
+  width: ${({ $progress }) => $progress}%;
+  background: linear-gradient(90deg, #66b2fe 0%, #3399ff 100%);
+  border-radius: 4px;
+  transition: width 0.5s ease-out;
+`;
+
+const EstimatedTime = styled.p`
+  font-family: "Pretendard", sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--greyscale-700, #77747b);
+  margin: 0 0 48px 0;
+  text-align: center;
+`;
+
+const TipCard = styled.div`
+  background: white;
+  border-radius: 16px;
+  padding: 20px 24px;
+  max-width: 320px;
+  width: 100%;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+`;
+
+const TipLabel = styled.span`
+  font-family: "Pretendard", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary-500, #3399ff);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+
+const TipText = styled.p`
+  font-family: "Pretendard", sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--greyscale-900, #444246);
+  margin: 8px 0 0 0;
+`;
+
+// 에러 UI
+const ErrorContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: linear-gradient(180deg, #fff8f8 0%, #ffe8e8 100%);
+  padding: 20px;
+`;
+
+const ErrorIcon = styled.div`
+  font-size: 64px;
+  margin-bottom: 24px;
+`;
+
+const ErrorTitle = styled.h1`
+  font-family: "Pretendard", sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--greyscale-1200, #111111);
+  margin: 0 0 12px 0;
+  text-align: center;
+`;
+
+const ErrorMessage = styled.p`
+  font-family: "Pretendard", sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--greyscale-700, #77747b);
+  margin: 0 0 32px 0;
+  text-align: center;
+  max-width: 280px;
+`;
+
+const RetryButton = styled.button`
+  padding: 16px 48px;
+  background-color: var(--primary-400, #66b2fe);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-family: "Pretendard", sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: var(--primary-500, #3399ff);
+  }
+`;
+
 // Icons
 const BackIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1016,36 +1199,36 @@ const BackIcon = () => (
 );
 
 // 탭 아이콘 스타일 (SVG 파일 사용)
-const TabIcon = styled.img<{ $active?: boolean; $type: 'pin' | 'heart' }>`
+const TabIcon = styled.img<{ $active?: boolean; $type: "pin" | "heart" }>`
   width: 24px;
   height: 24px;
   /* active 상태에 따른 색상 필터 */
   filter: ${({ $active, $type }) => {
     if ($active) {
       // active 상태: 파란색(일정) 또는 Red-400(즐겨찾기)
-      return $type === 'pin' 
-        ? 'brightness(0) saturate(100%) invert(55%) sepia(68%) saturate(456%) hue-rotate(175deg) brightness(97%) contrast(92%)'
-        : 'brightness(0) saturate(100%) invert(65%) sepia(30%) saturate(1000%) hue-rotate(314deg) brightness(100%) contrast(98%)'; // Red-400 (#FD818B)
+      return $type === "pin"
+        ? "brightness(0) saturate(100%) invert(55%) sepia(68%) saturate(456%) hue-rotate(175deg) brightness(97%) contrast(92%)"
+        : "brightness(0) saturate(100%) invert(65%) sepia(30%) saturate(1000%) hue-rotate(314deg) brightness(100%) contrast(98%)"; // Red-400 (#FD818B)
     }
     // inactive 상태: 회색
-    return 'brightness(0) saturate(100%) invert(38%) sepia(5%) saturate(429%) hue-rotate(220deg) brightness(95%) contrast(88%)';
+    return "brightness(0) saturate(100%) invert(38%) sepia(5%) saturate(429%) hue-rotate(220deg) brightness(95%) contrast(88%)";
   }};
 `;
 
 // Figma 디자인에 맞춘 아이콘
 const PinIcon = ({ active = false }: { active?: boolean }) => (
-  <TabIcon 
-    src="/assets/icons/pin.svg" 
-    alt="일정" 
+  <TabIcon
+    src="/assets/icons/pin.svg"
+    alt="일정"
     $active={active}
     $type="pin"
   />
 );
 
 const HeartIcon = ({ active = false }: { active?: boolean }) => (
-  <TabIcon 
-    src="/assets/icons/heart.svg" 
-    alt="즐겨찾기" 
+  <TabIcon
+    src="/assets/icons/heart.svg"
+    alt="즐겨찾기"
     $active={active}
     $type="heart"
   />
@@ -1099,6 +1282,39 @@ const ChatIcon = () => (
     />
   </svg>
 );
+
+// API 응답(ActivePlanResponse)을 ScheduleData 형식으로 변환하는 헬퍼 함수
+const convertActivePlanToSchedule = (
+  plan: ActivePlanResponse
+): ScheduleData => {
+  const days = plan.days;
+  const firstDate = days[0]?.date || "";
+  const lastDate = days[days.length - 1]?.date || "";
+
+  // 날짜 포맷 변환 (2025-01-15 → 2025.01.15)
+  const formatDate = (dateStr: string) => dateStr.replace(/-/g, ".");
+
+  return {
+    id: plan.plan_id,
+    title: "여행 일정",
+    subtitle: "",
+    startDate: formatDate(firstDate),
+    endDate: formatDate(lastDate),
+    totalDays: days.length,
+    days: days.map((day, index) => ({
+      day: index + 1,
+      places: day.items.map((item) => ({
+        id: item.place_id,
+        name: item.name || "장소",
+        checked: false,
+        location:
+          item.latitude && item.longitude
+            ? { lat: item.latitude, lng: item.longitude }
+            : undefined,
+      })),
+    })),
+  };
+};
 
 // 여행노트 데이터에서 일정 데이터 생성 헬퍼 함수
 const generateScheduleFromNote = (noteData: TravelNoteData): ScheduleData => {
@@ -1210,10 +1426,14 @@ const SortablePlaceItem = ({ place, onDelete }: SortablePlaceItemProps) => {
       </EditPlaceCard>
       <DragHandleContainer {...attributes} {...listeners}>
         <DragHandleColumn>
-          <span /><span /><span />
+          <span />
+          <span />
+          <span />
         </DragHandleColumn>
         <DragHandleColumn>
-          <span /><span /><span />
+          <span />
+          <span />
+          <span />
         </DragHandleColumn>
       </DragHandleContainer>
     </SortableItemWrapper>
@@ -1258,7 +1478,36 @@ export default function NoteDetailPage() {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [placeToDelete, setPlaceToDelete] = useState<string | null>(null);
 
-  // sessionStorage에서 여행노트 데이터 로드
+  // Plan API 상태
+  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+  const [planData, setPlanData] = useState<PlanResponse | null>(null);
+  const [planError, setPlanError] = useState<string | null>(null);
+  const [loadingStage, setLoadingStage] = useState(0);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const planGenerationRef = useRef(false);
+
+  // 로딩 단계 메시지
+  const loadingStages = [
+    "여행지 정보를 분석하고 있어요...",
+    "당신만을 위한 장소를 찾고 있어요...",
+    "최적의 경로를 계산하고 있어요...",
+    "완벽한 일정을 만들고 있어요...",
+    "거의 다 됐어요! 마무리 중이에요...",
+  ];
+
+  // 여행 팁 목록
+  const travelTips = [
+    "여행 중 지역 음식을 꼭 맛보세요! 그 지역의 문화를 가장 잘 느낄 수 있답니다.",
+    "사진보다 눈으로 보는 풍경이 더 아름다워요. 가끔은 카메라를 내려놓아보세요.",
+    "여행 일정에 여유 시간을 넣어두면 예상치 못한 멋진 경험을 할 수 있어요.",
+    "현지인에게 추천 장소를 물어보세요. 가이드북에 없는 보석 같은 곳을 발견할 수 있어요.",
+    "여행 중 만난 사람들과의 대화는 평생 기억에 남는 추억이 됩니다.",
+  ];
+
+  // 현재 팁 (로딩 시작 시 랜덤 선택)
+  const [currentTip, setCurrentTip] = useState("");
+
+  // API에서 활성 일정 로드 또는 sessionStorage 폴백
   useEffect(() => {
     const tripId = params.id as string;
     if (!tripId) {
@@ -1266,72 +1515,274 @@ export default function NoteDetailPage() {
       return;
     }
 
-    try {
-      const storedData = sessionStorage.getItem(`travelNote_${tripId}`);
+    const loadPlanData = async () => {
+      try {
+        // 1. 먼저 API에서 활성 일정 조회
+        console.log("📡 Fetching active plan from API...");
+        const activePlan = await getActivePlan(tripId);
 
-      // 유효한 JSON 문자열인지 확인
-      if (storedData && storedData !== "undefined" && storedData !== "null") {
-        const parsedData: TravelNoteData = JSON.parse(storedData);
+        if (activePlan && activePlan.days && activePlan.days.length > 0) {
+          console.log("✅ Active plan loaded from API:", activePlan);
 
-        // 파싱된 객체가 유효한지 확인
-        if (parsedData && typeof parsedData === "object") {
-          setNoteData(parsedData);
-
-          // 일정 데이터 생성
-          const schedule = generateScheduleFromNote(parsedData);
+          // API 응답을 ScheduleData 형식으로 변환
+          const schedule = convertActivePlanToSchedule(activePlan);
           setScheduleData(schedule);
 
-          // 이미 노트가 있으면 여행 계획 페이지로 이동
-          if (!isNavigatingRef.current) {
-            isNavigatingRef.current = true;
-            router.replace(`/travel/${tripId}`);
-          }
+          // planData도 설정 (기존 로직과 호환성 유지)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          setPlanData({
+            plan_id: activePlan.plan_id,
+            trip_id: activePlan.trip_id,
+            version: activePlan.version,
+            status: activePlan.status === "final" ? "active" : "draft",
+            days: activePlan.days.map((day, index) => ({
+              day_number: index + 1,
+              date: day.date,
+              theme: null,
+              items: day.items.map((item) => ({
+                item_id: item.place_id,
+                place_id: item.place_id,
+                place_name: item.name || "장소",
+                name: item.name || "장소",
+                start_time: item.start,
+                end_time: item.end,
+                visit_time: item.start,
+                duration_minutes: 60, // 기본값
+                order_in_day: 0,
+                category: item.category || "",
+                address: item.address || "",
+                photos: item.photos || [],
+                location:
+                  item.latitude && item.longitude
+                    ? { lat: item.latitude, lng: item.longitude }
+                    : undefined,
+                notes: item.notes || "",
+                item_type: "place",
+                place_details: null,
+              })),
+            })),
+            quality_scores: {
+              overall: 0,
+              preference_match: 0,
+              route_efficiency: 0,
+              time_feasibility: 0,
+            },
+            created_at: activePlan.created_at,
+            message: "",
+          } as unknown as PlanResponse);
+          setIsLoading(false);
           return;
         }
-      }
 
-      // 저장된 노트가 없으면 테마 콘텐츠로 자동 생성
-      const themeContentRaw = sessionStorage.getItem("selectedThemeContent");
-      if (
-        themeContentRaw &&
-        themeContentRaw !== "undefined" &&
-        themeContentRaw !== "null"
-      ) {
-        const themeContent: ThemeContent = JSON.parse(themeContentRaw);
-        const autoNote: TravelNoteData = {
-          tripId,
-          themeContent,
-          clarifierAnswers: {},
-          userProfileSummary: "",
-          createdAt: new Date().toISOString(),
-        };
-        sessionStorage.setItem(
-          `travelNote_${tripId}`,
-          JSON.stringify(autoNote)
-        );
-        setNoteData(autoNote);
-        const schedule = generateScheduleFromNote(autoNote);
-        setScheduleData(schedule);
+        console.log("📌 No active plan found, checking sessionStorage...");
 
-        if (!isNavigatingRef.current) {
-          isNavigatingRef.current = true;
-          router.replace(`/travel/${tripId}`);
+        // 2. API에 일정이 없으면 sessionStorage 확인
+        const storedData = sessionStorage.getItem(`travelNote_${tripId}`);
+        if (storedData && storedData !== "undefined" && storedData !== "null") {
+          const parsedData: TravelNoteData = JSON.parse(storedData);
+          if (parsedData && typeof parsedData === "object") {
+            setNoteData(parsedData);
+            const schedule = generateScheduleFromNote(parsedData);
+            setScheduleData(schedule);
+            setIsLoading(false);
+            return;
+          }
         }
-        return;
-      }
 
-      // 데이터가 없으면 더미 데이터 사용 (개발/테스트용)
-      console.log("📌 Using dummy data for testing");
-      setScheduleData(DUMMY_SCHEDULE_DATA);
-    } catch (error) {
-      console.error("여행노트 데이터 로드 에러:", error);
-      // 에러 발생 시에도 더미 데이터 사용
-      console.log("📌 Using dummy data due to error");
-      setScheduleData(DUMMY_SCHEDULE_DATA);
-    } finally {
-      setIsLoading(false);
-    }
+        // 3. 테마 콘텐츠로 자동 생성
+        const themeContentRaw = sessionStorage.getItem("selectedThemeContent");
+        if (
+          themeContentRaw &&
+          themeContentRaw !== "undefined" &&
+          themeContentRaw !== "null"
+        ) {
+          const themeContent: ThemeContent = JSON.parse(themeContentRaw);
+          const autoNote: TravelNoteData = {
+            tripId,
+            themeContent,
+            clarifierAnswers: {},
+            userProfileSummary: "",
+            createdAt: new Date().toISOString(),
+          };
+          sessionStorage.setItem(
+            `travelNote_${tripId}`,
+            JSON.stringify(autoNote)
+          );
+          setNoteData(autoNote);
+          const schedule = generateScheduleFromNote(autoNote);
+          setScheduleData(schedule);
+          setIsLoading(false);
+          return;
+        }
+
+        // 4. 데이터가 없으면 더미 데이터 사용 (개발/테스트용)
+        console.log("📌 Using dummy data for testing");
+        setScheduleData(DUMMY_SCHEDULE_DATA);
+      } catch (error) {
+        console.error("여행노트 데이터 로드 에러:", error);
+        console.log("📌 Using dummy data due to error");
+        setScheduleData(DUMMY_SCHEDULE_DATA);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadPlanData();
   }, [params.id]);
+
+  // Plan API 호출 - clarifier 완료 후 호출됨
+  useEffect(() => {
+    const tripId = params.id as string;
+    if (!tripId) return;
+
+    // 이미 생성 중이거나 생성 완료된 경우 스킵
+    if (planGenerationRef.current || planData) return;
+
+    // sessionStorage에서 planNeeded 플래그 확인
+    const planNeeded = sessionStorage.getItem(`planNeeded_${tripId}`);
+    if (planNeeded !== "true") return;
+
+    // Plan 생성 시작
+    planGenerationRef.current = true;
+    setIsGeneratingPlan(true);
+    setLoadingStage(0);
+    setLoadingProgress(0);
+    setCurrentTip(travelTips[Math.floor(Math.random() * travelTips.length)]);
+
+    // 로딩 진행 타이머 (2-3분 동안 단계별 진행)
+    const totalDuration = 150000; // 2분 30초 예상
+    const stageInterval = totalDuration / loadingStages.length;
+    let currentStageVal = 0;
+    const startTime = Date.now();
+
+    const progressTimer = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min((elapsed / totalDuration) * 100, 95);
+      setLoadingProgress(progress);
+
+      // 단계 업데이트
+      const newStage = Math.min(
+        Math.floor(elapsed / stageInterval),
+        loadingStages.length - 1
+      );
+      if (newStage !== currentStageVal) {
+        currentStageVal = newStage;
+        setLoadingStage(newStage);
+      }
+    }, 500);
+
+    // Plan API 호출
+    const generatePlan = async () => {
+      try {
+        console.log("🚀 Plan API 호출 시작:", tripId);
+        const response = await createPlan(tripId, "여행 일정을 만들어주세요");
+
+        clearInterval(progressTimer);
+        setLoadingProgress(100);
+
+        console.log("✅ Plan 생성 완료:", response);
+        setPlanData(response);
+
+        // Plan 데이터를 Schedule 데이터로 변환
+        const convertedSchedule = convertPlanToSchedule(response);
+        setScheduleData(convertedSchedule);
+
+        // planNeeded 플래그 제거
+        sessionStorage.removeItem(`planNeeded_${tripId}`);
+
+        // 잠시 후 로딩 UI 숨기기
+        setTimeout(() => {
+          setIsGeneratingPlan(false);
+        }, 500);
+      } catch (error) {
+        clearInterval(progressTimer);
+        console.error("❌ Plan 생성 실패:", error);
+        setPlanError(
+          error instanceof Error ? error.message : "일정 생성에 실패했습니다"
+        );
+        setIsGeneratingPlan(false);
+      }
+    };
+
+    generatePlan();
+
+    return () => {
+      clearInterval(progressTimer);
+    };
+  }, [params.id, planData, travelTips, loadingStages.length]);
+
+  // Plan API 재시도
+  const handleRetryPlan = useCallback(() => {
+    setPlanError(null);
+    planGenerationRef.current = false;
+    const tripId = params.id as string;
+    sessionStorage.setItem(`planNeeded_${tripId}`, "true");
+    setIsGeneratingPlan(true);
+  }, [params.id]);
+
+  // PlanResponse를 ScheduleData로 변환하는 함수
+  // Note: API 응답은 day_number 대신 date를 반환하고, place_name 대신 name을 반환함
+  // latitude, longitude는 item에 직접 포함됨
+  const convertPlanToSchedule = (plan: PlanResponse): ScheduleData => {
+    console.log("📌 Converting plan to schedule:", plan);
+
+    const days: DayData[] = plan.days.map((day, index) => {
+      // API 응답에서는 day_number가 없으므로 index + 1로 생성
+      // 또한 place_name 대신 name 필드 사용 (API 응답 구조에 맞춤)
+      const dayItem = day as {
+        date: string;
+        items: Array<{
+          place_id?: string;
+          name?: string;
+          place_name?: string;
+          type?: string;
+          latitude?: number;
+          longitude?: number;
+          place_details?: { location?: { lat: number; lng: number } };
+        }>;
+      };
+
+      return {
+        day: index + 1,
+        places: dayItem.items.map((item, itemIndex) => ({
+          id: item.place_id || `place-${index}-${itemIndex}`,
+          // API가 name 또는 place_name을 반환할 수 있음
+          name: item.name || item.place_name || `장소 ${itemIndex + 1}`,
+          checked: false,
+          // latitude/longitude 또는 place_details.location 사용
+          location:
+            item.latitude && item.longitude
+              ? { lat: item.latitude, lng: item.longitude }
+              : item.place_details?.location
+              ? {
+                  lat: item.place_details.location.lat,
+                  lng: item.place_details.location.lng,
+                }
+              : undefined,
+        })),
+      };
+    });
+
+    console.log("📌 Converted days:", days);
+
+    const startDate =
+      plan.days[0]?.date || new Date().toISOString().split("T")[0];
+    const formattedStartDate = startDate.replace(/-/g, ".");
+
+    // 마지막 날짜 계산
+    const endDate = plan.days[plan.days.length - 1]?.date || "";
+    const formattedEndDate = endDate ? endDate.replace(/-/g, ".").slice(5) : "";
+
+    return {
+      id: plan.trip_id,
+      title: "나만의 여행",
+      subtitle: plan.message || "",
+      startDate: formattedStartDate,
+      endDate: formattedEndDate,
+      totalDays: plan.days.length,
+      days,
+    };
+  };
 
   const currentDayData = scheduleData?.days.find((d) => d.day === currentDay);
 
@@ -1725,6 +2176,51 @@ export default function NoteDetailPage() {
     return days[date.getDay()];
   };
 
+  // 남은 예상 시간 계산
+  const getEstimatedTimeText = () => {
+    const remainingProgress = 100 - loadingProgress;
+    const remainingSeconds = Math.round((remainingProgress / 100) * 150);
+    const minutes = Math.floor(remainingSeconds / 60);
+    const seconds = remainingSeconds % 60;
+    if (minutes > 0) {
+      return `약 ${minutes}분 ${seconds}초 남았어요`;
+    }
+    return `약 ${seconds}초 남았어요`;
+  };
+
+  // Plan 생성 중 로딩 UI
+  if (isGeneratingPlan && !planError) {
+    return (
+      <LoadingContainer>
+        <LoadingIllustration>
+          <AirplaneIcon>✈️</AirplaneIcon>
+        </LoadingIllustration>
+        <LoadingTitle>완벽한 여행을 준비하고 있어요</LoadingTitle>
+        <LoadingStage>{loadingStages[loadingStage]}</LoadingStage>
+        <ProgressBarContainer>
+          <ProgressBar $progress={loadingProgress} />
+        </ProgressBarContainer>
+        <EstimatedTime>{getEstimatedTimeText()}</EstimatedTime>
+        <TipCard>
+          <TipLabel>✨ 여행 TIP</TipLabel>
+          <TipText>{currentTip}</TipText>
+        </TipCard>
+      </LoadingContainer>
+    );
+  }
+
+  // Plan 생성 에러 UI
+  if (planError) {
+    return (
+      <ErrorContainer>
+        <ErrorIcon>😢</ErrorIcon>
+        <ErrorTitle>일정 생성에 실패했어요</ErrorTitle>
+        <ErrorMessage>{planError}</ErrorMessage>
+        <RetryButton onClick={handleRetryPlan}>다시 시도하기</RetryButton>
+      </ErrorContainer>
+    );
+  }
+
   // 로딩 중 UI
   if (isLoading) {
     return (
@@ -1764,7 +2260,7 @@ export default function NoteDetailPage() {
           </BottomSheet>
         </BottomSheetContainer>
         <BottomBar>
-          <ConfirmButton onClick={() => router.push("/chat")}>
+          <ConfirmButton onClick={() => router.push("/chat?reset=1")}>
             새로운 여행 계획하기
           </ConfirmButton>
         </BottomBar>
@@ -1780,10 +2276,24 @@ export default function NoteDetailPage() {
     84 -
     24; // 24px 내려서 바텀시트 둥근 상단(radius) 보이게
 
+  // 지도 내 fitBounds 패딩 계산 (바텀시트 높이에 따라 동적으로 조정)
+  // 50% 이상에서는 고정 (너무 축소되는 것 방지)
+  const effectiveSheetHeight = Math.min(sheetHeight, 50);
+  const mapBottomPadding =
+    Math.round(
+      (effectiveSheetHeight / 100) *
+        (containerRef.current?.offsetHeight || 800) *
+        0.1
+    ) + 40;
+
   return (
     <PageContainer ref={containerRef}>
       <MapSection $bottomOffset={mapBottomOffset}>
-        <GoogleMapView places={mapPlaces} routeSegments={routeSegments} />
+        <GoogleMapView
+          places={mapPlaces}
+          routeSegments={routeSegments}
+          bottomPadding={mapBottomPadding}
+        />
         <BackButton onClick={() => router.back()}>
           <BackIcon />
         </BackButton>
@@ -1858,7 +2368,10 @@ export default function NoteDetailPage() {
                     sensors={sensors}
                     collisionDetection={closestCenter}
                     onDragEnd={handleSortDragEnd}
-                    modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+                    modifiers={[
+                      restrictToVerticalAxis,
+                      restrictToParentElement,
+                    ]}
                   >
                     <SortableContext
                       items={editPlaces.map((p) => p.id)}
@@ -1881,15 +2394,16 @@ export default function NoteDetailPage() {
                 ) : (
                   // 일반 모드 UI
                   <TimelineContainer>
-                    <TimelineLine />
                     {currentDayData?.places.map((place, index) => {
                       // 현재 장소와 다음 장소 사이의 경로 정보 찾기
                       const segment = routeData?.segments.find(
                         (seg) => seg.origin.id === place.id
                       );
+                      const isLastItem =
+                        index === (currentDayData?.places.length || 0) - 1;
 
                       return (
-                        <ScheduleItem key={place.id}>
+                        <ScheduleItem key={place.id} $isLast={isLastItem}>
                           <MarkerContainer>
                             <Marker $checked={place.checked}>
                               {place.checked && <CheckIcon />}
@@ -1916,7 +2430,9 @@ export default function NoteDetailPage() {
                                 <TravelInfoText>계산 중...</TravelInfoText>
                               ) : (
                                 <>
-                                  <TravelInfoText>거리 정보 없음</TravelInfoText>
+                                  <TravelInfoText>
+                                    거리 정보 없음
+                                  </TravelInfoText>
                                 </>
                               )}
                             </TravelInfo>
@@ -1939,7 +2455,7 @@ export default function NoteDetailPage() {
 
       {/* 플로팅 채팅 버튼 */}
       {!isEditMode && (
-        <FloatingChatButton onClick={() => router.push("/chat")}>
+        <FloatingChatButton onClick={() => router.push("/chat?reset=1")}>
           <ChatIcon />
         </FloatingChatButton>
       )}
@@ -1985,7 +2501,9 @@ export default function NoteDetailPage() {
               <EditModalDescription>여행지를 삭제합니다.</EditModalDescription>
             </EditModalContent>
             <EditModalButtonGroup>
-              <EditModalButton onClick={handleCancelDelete}>취소</EditModalButton>
+              <EditModalButton onClick={handleCancelDelete}>
+                취소
+              </EditModalButton>
               <EditModalButton $primary onClick={handleConfirmDelete}>
                 확인
               </EditModalButton>
@@ -2000,7 +2518,9 @@ export default function NoteDetailPage() {
           <EditModalBox onClick={(e) => e.stopPropagation()}>
             <EditModalContent>
               <EditModalTitle>여행 저장</EditModalTitle>
-              <EditModalDescription>즐거운 여행을 시작하세요.</EditModalDescription>
+              <EditModalDescription>
+                즐거운 여행을 시작하세요.
+              </EditModalDescription>
             </EditModalContent>
             <EditModalButtonGroup>
               <EditModalButton onClick={handleCancelSave}>취소</EditModalButton>
@@ -2026,7 +2546,10 @@ export default function NoteDetailPage() {
             <DatePickerHeader>
               <DatePickerTitle>일정 선택</DatePickerTitle>
               <DatePickerDateRange>
-                <SmallCalendarIcon src="/assets/icons/calendar.svg" alt="캘린더" />
+                <SmallCalendarIcon
+                  src="/assets/icons/calendar.svg"
+                  alt="캘린더"
+                />
                 <span>
                   {scheduleData?.startDate}
                   {scheduleData?.endDate && ` ~ ${scheduleData.endDate}`}

@@ -285,11 +285,6 @@ const PlaceCardScroll = styled.div`
   padding-right: 20px;
   margin-right: -20px;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
 
   @media (min-width: 768px) {
     padding-right: 40px;
@@ -311,11 +306,6 @@ const HorizontalScroll = styled.div`
   padding-right: 20px;
   margin-right: -20px;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
 
   @media (min-width: 768px) {
     padding-right: 40px;
@@ -812,7 +802,7 @@ export default function HomePage() {
 
   // 새 여행 노트 추가 핸들러
   const handleAddNewTrip = () => {
-    router.push("/chat");
+    router.push("/chat?reset=1");
   };
 
   return (
@@ -979,8 +969,8 @@ export default function HomePage() {
                     <TravelCard
                       key={content.content_id}
                       id={content.content_id}
-                      title={content.city_name}
-                      description={content.theme_phrase}
+                      title={content.theme_phrase}
+                      description={content.city_name}
                       image={getContentImage(content)}
                     />
                   ))

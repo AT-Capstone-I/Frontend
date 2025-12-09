@@ -160,18 +160,20 @@ const Timeline = styled.div`
   padding-left: 31px;
 `;
 
-const TimelineLine = styled.div`
-  position: absolute;
-  left: 7px;
-  top: 15px;
-  bottom: 70px;
-  width: 1px;
-  background-color: var(--greyscale-300, #e1e1e4);
-`;
-
-const TimelineItem = styled.div`
+const TimelineItem = styled.div<{ $isLast?: boolean }>`
   position: relative;
   margin-bottom: 8px;
+
+  /* 마커 중심에서 다음 아이템 마커 중심까지 연결선 */
+  &::before {
+    content: '';
+    position: absolute;
+    left: -23.5px; /* -31px + 7.5px = 마커 중심 */
+    top: 7.5px; /* 마커 중심 (15px/2) */
+    width: 1px;
+    background-color: ${({ $isLast }) => ($isLast ? 'transparent' : 'var(--greyscale-300, #e1e1e4)')};
+    height: ${({ $isLast }) => ($isLast ? '0' : 'calc(100% - 7.5px + 8px + 7.5px)')}; /* 현재 마커 중심부터 다음 마커 중심까지 */
+  }
 `;
 
 // 체크 아이콘
@@ -187,6 +189,7 @@ const CheckIcon = styled.div<{ $completed: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 1;
 
   svg {
     width: 9px;
@@ -327,11 +330,6 @@ const RecommendScroll = styled.div`
   padding-right: 20px;
   margin-right: -20px;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
 `;
 
 const RecommendCard = styled.div`
@@ -474,11 +472,6 @@ const ReviewImageScroll = styled.div`
   padding-right: 20px;
   margin-right: -20px;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
 `;
 
 const ReviewImageBox = styled.div`
@@ -874,9 +867,8 @@ export default function SchedulePage() {
             </DayHeader>
 
             <Timeline>
-              <TimelineLine />
               {scheduleData.places.map((place, index) => (
-                <TimelineItem key={place.id}>
+                <TimelineItem key={place.id} $isLast={index === scheduleData.places.length - 1}>
                   <CheckIcon $completed={place.completed}>
                     <CheckmarkIcon />
                   </CheckIcon>

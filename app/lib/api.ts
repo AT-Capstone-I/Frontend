@@ -218,6 +218,7 @@ export interface ClarifierQuestionItem {
   question: string;
   priority: "high" | "medium" | "low";
   field_name: string;
+  input_type: "text" | "date_range";
 }
 
 export interface SkipButton {
@@ -635,6 +636,7 @@ export interface ContentCarouselImage {
 
 export interface ContentDetail {
   content_id: string;
+  trip_id: string; // 실제 trip_id (content/action API에서 사용)
   city_name: string;
   theme_phrase: string;
   content_text: string;
@@ -656,6 +658,189 @@ export async function getContentDetail(
 
   if (!response.ok) {
     throw new Error(`콘텐츠 상세 조회 실패: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+// ============ 여행 계획(Plan) 타입 정의 ============
+
+export interface PlanRequest {
+  trip_id: string;
+  user_message: string;
+  n_days?: number;
+}
+
+export interface PlanLocation {
+  lat: number;
+  lng: number;
+}
+
+export interface PlanPlaceDetail {
+  name: string;
+  category: string | null;
+  rating: number | null;
+  address: string | null;
+  photo_url: string | null;
+  description: string | null;
+  location: PlanLocation | null;
+}
+
+export interface PlanItem {
+  item_id: string;
+  order_in_day: number;
+  place_id: string;
+  place_name: string;
+  visit_time: string | null;
+  duration_minutes: number | null;
+  notes: string | null;
+  item_type: "place" | "restaurant" | "cafe" | "activity";
+  place_details: PlanPlaceDetail | null;
+}
+
+export interface PlanDay {
+  day_number: number;
+  date: string | null;
+  theme: string | null;
+  items: PlanItem[];
+}
+
+export interface QualityScores {
+  overall: number;
+  preference_match: number;
+  route_efficiency: number;
+  time_feasibility: number;
+}
+
+export interface PlanResponse {
+  plan_id: string;
+  trip_id: string;
+  version: number;
+  status: "draft" | "active" | "archived";
+  days: PlanDay[];
+  quality_scores: QualityScores;
+  created_at: string;
+  message: string;
+}
+
+export interface PlanConfirmRequest {
+  plan_id: string;
+  trip_id: string;
+}
+
+export interface PlanConfirmResponse {
+  status: "confirmed";
+  plan_id: string;
+  trip_id: string;
+  message: string;
+}
+
+// ============ Plan API 함수 ============
+
+/**
+ * 여행 계획 생성 API
+ * clarifier 완료 후 AI가 여행 일정을 생성
+ * ⚠️ 최초 생성 시 2-3분 소요
+ */
+export async function createPlan(
+  tripId: string,
+  userMessage: string = "여행 일정을 만들어주세요",
+  nDays?: number
+): Promise<PlanResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/agents/plan`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      trip_id: tripId,
+      user_message: userMessage,
+      ...(nDays && { n_days: nDays }),
+    } as PlanRequest),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "여행 계획 생성 실패");
+  }
+
+  return response.json();
+}
+
+/**
+ * 여행 계획 확정 API
+ * draft 상태의 계획을 active로 변경
+ */
+export async function confirmPlan(
+  planId: string,
+  tripId: string
+): Promise<PlanConfirmResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/agents/plan/confirm`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      plan_id: planId,
+      trip_id: tripId,
+    } as PlanConfirmRequest),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "여행 계획 확정 실패");
+  }
+
+  return response.json();
+}
+
+// ============ 활성 일정 조회 API ============
+
+export interface ActivePlanItem {
+  type: string;
+  place_id: string;
+  name: string;
+  start: string;        // "10:00"
+  end: string;          // "11:30"
+  locked: boolean;
+  suggested?: boolean;
+  eta_min?: number | null;
+  notes?: string | null;
+  category?: string;
+  address?: string;
+  photos?: string[];
+  latitude?: number;    // 좌표
+  longitude?: number;   // 좌표
+}
+
+export interface ActivePlanDay {
+  date: string;
+  items: ActivePlanItem[];
+}
+
+export interface ActivePlanResponse {
+  plan_id: string;
+  trip_id: string;
+  version: number;
+  status: "draft" | "final";
+  is_active: boolean;
+  days: ActivePlanDay[];
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * 활성 일정 조회 API
+ * 현재 활성화된 일정(is_active=true)을 조회
+ */
+export async function getActivePlan(
+  tripId: string
+): Promise<ActivePlanResponse | null> {
+  const response = await fetch(`${API_BASE_URL}/api/trips/${tripId}/plan`);
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      // 아직 일정이 생성되지 않음
+      return null;
+    }
+    const error = await response.json();
+    throw new Error(error.detail || "일정 조회 실패");
   }
 
   return response.json();
