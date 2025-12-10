@@ -1,4 +1,5 @@
 // Google Routes API를 사용한 경로 계산
+// Route.computeRoutes() 사용 (MoodTrip_Map과 동일)
 // TRANSIT 모드 사용 (한국에서 DRIVING 미지원)
 
 import {
@@ -28,6 +29,63 @@ export const formatDuration = (seconds: number): string => {
   return `${minutes}분`;
 };
 
+// 도보 속도 (m/min) - 약 5km/h
+const WALKING_SPEED_M_PER_MIN = 83;
+
+// 비정상적인 시간 판단 기준 (거리 대비 시간이 도보의 3배 이상이면 비정상)
+const UNREASONABLE_TIME_MULTIPLIER = 3;
+
+/**
+ * 두 좌표 간의 직선 거리를 계산합니다 (Haversine 공식)
+ * @param from 시작 좌표
+ * @param to 끝 좌표
+ * @returns 거리 (미터)
+ */
+const calculateDirectDistance = (
+  from: { lat: number; lng: number },
+  to: { lat: number; lng: number }
+): number => {
+  const R = 6371000; // 지구 반지름 (미터)
+  const dLat = toRad(to.lat - from.lat);
+  const dLng = toRad(to.lng - from.lng);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(from.lat)) *
+      Math.cos(toRad(to.lat)) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+const toRad = (deg: number): number => deg * (Math.PI / 180);
+
+/**
+ * 시간이 합리적인지 체크합니다.
+ * 거리 대비 시간이 도보의 3배 이상이면 비정상으로 판단
+ * @param distanceMeters 거리 (미터)
+ * @param durationSeconds 시간 (초)
+ * @returns 합리적인 시간인지 여부
+ */
+const isReasonableTime = (
+  distanceMeters: number,
+  durationSeconds: number
+): boolean => {
+  // 도보 예상 시간 (초)
+  const walkingTimeSeconds = (distanceMeters / WALKING_SPEED_M_PER_MIN) * 60;
+  // 대중교통 시간이 도보의 3배 이상이면 비정상
+  return durationSeconds <= walkingTimeSeconds * UNREASONABLE_TIME_MULTIPLIER;
+};
+
+/**
+ * 도보 기반 예상 시간을 계산합니다.
+ * @param distanceMeters 거리 (미터)
+ * @returns 예상 시간 (초)
+ */
+const estimateWalkingTime = (distanceMeters: number): number => {
+  return Math.round((distanceMeters / WALKING_SPEED_M_PER_MIN) * 60);
+};
+
 /**
  * 여러 장소 간의 경로를 계산합니다.
  * Google Routes API의 Route.computeRoutes()를 사용합니다.
@@ -47,12 +105,12 @@ export const calculateRoute = async (
   }
 
   try {
-    // Routes 라이브러리에서 DirectionsService 가져오기
-    const { DirectionsService } = (await google.maps.importLibrary(
-      "routes"
-    )) as google.maps.RoutesLibrary;
-
-    const directionsService = new DirectionsService();
+    // Routes 라이브러리에서 Route 클래스 가져오기 (MoodTrip_Map과 동일)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { Route } = (await google.maps.importLibrary("routes")) as any;
+    const { Place } = (await google.maps.importLibrary(
+      "places"
+    )) as google.maps.PlacesLibrary;
 
     const segments: RouteSegment[] = [];
     let totalDistance = 0;
@@ -64,37 +122,43 @@ export const calculateRoute = async (
       const destination = places[i + 1];
 
       try {
-        // DirectionsService용 요청 생성
-        const request: google.maps.DirectionsRequest = {
-          origin: origin.id.startsWith("ChIJ")
-            ? { placeId: origin.id }
-            : origin.location,
-          destination: destination.id.startsWith("ChIJ")
-            ? { placeId: destination.id }
-            : destination.location,
-          travelMode: google.maps.TravelMode.TRANSIT,
+        // Place 인스턴스 생성 (Place ID가 있는 경우)
+        let originPlace;
+        let destinationPlace;
+
+        if (origin.id.startsWith("ChIJ")) {
+          originPlace = new Place({ id: origin.id });
+        } else {
+          originPlace = origin.location;
+        }
+
+        if (destination.id.startsWith("ChIJ")) {
+          destinationPlace = new Place({ id: destination.id });
+        } else {
+          destinationPlace = destination.location;
+        }
+
+        // MoodTrip_Map과 동일한 요청 형식
+        const request = {
+          origin: originPlace,
+          destination: destinationPlace,
+          travelMode: "TRANSIT",
+          fields: ["*"],
         };
 
-        // DirectionsService.route() 호출
-        const result = await directionsService.route(request);
+        // Route.computeRoutes() 호출
+        const { routes } = await Route.computeRoutes(request);
 
-        if (
-          !result.routes ||
-          result.routes.length === 0 ||
-          !result.routes[0].legs ||
-          result.routes[0].legs.length === 0
-        ) {
+        if (!routes || routes.length === 0) {
           console.warn(
-            `⚠️ No route found for segment ${i + 1}: ${origin.name} -> ${
-              destination.name
-            }`
+            `⚠️ No route found for segment ${i + 1}: ${origin.name} -> ${destination.name}`
           );
           // 직선 거리로 대체
           const directDistance = calculateDirectDistance(
             origin.location,
             destination.location
           );
-          const estimatedDuration = Math.round((directDistance / 50) * 60); // 약 50m/min 도보 속도로 추정
+          const estimatedDuration = estimateWalkingTime(directDistance);
 
           segments.push({
             origin,
@@ -109,17 +173,64 @@ export const calculateRoute = async (
           continue;
         }
 
-        const route = result.routes[0];
-        const leg = route.legs[0];
+        const route = routes[0];
 
-        // 거리 및 시간 파싱
-        const distanceMeters = leg.distance?.value || 0;
-        const durationSeconds = leg.duration?.value || 0;
+        // 시간 파싱 (MoodTrip_Map과 동일한 로직)
+        let durationSeconds = 0;
+        if (route.durationMillis) {
+          durationSeconds = Math.round(route.durationMillis / 1000);
+        } else if (route.staticDurationMillis) {
+          durationSeconds = Math.round(route.staticDurationMillis / 1000);
+        } else if (route.duration) {
+          durationSeconds = parseInt(route.duration.replace("s", ""));
+        }
 
-        // Polyline 처리
+        // 순수 이동 시간 계산 (legs 합산)
+        let travelDurationSeconds = 0;
+        if (route.legs) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          travelDurationSeconds = route.legs.reduce(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (acc: number, leg: any) => {
+              const legDuration = leg.durationMillis
+                ? Math.round(leg.durationMillis / 1000)
+                : leg.duration
+                  ? parseInt(leg.duration.replace("s", ""))
+                  : 0;
+              return acc + legDuration;
+            },
+            0
+          );
+        }
+
+        // Fallback
+        if (durationSeconds === 0 && travelDurationSeconds > 0) {
+          durationSeconds = travelDurationSeconds;
+        }
+
+        const distanceMeters = route.distanceMeters || 0;
+
+        // 🔥 비정상적인 시간 체크 (fallback 로직)
+        // 거리 대비 시간이 도보의 3배 이상이면 도보 시간으로 대체
+        if (!isReasonableTime(distanceMeters, durationSeconds)) {
+          console.warn(
+            `⚠️ Unreasonable transit time for segment ${i + 1}: ${formatDistance(distanceMeters)} in ${formatDuration(durationSeconds)}`
+          );
+          console.warn(
+            `   → Using walking time estimate instead: ${formatDuration(estimateWalkingTime(distanceMeters))}`
+          );
+          durationSeconds = estimateWalkingTime(distanceMeters);
+          travelDurationSeconds = durationSeconds;
+        }
+
+        // Polyline 처리 (MoodTrip_Map과 동일)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const routeAny = route as any;
         let polylineObj: RouteSegment["polyline"];
-        if (route.overview_polyline) {
-          polylineObj = { encodedPolyline: route.overview_polyline };
+        if (routeAny.polyline) {
+          polylineObj = routeAny.polyline;
+        } else if (routeAny.path) {
+          polylineObj = { path: routeAny.path };
         }
 
         segments.push({
@@ -127,7 +238,7 @@ export const calculateRoute = async (
           destination,
           distanceMeters,
           durationSeconds,
-          travelDurationSeconds: durationSeconds,
+          travelDurationSeconds: travelDurationSeconds || durationSeconds,
           polyline: polylineObj,
         });
 
@@ -141,7 +252,7 @@ export const calculateRoute = async (
           origin.location,
           destination.location
         );
-        const estimatedDuration = Math.round((directDistance / 50) * 60);
+        const estimatedDuration = estimateWalkingTime(directDistance);
 
         segments.push({
           origin,
@@ -173,31 +284,6 @@ export const calculateRoute = async (
     return null;
   }
 };
-
-/**
- * 두 좌표 간의 직선 거리를 계산합니다 (Haversine 공식)
- * @param from 시작 좌표
- * @param to 끝 좌표
- * @returns 거리 (미터)
- */
-const calculateDirectDistance = (
-  from: { lat: number; lng: number },
-  to: { lat: number; lng: number }
-): number => {
-  const R = 6371000; // 지구 반지름 (미터)
-  const dLat = toRad(to.lat - from.lat);
-  const dLng = toRad(to.lng - from.lng);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(from.lat)) *
-      Math.cos(toRad(to.lat)) *
-      Math.sin(dLng / 2) *
-      Math.sin(dLng / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-};
-
-const toRad = (deg: number): number => deg * (Math.PI / 180);
 
 /**
  * 경로 계산 결과에서 각 세그먼트의 이동 정보를 포맷팅합니다.
