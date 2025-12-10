@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   title: "MoodTrip - 나만의 특별한 여행",
   description: "당신의 기분에 맞는 여행지를 추천해드립니다",
   icons: {
-    icon: "/assets/icons/logo.svg",
+    icon: "/assets/icons/MoodTrip.png",
   },
 };
 
@@ -49,6 +49,8 @@ export default function RootLayout({
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap"
         />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#4F9DE8" />
       </head>
       <body>
         <StyledComponentsRegistry>
