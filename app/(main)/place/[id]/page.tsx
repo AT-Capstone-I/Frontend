@@ -721,7 +721,8 @@ export default function PlaceDetailPage() {
   const photos = useMemo(() => {
     if (!details) return [DEFAULT_IMAGE];
     
-    const detailsAny = details as Record<string, unknown>;
+    // 타입 단언을 두 번 거쳐 index access를 허용
+    const detailsAny = details as unknown as Record<string, unknown>;
     const possibleFields = ['photos', 'photo_urls', 'images', 'image_urls', 'photo'];
     
     let allPhotos: string[] = [DEFAULT_IMAGE];
