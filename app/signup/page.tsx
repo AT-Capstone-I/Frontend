@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import styled from 'styled-components';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
@@ -71,7 +71,7 @@ const GoogleLoginButton = styled.button`
   transition: all 0.2s ease;
 
   &:hover:not(:disabled) {
-    background-color: ${({ theme }) => theme.colors.greyscale100};
+    background-color: ${({ theme }) => theme.colors.greyscale200};
     border-color: ${({ theme }) => theme.colors.greyscale400};
   }
 
@@ -156,7 +156,7 @@ const TermsText = styled.p`
   }
 `;
 
-export default function SignupPage() {
+function SignupPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
@@ -255,5 +255,13 @@ export default function SignupPage() {
         </TermsText>
       </BottomSection>
     </Container>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 24 }}>로딩 중...</div>}>
+      <SignupPageContent />
+    </Suspense>
   );
 }

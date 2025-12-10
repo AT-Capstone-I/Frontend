@@ -118,7 +118,7 @@ export default function BottomNavigation() {
 
         return (
           <NavItem key={item.href} href={item.href} $active={isActive}>
-            <Icon active={isActive} />
+            <Icon />
             <span>{item.label}</span>
           </NavItem>
         );

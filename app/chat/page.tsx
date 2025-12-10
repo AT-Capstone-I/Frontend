@@ -14,7 +14,7 @@
  */
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import styled from "styled-components";
 import {
@@ -1226,7 +1226,34 @@ const addToConversationHistory = async (userId: string, tripId: string) => {
   }
 };
 
-export default function ChatPage() {
+const SuspenseFallback = () => (
+  <ChatContainer>
+    <div
+      style={{
+        flex: 1,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "12px",
+        padding: "24px",
+      }}
+    >
+      <LoadingSpinner />
+      <p
+        style={{
+          margin: 0,
+          fontFamily: "Pretendard, sans-serif",
+          fontSize: "15px",
+          color: "var(--greyscale-800, #5e5b61)",
+        }}
+      >
+        채팅을 준비하고 있어요...
+      </p>
+    </div>
+  </ChatContainer>
+);
+
+function ChatPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const chatContentRef = useRef<HTMLDivElement>(null);
@@ -2467,5 +2494,13 @@ export default function ChatPage() {
         </ClarifierOverlay>
       )}
     </ChatContainer>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={<SuspenseFallback />}>
+      <ChatPageContent />
+    </Suspense>
   );
 }

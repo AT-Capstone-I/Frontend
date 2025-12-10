@@ -9,3 +9,6 @@ declare module 'styled-components' {
   export interface DefaultTheme extends AppTheme {}
 }
 
+// 모듈 스코프 강제
+export {};
+

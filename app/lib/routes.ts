@@ -48,12 +48,15 @@ export const calculateRoute = async (
 
   try {
     // Routes 라이브러리 로드
-    const { Route } = (await google.maps.importLibrary(
-      "routes"
-    )) as google.maps.RoutesLibrary;
+    // 타입 선언에 RoutesService가 누락되어 있어 any로 보완
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const routesLib = (await google.maps.importLibrary("routes")) as any;
+    const RoutesService = routesLib?.RoutesService;
     const { Place } = (await google.maps.importLibrary(
       "places"
     )) as google.maps.PlacesLibrary;
+
+    const routesService = new RoutesService();
 
     const segments: RouteSegment[] = [];
     let totalDistance = 0;
@@ -90,7 +93,7 @@ export const calculateRoute = async (
         };
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { routes } = await (Route as any).computeRoutes(request);
+        const { routes } = await (routesService as any).computeRoutes(request);
 
         if (!routes || routes.length === 0) {
           console.warn(
@@ -133,14 +136,13 @@ export const calculateRoute = async (
         // 순수 이동 시간 계산 (legs 합산)
         let travelDurationSeconds = 0;
         if (route.legs) {
-          travelDurationSeconds = route.legs.reduce(
-            (acc: number, leg: google.maps.RouteLeg) => {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const legAny = leg as any;
-              const legDuration = legAny.durationMillis
-                ? Math.round(legAny.durationMillis / 1000)
-                : legAny.duration
-                ? parseInt(legAny.duration.replace("s", ""))
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          travelDurationSeconds = (route.legs as any[]).reduce(
+            (acc: number, leg: any) => {
+              const legDuration = leg?.durationMillis
+                ? Math.round(leg.durationMillis / 1000)
+                : leg?.duration
+                ? parseInt(String(leg.duration).replace("s", ""))
                 : 0;
               return acc + legDuration;
             },
