@@ -521,7 +521,16 @@ const TRAVEL_DEFAULT_IMAGES: Record<string, string> = {
 };
 
 // 여행 이벤트 카드 데이터
-const TRAVEL_EVENT_CARDS = [
+type TravelEventCard = {
+  id: string;
+  badge: string;
+  title: string;
+  subtitle: string;
+  image: string;
+  link?: string; // 구현 전이므로 선택값
+};
+
+const TRAVEL_EVENT_CARDS: TravelEventCard[] = [
   {
     id: "instagram",
     badge: "이벤트",
@@ -908,8 +917,13 @@ export default function HomePage() {
     router.push("/chat?reset=1");
   };
 
-  const handleTravelEventClick = (link: string) => {
-    if (!link) return;
+  const handleTravelEventClick = (link?: string) => {
+    if (!link) {
+      if (typeof window !== "undefined") {
+        alert("아직 준비 중인 이벤트입니다.");
+      }
+      return;
+    }
     if (link.startsWith("http")) {
       window.open(link, "_blank");
       return;
