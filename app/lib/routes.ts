@@ -47,16 +47,12 @@ export const calculateRoute = async (
   }
 
   try {
-    // Routes 라이브러리 로드
-    // 타입 선언에 RoutesService가 누락되어 있어 any로 보완
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const routesLib = (await google.maps.importLibrary("routes")) as any;
-    const RoutesService = routesLib?.RoutesService;
-    const { Place } = (await google.maps.importLibrary(
-      "places"
-    )) as google.maps.PlacesLibrary;
+    // Routes 라이브러리에서 DirectionsService 가져오기
+    const { DirectionsService } = (await google.maps.importLibrary(
+      "routes"
+    )) as google.maps.RoutesLibrary;
 
-    const routesService = new RoutesService();
+    const directionsService = new DirectionsService();
 
     const segments: RouteSegment[] = [];
     let totalDistance = 0;
@@ -68,34 +64,26 @@ export const calculateRoute = async (
       const destination = places[i + 1];
 
       try {
-        // Place ID가 있으면 Place 인스턴스 사용, 없으면 좌표 사용
-        let originLocation: google.maps.Place | google.maps.LatLngLiteral;
-        let destinationLocation: google.maps.Place | google.maps.LatLngLiteral;
-
-        if (origin.id.startsWith("ChIJ")) {
-          // Google Place ID 형식
-          originLocation = new Place({ id: origin.id });
-        } else {
-          originLocation = origin.location;
-        }
-
-        if (destination.id.startsWith("ChIJ")) {
-          destinationLocation = new Place({ id: destination.id });
-        } else {
-          destinationLocation = destination.location;
-        }
-
-        const request = {
-          origin: originLocation,
-          destination: destinationLocation,
-          travelMode: "TRANSIT" as google.maps.TravelMode,
-          fields: ["*"],
+        // DirectionsService용 요청 생성
+        const request: google.maps.DirectionsRequest = {
+          origin: origin.id.startsWith("ChIJ")
+            ? { placeId: origin.id }
+            : origin.location,
+          destination: destination.id.startsWith("ChIJ")
+            ? { placeId: destination.id }
+            : destination.location,
+          travelMode: google.maps.TravelMode.TRANSIT,
         };
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { routes } = await (routesService as any).computeRoutes(request);
+        // DirectionsService.route() 호출
+        const result = await directionsService.route(request);
 
-        if (!routes || routes.length === 0) {
+        if (
+          !result.routes ||
+          result.routes.length === 0 ||
+          !result.routes[0].legs ||
+          result.routes[0].legs.length === 0
+        ) {
           console.warn(
             `⚠️ No route found for segment ${i + 1}: ${origin.name} -> ${
               destination.name
@@ -121,60 +109,29 @@ export const calculateRoute = async (
           continue;
         }
 
-        const route = routes[0];
+        const route = result.routes[0];
+        const leg = route.legs[0];
 
-        // 시간 파싱 (총 이동 시간)
-        let durationSeconds = 0;
-        if (route.durationMillis) {
-          durationSeconds = Math.round(route.durationMillis / 1000);
-        } else if (route.staticDurationMillis) {
-          durationSeconds = Math.round(route.staticDurationMillis / 1000);
-        } else if (route.duration) {
-          durationSeconds = parseInt(route.duration.replace("s", ""));
-        }
-
-        // 순수 이동 시간 계산 (legs 합산)
-        let travelDurationSeconds = 0;
-        if (route.legs) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          travelDurationSeconds = (route.legs as any[]).reduce(
-            (acc: number, leg: any) => {
-              const legDuration = leg?.durationMillis
-                ? Math.round(leg.durationMillis / 1000)
-                : leg?.duration
-                ? parseInt(String(leg.duration).replace("s", ""))
-                : 0;
-              return acc + legDuration;
-            },
-            0
-          );
-        }
-
-        // Fallback
-        if (durationSeconds === 0 && travelDurationSeconds > 0) {
-          durationSeconds = travelDurationSeconds;
-        }
+        // 거리 및 시간 파싱
+        const distanceMeters = leg.distance?.value || 0;
+        const durationSeconds = leg.duration?.value || 0;
 
         // Polyline 처리
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const routeAny = route as any;
         let polylineObj: RouteSegment["polyline"];
-        if (routeAny.polyline) {
-          polylineObj = routeAny.polyline;
-        } else if (routeAny.path) {
-          polylineObj = { path: routeAny.path };
+        if (route.overview_polyline) {
+          polylineObj = { encodedPolyline: route.overview_polyline };
         }
 
         segments.push({
           origin,
           destination,
-          distanceMeters: route.distanceMeters || 0,
+          distanceMeters,
           durationSeconds,
-          travelDurationSeconds,
+          travelDurationSeconds: durationSeconds,
           polyline: polylineObj,
         });
 
-        totalDistance += route.distanceMeters || 0;
+        totalDistance += distanceMeters;
         totalDuration += durationSeconds;
       } catch (segmentError) {
         console.error(`❌ Error calculating segment ${i + 1}:`, segmentError);
