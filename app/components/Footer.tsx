@@ -28,16 +28,11 @@ const FooterLinks = styled.div`
   gap: 12px 20px;
 `;
 
-const FooterLink = styled.a`
+const FooterLink = styled.span`
   font-size: 13px;
   font-weight: 500;
   color: var(--greyscale-700);
   text-decoration: none;
-  transition: color 0.2s ease;
-
-  &:hover {
-    color: var(--primary-500);
-  }
 
   @media (min-width: 768px) {
     font-size: 14px;
@@ -81,10 +76,10 @@ export default function Footer() {
     <FooterWrapper>
       <FooterContent>
         <FooterLinks>
-          <FooterLink href="/terms">이용약관</FooterLink>
-          <FooterLink href="/privacy">개인정보처리방침</FooterLink>
-          <FooterLink href="/support">고객센터</FooterLink>
-          <FooterLink href="/about">서비스 소개</FooterLink>
+          <FooterLink>이용약관</FooterLink>
+          <FooterLink>개인정보처리방침</FooterLink>
+          <FooterLink>고객센터</FooterLink>
+          <FooterLink>서비스 소개</FooterLink>
         </FooterLinks>
         <FooterInfo>
           <FooterText>

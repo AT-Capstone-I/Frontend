@@ -1130,13 +1130,16 @@ const TipLabel = styled.span`
   letter-spacing: 0.5px;
 `;
 
-const TipText = styled.p`
+const TipText = styled.p<{ $visible: boolean }>`
   font-family: "Pretendard", sans-serif;
   font-size: 14px;
   font-weight: 400;
   line-height: 1.6;
   color: var(--greyscale-900, #444246);
   margin: 8px 0 0 0;
+  opacity: ${({ $visible }) => ($visible ? 1 : 0)};
+  transform: translateY(${({ $visible }) => ($visible ? "0" : "4px")});
+  transition: opacity 0.28s ease, transform 0.28s ease;
 `;
 
 // 에러 UI
@@ -1497,15 +1500,18 @@ export default function NoteDetailPage() {
 
   // 여행 팁 목록
   const travelTips = [
-    "여행 중 지역 음식을 꼭 맛보세요! 그 지역의 문화를 가장 잘 느낄 수 있답니다.",
-    "사진보다 눈으로 보는 풍경이 더 아름다워요. 가끔은 카메라를 내려놓아보세요.",
-    "여행 일정에 여유 시간을 넣어두면 예상치 못한 멋진 경험을 할 수 있어요.",
-    "현지인에게 추천 장소를 물어보세요. 가이드북에 없는 보석 같은 곳을 발견할 수 있어요.",
-    "여행 중 만난 사람들과의 대화는 평생 기억에 남는 추억이 됩니다.",
+    "지역 음식 한 끼는 꼭! 여행지의 공기를 가장 빨리 느껴요.",
+    "사진은 잠시, 눈으로 오래 담아두세요. 기억이 더 선명해집니다.",
+    "일정에 1-2시간 여유를 두면 우연한 발견이 생겨요.",
+    "카페나 시장에서 현지인에게 추천을 물어보세요. 숨은 보석을 찾습니다.",
+    "하루에 한 번은 가벼운 산책 코스를 넣어 피로를 줄이세요.",
+    "저녁에 다음 날 동선을 미리 확인하면 이동 스트레스가 줄어요.",
   ];
 
   // 현재 팁 (로딩 시작 시 랜덤 선택)
   const [currentTip, setCurrentTip] = useState("");
+  const [tipIndex, setTipIndex] = useState(0);
+  const [tipVisible, setTipVisible] = useState(true);
 
   // API에서 활성 일정 로드 또는 sessionStorage 폴백
   useEffect(() => {
@@ -1647,7 +1653,10 @@ export default function NoteDetailPage() {
     setIsGeneratingPlan(true);
     setLoadingStage(0);
     setLoadingProgress(0);
-    setCurrentTip(travelTips[Math.floor(Math.random() * travelTips.length)]);
+    const initialTipIndex = Math.floor(Math.random() * travelTips.length);
+    setTipIndex(initialTipIndex);
+    setCurrentTip(travelTips[initialTipIndex]);
+    setTipVisible(true);
 
     // 로딩 진행 타이머 (2-3분 동안 단계별 진행)
     const totalDuration = 150000; // 2분 30초 예상
@@ -1710,6 +1719,28 @@ export default function NoteDetailPage() {
       clearInterval(progressTimer);
     };
   }, [params.id, planData, travelTips, loadingStages.length]);
+
+  // 여행 팁 순환 (로딩 중)
+  useEffect(() => {
+    if (!isGeneratingPlan) return;
+    setTipVisible(true);
+
+    const rotation = setInterval(() => {
+      setTipVisible(false);
+      setTimeout(() => {
+        setTipIndex((prev) => {
+          const next = (prev + 1) % travelTips.length;
+          setCurrentTip(travelTips[next]);
+          return next;
+        });
+        setTipVisible(true);
+      }, 240);
+    }, 4600); // 약 4.6초 주기로 전환
+
+    return () => {
+      clearInterval(rotation);
+    };
+  }, [isGeneratingPlan, travelTips]);
 
   // Plan API 재시도
   const handleRetryPlan = useCallback(() => {
@@ -2203,7 +2234,7 @@ export default function NoteDetailPage() {
         <EstimatedTime>{getEstimatedTimeText()}</EstimatedTime>
         <TipCard>
           <TipLabel>✨ 여행 TIP</TipLabel>
-          <TipText>{currentTip}</TipText>
+          <TipText $visible={tipVisible}>{currentTip}</TipText>
         </TipCard>
       </LoadingContainer>
     );

@@ -319,6 +319,76 @@ const HorizontalScroll = styled.div`
   }
 `;
 
+// 여행 이벤트 정사각형 카드
+const EventCard = styled.button`
+  position: relative;
+  min-width: 140px;
+  aspect-ratio: 1;
+  border: none;
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  padding: 0;
+  background: #0c0d16;
+  color: #ffffff;
+  flex-shrink: 0;
+`;
+
+const EventImage = styled.img`
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+`;
+
+const EventOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(8, 9, 20, 0) 35%, rgba(8, 9, 20, 0.82) 100%);
+`;
+
+const EventBadge = styled.span`
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(12, 13, 22, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #ffffff;
+`;
+
+const EventText = styled.div`
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #ffffff;
+  text-align: left;
+`;
+
+const EventTitle = styled.h4`
+  margin: 0;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: -0.18px;
+`;
+
+const EventSubtitle = styled.span`
+  font-size: 9px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+`;
+
 const LoadingCard = styled.div`
   min-width: 200px;
   height: 180px;
@@ -449,6 +519,39 @@ const TRAVEL_DEFAULT_IMAGES: Record<string, string> = {
   default:
     "https://images.unsplash.com/photo-1488085061387-422e29b40080?w=400&h=300&fit=crop",
 };
+
+// 여행 이벤트 카드 데이터
+const TRAVEL_EVENT_CARDS = [
+  {
+    id: "instagram",
+    badge: "이벤트",
+    title: "인스타그램 친구하기",
+    subtitle: "#여행정보 #실시간이벤트",
+    image: "/assets/images/instagram.png",
+  },
+  {
+    id: "naver-blog",
+    badge: "이벤트",
+    title: "네이버 블로그 구독",
+    subtitle: "#여행후기 #체험단",
+    image: "/assets/images/naverblog.png",
+  },
+  {
+    id: "kakao-friend",
+    badge: "혜택",
+    title: "카카오 플친 전용 쿠폰",
+    subtitle: "신규 3천원 즉시할인",
+    image: "/assets/images/kakaotalk.png",
+  },
+  {
+    id: "newsletter",
+    badge: "WEEKLY",
+    title: "여행 뉴스레터 구독",
+    subtitle: "매주 베스트 루트·딜",
+    image:
+      "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&auto=format&fit=crop",
+  },
+];
 
 // 시간대별 인사말 생성
 function getGreeting(userName: string | null): {
@@ -805,6 +908,15 @@ export default function HomePage() {
     router.push("/chat?reset=1");
   };
 
+  const handleTravelEventClick = (link: string) => {
+    if (!link) return;
+    if (link.startsWith("http")) {
+      window.open(link, "_blank");
+      return;
+    }
+    router.push(link);
+  };
+
   return (
     <>
       <StickyHeader>
@@ -975,6 +1087,29 @@ export default function HomePage() {
                     />
                   ))
                 )}
+              </HorizontalScroll>
+            </Section>
+
+            <Section>
+              <SectionHeader>
+                <SectionTitle>이벤트</SectionTitle>
+              </SectionHeader>
+              <HorizontalScroll>
+                {TRAVEL_EVENT_CARDS.map((event) => (
+                  <EventCard
+                    key={event.id}
+                    onClick={() => handleTravelEventClick(event.link)}
+                    aria-label={`${event.title} 이벤트 이동`}
+                  >
+                    <EventImage src={event.image} alt={event.title} />
+                    <EventOverlay />
+                    <EventBadge>{event.badge}</EventBadge>
+                    <EventText>
+                      <EventTitle>{event.title}</EventTitle>
+                      <EventSubtitle>{event.subtitle}</EventSubtitle>
+                    </EventText>
+                  </EventCard>
+                ))}
               </HorizontalScroll>
             </Section>
           </>

@@ -504,6 +504,155 @@ const EmptyButton = styled.button`
 `;
 
 // ============ 실시간 추천 탭 스타일 ============
+const AdSliderContainer = styled.div`
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #0c0d16;
+  color: #ffffff;
+  margin-bottom: 12px;
+  box-shadow: 0 8px 18px rgba(10, 12, 26, 0.15);
+`;
+
+const AdSliderTrack = styled.div<{ $currentIndex: number }>`
+  display: flex;
+  transition: transform 0.5s ease;
+  transform: translateX(${({ $currentIndex }) => -$currentIndex * 100}%);
+`;
+
+const AdSlide = styled.div`
+  position: relative;
+  min-width: 100%;
+  height: 120px;
+  background: #11121a;
+`;
+
+const AdImage = styled.img`
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(1.08);
+`;
+
+const AdOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    rgba(5, 6, 11, 0.85) 0%,
+    rgba(5, 6, 11, 0.62) 48%,
+    rgba(5, 6, 11, 0.08) 100%
+  );
+`;
+
+const AdContent = styled.div`
+  position: relative;
+  padding: 12px 12px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  gap: 6px;
+`;
+
+const AdTopRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+`;
+
+const AdBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+`;
+
+const AdMeta = styled.span`
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.72);
+`;
+
+const AdTitle = styled.h3`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.28;
+  letter-spacing: -0.22px;
+  color: #ffffff;
+  margin: 0;
+`;
+
+const AdDescription = styled.p`
+  font-family: 'Pretendard', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+`;
+
+const AdTagRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+`;
+
+const AdTag = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 9px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 11px;
+  font-weight: 600;
+  color: #ffffff;
+`;
+
+const AdCTAWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+`;
+
+const AdCTAButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 11px;
+  border: none;
+  background: linear-gradient(135deg, #4f9de8, #6cc3ff);
+  color: #ffffff;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(79, 157, 232, 0.28);
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 28px rgba(79, 157, 232, 0.36);
+  }
+`;
+
+const AdSubtext = styled.span`
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.72);
+`;
+
 const RecommendSection = styled.section`
   margin-bottom: 32px;
 `;
@@ -716,6 +865,36 @@ const ChevronDownIcon = ({ $isOpen }: { $isOpen?: boolean }) => (
 );
 
 // ============ 샘플 데이터 (추천/리뷰 탭용) ============
+const adBannerData = [
+  {
+    id: "yeosu-night",
+    badge: "스폰서",
+    title: "여수 야경 요트 투어",
+    image: "https://images.unsplash.com/photo-1518834107812-67b0b7c58434?w=1200&auto=format&fit=crop",
+    ctaLabel: "투어 보기",
+    ctaLink: "/travel",
+    subtext: "여수 전용 프로모션",
+  },
+  {
+    id: "suncheon-garden",
+    badge: "AD · 오늘만",
+    title: "순천만 국가정원 패스",
+    image: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200&auto=format&fit=crop",
+    ctaLabel: "패스 받기",
+    ctaLink: "/schedule",
+    subtext: "순천 제휴 입장권",
+  },
+  {
+    id: "rainy-day",
+    badge: "AD · 오늘만",
+    title: "비 오는 날 루프탑 디너",
+    image: "https://images.unsplash.com/photo-1521017432531-fbd92d768814?w=1200&auto=format&fit=crop",
+    ctaLabel: "바로 예약",
+    ctaLink: "/schedule",
+    subtext: "여수·순천 다이닝",
+  },
+];
+
 const weatherRecommendData = [
   {
     id: 1,
@@ -786,6 +965,7 @@ export default function SchedulePage() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   
   const [activeTab, setActiveTab] = useState<"schedule" | "recommend">("schedule");
+  const [adIndex, setAdIndex] = useState(0);
   const [selectedDate, setSelectedDate] = useState(0);
   
   // API 상태
@@ -980,6 +1160,26 @@ export default function SchedulePage() {
     router.push(`/schedule/story/${currentTripRegion}`);
   };
 
+  // 광고 배너 자동 슬라이드
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setAdIndex((prev) => (prev + 1) % adBannerData.length);
+    }, 4200);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleAdCtaClick = (link?: string) => {
+    if (!link) {
+      router.push("/chat");
+      return;
+    }
+    if (link.startsWith("http")) {
+      window.open(link, "_blank");
+      return;
+    }
+    router.push(link);
+  };
+
   // 로딩 상태
   if (isLoading) {
     return (
@@ -1165,6 +1365,31 @@ export default function SchedulePage() {
               <TripSubtitle>{getTripSubtitle(selectedTrip)}</TripSubtitle>
               <TripTitle>{getTripName(selectedTrip)}</TripTitle>
             </TripHeader>
+
+            <AdSliderContainer aria-label="스폰서 배너 영역">
+              <AdSliderTrack $currentIndex={adIndex}>
+                {adBannerData.map((ad) => (
+                  <AdSlide key={ad.id}>
+                    <AdImage src={ad.image} alt={ad.title} />
+                    <AdOverlay />
+                    <AdContent>
+                      <AdTopRow>
+                        <AdBadge>{ad.badge}</AdBadge>
+                        <AdMeta>AD · 실시간 업데이트</AdMeta>
+                      </AdTopRow>
+                      <AdTitle>{ad.title}</AdTitle>
+                      <AdCTAWrapper>
+                        <AdCTAButton onClick={() => handleAdCtaClick(ad.ctaLink)}>
+                          {ad.ctaLabel}
+                          <span aria-hidden>→</span>
+                        </AdCTAButton>
+                        <AdSubtext>{ad.subtext}</AdSubtext>
+                      </AdCTAWrapper>
+                    </AdContent>
+                  </AdSlide>
+                ))}
+              </AdSliderTrack>
+            </AdSliderContainer>
 
             {/* 날씨 기반 추천 */}
             <RecommendSection>
