@@ -5,6 +5,7 @@
 /* @import는 반드시 파일 최상단에 위치해야 함 */
 @import url('https://cdn.jsdelivr.net/gh/fonts-archive/HakgyoansimSantteutbatang/HakgyoansimSantteutbatang.css');
 @import url('https://cdn.jsdelivr.net/gh/fonts-archive/HakgyoansimRikodeo/HakgyoansimRikodeo.css');
+@import url('https://cdn.jsdelivr.net/gh/fonts-archive/GyeonggiBatang/GyeonggiBatang.css');
 
 /* ========================================
    Gmarket Sans - 로컬 폰트 (스토리 페이지용)
@@ -28,6 +29,32 @@
 @font-face {
   font-family: 'GmarketSans';
   src: url('/fonts/GmarketSansBold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Partial Sans KR - 로컬 폰트 */
+@font-face {
+  font-family: 'PartialSansKR';
+  src: url('/fonts/PartialSansKR-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Batang - 로컬 폰트 */
+@font-face {
+  font-family: 'Batang';
+  src: url('/fonts/Batang_Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Batang';
+  src: url('/fonts/Batang_Bold.woff') format('woff');
   font-weight: 700;
   font-style: normal;
   font-display: swap;

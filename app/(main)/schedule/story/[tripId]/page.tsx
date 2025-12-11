@@ -35,6 +35,7 @@ interface StoryInfo {
   subtitle: string;
   detailDescription: string;
   isDarkBackground: boolean;
+  summary: string | null; // API에서 받아오는 요약
 }
 
 // ============ 애니메이션 ============
@@ -350,6 +351,17 @@ const Layout1Description = styled.div`
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 `;
 
+const Layout1Logo = styled.img`
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 24px;
+  width: auto;
+  filter: brightness(0) invert(1);
+  z-index: 2;
+`;
+
 // 레이아웃 2: 한강 공원 스타일 - 좌측 상단, 어두운 그라데이션 (Hakgyoansim Santteutbatang M, Hakgyoansim RikodeoOTF R)
 const Layout2GradientOverlay = styled.div`
   position: absolute;
@@ -440,8 +452,8 @@ const Layout3GradientOverlay = styled.div`
   bottom: 0;
   background: linear-gradient(
     to bottom,
-    rgba(255, 255, 255, 0) 44.45%,
-    rgba(0, 0, 0, 0.7) 80.37%
+    rgba(255, 255, 255, 0) 50%,
+    rgba(0, 0, 0, 0.4) 85%
   );
   z-index: 1;
   pointer-events: none;
@@ -485,6 +497,16 @@ const Layout3Description = styled.p`
   margin-top: 4px;
 `;
 
+const Layout3Logo = styled.img`
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  height: 24px;
+  width: auto;
+  filter: brightness(0) invert(1);
+  z-index: 2;
+`;
+
 // 레이아웃 4: 로고만 표시 - 배경에 따라 색상 변경
 const Layout4Content = styled.div`
   position: absolute;
@@ -504,57 +526,6 @@ const Layout4Logo = styled.img<{ $isDark: boolean }>`
 `;
 
 // 레이아웃 5: 상세 설명 - 중앙 하단
-const Layout5GradientOverlay = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0.1) 0%,
-    rgba(0, 0, 0, 0.5) 100%
-  );
-  z-index: 1;
-  pointer-events: none;
-`;
-
-const Layout5Content = styled.div`
-  position: absolute;
-  bottom: 20px;
-  left: 20px;
-  right: 20px;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  pointer-events: none;
-`;
-
-const Layout5Title = styled.h1`
-  font-family: "GmarketSans", sans-serif;
-  font-weight: 700;
-  font-size: 28px;
-  line-height: 1.2;
-  letter-spacing: -0.6px;
-  color: #ffffff;
-  text-align: center;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-`;
-
-const Layout5Description = styled.p`
-  font-family: "Pretendard", sans-serif;
-  font-weight: 400;
-  font-size: 15px;
-  line-height: 1.6;
-  letter-spacing: -0.3px;
-  color: #ffffff;
-  text-align: center;
-  white-space: pre-line;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-`;
-
 // 레이아웃 6: 중앙 로고 + 브랜드 슬로건 디자인
 const Layout6Overlay = styled.div`
   position: absolute;
@@ -626,6 +597,254 @@ const Layout6Footer = styled.p`
   bottom: 30px;
 `;
 
+// 레이아웃 7: 강릉 스타일 - 중앙 큰 한글 + 대괄호 테마 + 하단 설명
+const Layout7Overlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 1;
+  pointer-events: none;
+`;
+
+const Layout7TopGradient = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.6) 0%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  z-index: 0;
+`;
+
+const Layout7BottomGradient = styled.div`
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.73) 0%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  z-index: 0;
+`;
+
+const Layout7TopContent = styled.div`
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 60px;
+  gap: 4px;
+`;
+
+const Layout7EnglishTitle = styled.p`
+  font-family: "Montserrat", sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  letter-spacing: 2px;
+  color: #ffffff;
+  text-align: center;
+  text-transform: uppercase;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+`;
+
+const Layout7KoreanTitle = styled.h1`
+  font-family: "PartialSansKR", sans-serif;
+  font-weight: 400;
+  font-size: 72px;
+  line-height: 1;
+  color: #ffffff;
+  text-align: center;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+`;
+
+const Layout7ThemeContainer = styled.div`
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 12px;
+`;
+
+const Layout7ThemeInner = styled.div`
+  display: flex;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.32);
+`;
+
+const Layout7Bracket = styled.span`
+  font-family: "Inter", sans-serif;
+  font-weight: 400;
+  font-size: 24px;
+  color: #ffffff;
+  line-height: 1;
+`;
+
+const Layout7Theme = styled.span`
+  font-family: "GmarketSans", sans-serif;
+  font-weight: 500;
+  font-size: 13px;
+  color: #ffffff;
+  text-align: center;
+  padding: 0 8px;
+  line-height: 1;
+`;
+
+const Layout7BottomContent = styled.div`
+  position: absolute;
+  bottom: 80px;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+`;
+
+const Layout7Logo = styled.img`
+  height: 24px;
+  width: auto;
+  filter: brightness(0) invert(1);
+`;
+
+// 레이아웃 8: 여수 스타일 - For your trip + 큰 영문 + 중앙 사진 프레임
+const Layout8Overlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  pointer-events: none;
+`;
+
+const Layout8TopGradient = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.35) 0%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  z-index: 0;
+`;
+
+const Layout8TopContent = styled.div`
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 50px;
+  gap: 4px;
+`;
+
+const Layout8Subtitle = styled.p`
+  font-family: "the-seasons", serif;
+  font-weight: 300;
+  font-size: 16px;
+  font-style: italic;
+  color: #ffffff;
+  text-align: center;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+`;
+
+const Layout8CityName = styled.h1`
+  font-family: "the-seasons", serif;
+  font-weight: 300;
+  font-size: 56px;
+  letter-spacing: 4px;
+  line-height: 1;
+  color: #ffffff;
+  text-align: center;
+  text-transform: uppercase;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+`;
+
+const Layout8FrameContainer = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+`;
+
+// 폴라로이드 스타일 프레임
+const Layout8Polaroid = styled.div`
+  background: #ffffff;
+  padding: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const Layout8PolaroidInner = styled.div`
+  width: 220px;
+  height: 220px;
+  overflow: hidden;
+`;
+
+const Layout8PolaroidImage = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+`;
+
+// 배경 블러 오버레이
+const Layout8BlurOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 1;
+`;
+
+const Layout8Theme = styled.p`
+  font-family: "Batang", serif;
+  font-weight: 400;
+  font-size: 11px;
+  color: #333333;
+  text-align: center;
+  margin-top: 12px;
+  line-height: 1.4;
+`;
+
+const Layout8Logo = styled.img`
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 24px;
+  width: auto;
+  filter: brightness(0) invert(1);
+  z-index: 2;
+`;
+
 // 하단 네비게이션
 const BottomNavigation = styled.div`
   position: absolute;
@@ -640,19 +859,20 @@ const BottomNavigation = styled.div`
 const PageButtonsContainer = styled.div`
   display: flex;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
 `;
 
 const PageButton = styled.button<{ $active: boolean }>`
   flex: 1;
-  height: 43px;
-  border-radius: 12px;
+  height: 40px;
+  min-width: 36px;
+  border-radius: 10px;
   border: ${({ $active }) => ($active ? "none" : "1px solid #c4c2c6")};
   background-color: ${({ $active }) => ($active ? "#66b2fe" : "#ffffff")};
   color: ${({ $active }) => ($active ? "#ffffff" : "#aaa8ad")};
   font-family: "Pretendard", sans-serif;
   font-weight: 500;
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1.4;
   letter-spacing: -0.096px;
   cursor: pointer;
@@ -739,6 +959,7 @@ const Layout1 = ({ storyInfo }: LayoutProps) => (
         <Layout1Description>{storyInfo.description}</Layout1Description>
       </div>
     </AnimatedContent>
+    <Layout1Logo src="/assets/icons/icon.svg" alt="MoodTrip" />
   </Layout1Overlay>
 );
 
@@ -758,12 +979,19 @@ const Layout2 = ({ storyInfo }: LayoutProps) => (
         </Layout2TextContainer>
       </AnimatedContent>
     </Layout2Content>
+    <Layout4Logo
+      src="/assets/icons/icon.svg"
+      alt="MoodTrip"
+      $isDark={storyInfo.isDarkBackground}
+      style={{ position: 'absolute', bottom: '30px', left: '50%', transform: 'translateX(-50%)', zIndex: 2 }}
+    />
   </>
 );
 
 const Layout3 = ({ storyInfo }: LayoutProps) => (
   <>
     <Layout3GradientOverlay />
+    <Layout3Logo src="/assets/icons/icon.svg" alt="MoodTrip" />
     <Layout3Content>
       <AnimatedContent>
         <Layout3Title>{storyInfo.name}</Layout3Title>
@@ -786,19 +1014,8 @@ const Layout4 = ({ storyInfo }: LayoutProps) => (
   </Layout4Content>
 );
 
-const Layout5 = ({ storyInfo }: LayoutProps) => (
-  <>
-    <Layout5GradientOverlay />
-    <Layout5Content>
-      <AnimatedContent>
-        <Layout5Title>{storyInfo.name}</Layout5Title>
-        <Layout5Description>{storyInfo.detailDescription}</Layout5Description>
-      </AnimatedContent>
-    </Layout5Content>
-  </>
-);
-
-const Layout6 = () => (
+// Layout5 (이전 Layout6): 중앙 로고 + 브랜드 슬로건 디자인
+const Layout5 = () => (
   <>
     <Layout6Overlay />
     <Layout6Content>
@@ -819,6 +1036,64 @@ const Layout6 = () => (
       <Layout6Footer>© 2025 MoodTrip. All rights reserved.</Layout6Footer>
     </Layout6Content>
   </>
+);
+
+// Layout6 (이전 Layout7)
+const Layout6 = ({ storyInfo }: LayoutProps) => (
+  <Layout7Overlay>
+    <Layout7TopGradient />
+    <Layout7BottomGradient />
+    <AnimatedContent
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        width: "100%",
+      }}
+    >
+      <Layout7TopContent>
+        <Layout7EnglishTitle>{storyInfo.nameEn}</Layout7EnglishTitle>
+        <Layout7KoreanTitle>{storyInfo.name}</Layout7KoreanTitle>
+      </Layout7TopContent>
+      <Layout7ThemeContainer>
+        <Layout7Bracket>[</Layout7Bracket>
+        <Layout7ThemeInner>
+          <Layout7Theme>{storyInfo.description}</Layout7Theme>
+        </Layout7ThemeInner>
+        <Layout7Bracket>]</Layout7Bracket>
+      </Layout7ThemeContainer>
+    </AnimatedContent>
+    <Layout7BottomContent>
+      <Layout7Logo src="/assets/icons/icon.svg" alt="MoodTrip" />
+    </Layout7BottomContent>
+  </Layout7Overlay>
+);
+
+interface Layout7Props extends LayoutProps {
+  currentImage: string; // 현재 배경 이미지 (폴라로이드와 동일하게 사용)
+}
+
+// Layout7 (이전 Layout8): 폴라로이드 스타일
+const Layout7 = ({ storyInfo, currentImage }: Layout7Props) => (
+  <Layout8Overlay>
+    <Layout8BlurOverlay />
+    <Layout8TopGradient />
+    <AnimatedContent>
+      <Layout8TopContent>
+        <Layout8Subtitle>For your trip</Layout8Subtitle>
+        <Layout8CityName>{storyInfo.nameEn}</Layout8CityName>
+      </Layout8TopContent>
+    </AnimatedContent>
+    <Layout8FrameContainer>
+      <Layout8Polaroid>
+        <Layout8PolaroidInner>
+          <Layout8PolaroidImage src={currentImage} alt={storyInfo.name} />
+        </Layout8PolaroidInner>
+        <Layout8Theme>{storyInfo.description}</Layout8Theme>
+      </Layout8Polaroid>
+    </Layout8FrameContainer>
+    <Layout8Logo src="/assets/icons/icon.svg" alt="MoodTrip" />
+  </Layout8Overlay>
 );
 
 // ============ 메인 컴포넌트 ============
@@ -869,7 +1144,8 @@ export default function StoryPage() {
 
         const card = await getStoryCard(tripId, {
           shuffle: true,
-          limit: 6, // 6개 레이아웃용 이미지
+          limit: 7, // 7개 레이아웃용 이미지
+          includeSummary: true, // 요약 텍스트 포함
         });
 
         console.log("📸 Story Card API 응답:", card);
@@ -897,6 +1173,7 @@ export default function StoryPage() {
           detailDescription:
             card.summary || card.theme_phrase || "새로운 추억을 만들어보세요",
           isDarkBackground: true,
+          summary: card.summary, // API 요약 텍스트
         });
       } catch (err) {
         console.error("Story card fetch error:", err);
@@ -1187,6 +1464,9 @@ export default function StoryPage() {
   }
 
   const renderLayout = () => {
+    // 현재 배경 이미지 URL
+    const currentBgImage = getBackgroundForLayout();
+
     switch (currentLayout) {
       case 1:
         return <Layout1 storyInfo={storyInfo} />;
@@ -1197,9 +1477,11 @@ export default function StoryPage() {
       case 4:
         return <Layout4 storyInfo={storyInfo} />;
       case 5:
-        return <Layout5 storyInfo={storyInfo} />;
+        return <Layout6 storyInfo={storyInfo} />; // 한글 도시명 + [테마]
       case 6:
-        return <Layout6 />;
+        return <Layout7 storyInfo={storyInfo} currentImage={currentBgImage} />; // 폴라로이드
+      case 7:
+        return <Layout5 />; // 소개용 (로고 + 슬로건) - 마지막
       default:
         return <Layout1 storyInfo={storyInfo} />;
     }
@@ -1252,7 +1534,7 @@ export default function StoryPage() {
 
       <BottomNavigation>
         <PageButtonsContainer>
-          {[1, 2, 3, 4, 5, 6].map((num) => (
+          {[1, 2, 3, 4, 5, 6, 7].map((num) => (
             <PageButton
               key={num}
               $active={currentLayout === num}

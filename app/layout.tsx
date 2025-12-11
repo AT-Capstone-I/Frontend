@@ -36,6 +36,13 @@ export default function RootLayout({
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap"
         />
+        {/* Adobe Typekit - Inter Light (스토리 페이지용) */}
+        <link rel="stylesheet" href="https://use.typekit.net/lmp4aup.css" />
+        {/* Montserrat 폰트 */}
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500&display=swap"
+        />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#4F9DE8" />
       </head>
