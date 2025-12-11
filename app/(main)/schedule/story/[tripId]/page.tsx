@@ -3,25 +3,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import styled, { keyframes, css } from "styled-components";
-// @ts-ignore - html-to-image 타입 정의 없음
-import * as htmlToImage from "html-to-image";
-import { getStoryCard, StoryCardResponse } from "@/app/lib/api";
-
-// 폰트를 Base64로 변환하는 유틸리티
-const fontToBase64 = async (url: string): Promise<string> => {
-  try {
-    const response = await fetch(url);
-    const blob = await response.blob();
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  } catch {
-    return "";
-  }
-};
+import { domToBlob } from "modern-screenshot";
+import { getStoryCard, getUserId } from "@/app/lib/api";
+import { uploadStoryCard } from "@/app/lib/supabase";
 
 // ============ Story 데이터 인터페이스 ============
 interface StoryInfo {
@@ -589,8 +573,8 @@ const Layout6Slogan = styled.p`
 `;
 
 const Layout6Footer = styled.p`
-  font-family: "Pretendard", sans-serif;
-  font-weight: 400;
+  font-family: "GmarketSans", sans-serif;
+  font-weight: 300;
   font-size: 13px;
   color: rgba(255, 255, 255, 0.7);
   position: absolute;
@@ -883,6 +867,25 @@ const PageButton = styled.button<{ $active: boolean }>`
   }
 `;
 
+// 저장 완료 토스트
+const SaveToast = styled.div<{ $visible: boolean }>`
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.8);
+  color: #ffffff;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-family: "Pretendard", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 100;
+  opacity: ${({ $visible }) => ($visible ? 1 : 0)};
+  visibility: ${({ $visible }) => ($visible ? "visible" : "hidden")};
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+`;
+
 const AnimatedContent = styled.div`
   animation: ${contentFadeIn} 0.4s ease-out;
 `;
@@ -1112,6 +1115,11 @@ export default function StoryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // 저장 관련 상태
+  const [isSaving, setIsSaving] = useState(false);
+  const [showSaveToast, setShowSaveToast] = useState(false);
+  const [saveToastMessage, setSaveToastMessage] = useState("");
+
   // 스와이프 제스처 상태
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -1145,7 +1153,6 @@ export default function StoryPage() {
         const card = await getStoryCard(tripId, {
           shuffle: true,
           limit: 7, // 7개 레이아웃용 이미지
-          includeSummary: true, // 요약 텍스트 포함
         });
 
         console.log("📸 Story Card API 응답:", card);
@@ -1252,18 +1259,18 @@ export default function StoryPage() {
     router.back();
   }, [router]);
 
-  // 화면 캡처 함수
+  // 화면 캡처 함수 (modern-screenshot - 폰트/스타일/이미지 완벽 보존)
   const captureStory = useCallback(async (): Promise<Blob | null> => {
     if (!captureRef.current || !storyInfo) return null;
 
     setIsCapturing(true);
 
     try {
-      // 폰트 로딩 대기 (충분한 시간)
+      // 1. 폰트 로딩 완료 대기
       await document.fonts.ready;
       await new Promise((resolve) => setTimeout(resolve, 300));
 
-      // 배경 이미지 로딩 대기
+      // 2. 배경 이미지 로딩 대기
       const bgImage = getBackgroundForLayout();
       if (bgImage) {
         await new Promise<void>((resolve) => {
@@ -1275,118 +1282,100 @@ export default function StoryPage() {
         });
       }
 
-      // 폰트 로딩 대기
-      await document.fonts.ready;
+      // 3. 레이아웃 안정화 대기
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
-      // 로컬 폰트를 Base64로 임베드
-      const [fontLight, fontMedium, fontBold] = await Promise.all([
-        fontToBase64("/fonts/GmarketSansLight.otf"),
-        fontToBase64("/fonts/GmarketSansMedium.otf"),
-        fontToBase64("/fonts/GmarketSansBold.otf"),
-      ]);
+      const element = captureRef.current;
 
-      // Base64 폰트가 로드되었으면 @font-face 생성
-      const fontEmbedCSS = fontBold
-        ? `
-        @font-face {
-          font-family: 'GmarketSans';
-          src: url(${fontLight}) format('opentype');
-          font-weight: 300;
-          font-style: normal;
-        }
-        @font-face {
-          font-family: 'GmarketSans';
-          src: url(${fontMedium}) format('opentype');
-          font-weight: 500;
-          font-style: normal;
-        }
-        @font-face {
-          font-family: 'GmarketSans';
-          src: url(${fontBold}) format('opentype');
-          font-weight: 700;
-          font-style: normal;
-        }
-      `
-        : "";
-
-      const dataUrl = await htmlToImage.toPng(captureRef.current, {
-        quality: 1,
-        pixelRatio: 3,
-        cacheBust: true,
-        skipFonts: true, // CORS 에러 방지
-        includeQueryParams: true,
+      // modern-screenshot으로 캡쳐 (폰트, 스타일, 이미지 완벽 보존)
+      // scale: 2 = 포토카드용 적정 사이즈 (약 860x1528px)
+      const blob = await domToBlob(element, {
+        scale: 2,
         backgroundColor: "#1a1a2e",
-        fontEmbedCSS,
         style: {
-          transform: "scale(1)",
-          transformOrigin: "top left",
+          // 캡처 시 애니메이션 제거
+          animation: "none",
+          transition: "none",
         },
-        filter: (node: Node) => {
-          if (
-            node instanceof HTMLElement &&
-            node.dataset.captureIgnore === "true"
-          ) {
-            return false;
+        filter: (el) => {
+          // data-capture-ignore 속성이 있는 요소는 캡처에서 제외
+          if (el instanceof Element) {
+            return el.getAttribute("data-capture-ignore") !== "true";
           }
           return true;
         },
+        // 타임아웃 설정 (폰트/이미지 로딩 대기)
+        timeout: 30000,
+        // 외부 리소스 fetching 옵션
+        fetch: {
+          requestInit: {
+            mode: "cors",
+            cache: "force-cache",
+          },
+        },
       });
-
-      // dataUrl을 Blob으로 변환
-      const response = await fetch(dataUrl);
-      const blob = await response.blob();
 
       return blob;
     } catch (error) {
       console.error("캡처 실패:", error);
-
-      // 폴백: 폰트 스킵하고 재시도
-      try {
-        const dataUrl = await htmlToImage.toPng(captureRef.current!, {
-          quality: 1,
-          pixelRatio: 2,
-          skipFonts: true,
-          cacheBust: true,
-          filter: (node: Node) => {
-            if (
-              node instanceof HTMLElement &&
-              node.dataset.captureIgnore === "true"
-            ) {
-              return false;
-            }
-            return true;
-          },
-        });
-        const response = await fetch(dataUrl);
-        return await response.blob();
-      } catch (fallbackError) {
-        console.error("폴백 캡처도 실패:", fallbackError);
-        return null;
-      }
+      return null;
     } finally {
       setIsCapturing(false);
     }
   }, [storyInfo, getBackgroundForLayout]);
 
+  // 토스트 표시 헬퍼
+  const showToast = useCallback((message: string) => {
+    setSaveToastMessage(message);
+    setShowSaveToast(true);
+    setTimeout(() => setShowSaveToast(false), 3000);
+  }, []);
+
+  // 다운로드 버튼 핸들러 (다운로드 + Storage 업로드)
   const handleDownload = useCallback(async () => {
-    if (!storyInfo) return;
+    if (!storyInfo || isSaving) return;
 
-    const blob = await captureStory();
-    if (!blob) {
-      alert("이미지 생성에 실패했습니다.");
-      return;
+    setIsSaving(true);
+
+    try {
+      const blob = await captureStory();
+      if (!blob) {
+        showToast("이미지 생성에 실패했습니다");
+        setIsSaving(false);
+        return;
+      }
+
+      // 1. 로컬 다운로드
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `moodtrip-${storyInfo.name}-${currentLayout}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      // 2. Storage에 업로드 (백그라운드)
+      const userId = getUserId();
+      if (userId) {
+        console.log("📤 Supabase Storage 업로드 시작...");
+        const result = await uploadStoryCard(userId, tripId, blob, currentLayout);
+
+        if (result.success) {
+          console.log("✅ 저장 완료:", result.publicUrl);
+          showToast("저장되었습니다!");
+        } else {
+          console.error("❌ 업로드 실패:", result.error);
+          // 다운로드는 성공했으므로 에러 표시하지 않음
+        }
+      }
+    } catch (error) {
+      console.error("❌ 다운로드 중 오류:", error);
+      showToast("다운로드 중 오류가 발생했습니다");
+    } finally {
+      setIsSaving(false);
     }
-
-    // 다운로드
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `moodtrip-${storyInfo.name}-${currentLayout}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-  }, [storyInfo, captureStory, currentLayout]);
+  }, [storyInfo, isSaving, captureStory, currentLayout, tripId, showToast]);
 
   const handleShare = useCallback(async () => {
     if (!storyInfo) return;
@@ -1509,10 +1498,10 @@ export default function StoryPage() {
             <BackIcon />
           </ControlButton>
           <RightControls>
-            <ControlButton onClick={handleDownload} disabled={isCapturing}>
+            <ControlButton onClick={handleDownload} disabled={isCapturing || isSaving}>
               <DownloadIcon />
             </ControlButton>
-            <ControlButton onClick={handleShare} disabled={isCapturing}>
+            <ControlButton onClick={handleShare} disabled={isCapturing || isSaving}>
               <ShareIcon />
             </ControlButton>
           </RightControls>
@@ -1532,6 +1521,11 @@ export default function StoryPage() {
         </ImageIndicator>
       )}
 
+      {/* 저장 완료 토스트 */}
+      <SaveToast $visible={showSaveToast} data-capture-ignore="true">
+        {saveToastMessage}
+      </SaveToast>
+
       <BottomNavigation>
         <PageButtonsContainer>
           {[1, 2, 3, 4, 5, 6, 7].map((num) => (
@@ -1539,7 +1533,7 @@ export default function StoryPage() {
               key={num}
               $active={currentLayout === num}
               onClick={() => handleLayoutChange(num)}
-              disabled={isCapturing}
+              disabled={isCapturing || isSaving}
             >
               {num}
             </PageButton>

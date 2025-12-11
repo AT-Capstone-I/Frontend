@@ -1,11 +1,36 @@
 /* ========================================
    Global Styles - 공통 스타일만 관리
+   @import는 반드시 파일 최상단에 위치해야 함
    ======================================== */
 
-/* @import는 반드시 파일 최상단에 위치해야 함 */
-@import url('https://cdn.jsdelivr.net/gh/fonts-archive/HakgyoansimSantteutbatang/HakgyoansimSantteutbatang.css');
-@import url('https://cdn.jsdelivr.net/gh/fonts-archive/HakgyoansimRikodeo/HakgyoansimRikodeo.css');
-@import url('https://cdn.jsdelivr.net/gh/fonts-archive/GyeonggiBatang/GyeonggiBatang.css');
+/* Google Fonts - @import는 파일 최상단에 */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&display=swap');
+
+/* ========================================
+   로컬 폰트 - 스토리 카드 캡처를 위해 로컬로 변경
+   (CDN 폰트는 CORS 문제로 캡처 시 깨짐)
+   ======================================== */
+
+/* Hakgyoansim Santteutbatang - 로컬 폰트 */
+@font-face {
+  font-family: 'Hakgyoansim Santteutbatang';
+  src: url('/fonts/HakgyoansimSantteutbatang-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Hakgyoansim Rikodeo - 로컬 폰트 */
+@font-face {
+  font-family: 'Hakgyoansim Rikodeo';
+  src: url('/fonts/HakgyoansimRikodeo.woff2') format('woff2'),
+       url('/fonts/HakgyoansimRikodeo.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
 
 /* ========================================
    Gmarket Sans - 로컬 폰트 (스토리 페이지용)
@@ -60,12 +85,62 @@
   font-display: swap;
 }
 
-/* KOHINanum 폰트 */
+/* KOHINanum 폰트 - 로컬 폰트 */
 @font-face {
   font-family: 'KOHINanum';
-  src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2203@1.0/KOHINanumOTF.woff2') format('woff2');
+  src: url('/fonts/KOHINanumOTF_Light.otf') format('opentype');
   font-weight: 300;
   font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'KOHINanum';
+  src: url('/fonts/KOHINanumOTF_Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* the-seasons 폰트 - 로컬 폰트 */
+@font-face {
+  font-family: 'the-seasons';
+  src: url('/fonts/Fontspring-DEMO-theseasons-lt.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'the-seasons';
+  src: url('/fonts/Fontspring-DEMO-theseasons-ltit.otf') format('opentype');
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'the-seasons';
+  src: url('/fonts/Fontspring-DEMO-theseasons-reg.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'the-seasons';
+  src: url('/fonts/Fontspring-DEMO-theseasons-it.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'the-seasons';
+  src: url('/fonts/Fontspring-DEMO-theseasons-bd.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
 }
 
 * {

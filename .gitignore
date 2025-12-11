@@ -39,3 +39,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# story-download 독립 프로젝트 (별도 Vercel 배포)
+/story-download/
+

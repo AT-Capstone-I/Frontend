@@ -53,6 +53,7 @@ export interface StoryCardUploadResult {
 
 /**
  * 스토리 카드 이미지를 Supabase Storage에 업로드
+ * 서버사이드 API를 통해 업로드 (RLS 우회)
  * @param userId 사용자 ID
  * @param tripId 여행 ID
  * @param imageBlob 캡쳐된 이미지 Blob
@@ -66,40 +67,37 @@ export async function uploadStoryCard(
   layoutNumber: number = 1
 ): Promise<StoryCardUploadResult> {
   try {
-    // 파일명: {userId}/{tripId}_{layout}_{timestamp}.png
-    const timestamp = Date.now();
-    const fileName = `${userId}/${tripId}_layout${layoutNumber}_${timestamp}.png`;
+    console.log('📤 스토리 카드 업로드 시작...');
 
-    console.log('📤 스토리 카드 업로드 시작:', fileName);
+    // FormData 생성
+    const formData = new FormData();
+    formData.append('file', imageBlob, 'story-card.png');
+    formData.append('userId', userId);
+    formData.append('tripId', tripId);
+    formData.append('layoutNumber', layoutNumber.toString());
 
-    // Storage에 업로드
-    const { data, error } = await supabase.storage
-      .from('user-story')
-      .upload(fileName, imageBlob, {
-        contentType: 'image/png',
-        cacheControl: '3600',
-        upsert: true, // 같은 파일명이면 덮어쓰기
-      });
+    // 서버 API를 통해 업로드 (RLS 우회)
+    const response = await fetch('/api/upload-story', {
+      method: 'POST',
+      body: formData,
+    });
 
-    if (error) {
-      console.error('❌ Storage 업로드 실패:', error);
+    const result = await response.json();
+
+    if (!result.success) {
+      console.error('❌ Storage 업로드 실패:', result.error);
       return {
         success: false,
-        error: error.message,
+        error: result.error,
       };
     }
 
-    // Public URL 생성
-    const { data: urlData } = supabase.storage
-      .from('user-story')
-      .getPublicUrl(fileName);
-
-    console.log('✅ 스토리 카드 업로드 완료:', urlData.publicUrl);
+    console.log('✅ 스토리 카드 업로드 완료:', result.publicUrl);
 
     return {
       success: true,
-      publicUrl: urlData.publicUrl,
-      fileName: fileName,
+      publicUrl: result.publicUrl,
+      fileName: result.fileName,
     };
   } catch (error) {
     console.error('❌ 업로드 중 예외 발생:', error);
