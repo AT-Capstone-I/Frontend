@@ -1,0 +1,31 @@
+/* [project]/Desktop/moodtrip-frontend/Frontend/story-download/app/globals.css [app-client] (css) */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  color: #fff;
+  background-color: #1a1a2e;
+  max-width: 100vw;
+  font-family: Pretendard, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif;
+  overflow-x: hidden;
+}
+
+body {
+  flex-direction: column;
+  min-height: 100vh;
+  display: flex;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button, input {
+  font-family: inherit;
+}
+
+/*# sourceMappingURL=Desktop_moodtrip-frontend_Frontend_story-download_app_globals_4d7849d8.css.map*/

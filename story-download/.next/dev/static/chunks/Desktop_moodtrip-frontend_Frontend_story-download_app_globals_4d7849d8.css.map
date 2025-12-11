@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 1, "column": 0}, "map": {"version":3,"sources":["file:///Users/kangtaehun/Desktop/moodtrip-frontend/Frontend/story-download/app/globals.css"],"sourcesContent":["* {\n  box-sizing: border-box;\n  padding: 0;\n  margin: 0;\n}\n\nhtml,\nbody {\n  max-width: 100vw;\n  overflow-x: hidden;\n  font-family: \"Pretendard\", -apple-system, BlinkMacSystemFont, \"Segoe UI\",\n    Roboto, \"Helvetica Neue\", Arial, sans-serif;\n  background-color: #1a1a2e;\n  color: #ffffff;\n}\n\nbody {\n  min-height: 100vh;\n  display: flex;\n  flex-direction: column;\n}\n\na {\n  color: inherit;\n  text-decoration: none;\n}\n\nbutton {\n  font-family: inherit;\n}\n\ninput {\n  font-family: inherit;\n}\n"],"names":[],"mappings":"AAAA;;;;;;AAMA;;;;;;;;AAUA;;;;;;AAMA;;;;;AAKA"}}]
+}
