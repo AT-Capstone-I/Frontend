@@ -41,7 +41,7 @@ export default function Home() {
     try {
       // 1. 백엔드 API로 user_id 조회
       const lookupResponse = await fetch(
-        `${BACKEND_URL}/api/users/lookup?name=${encodeURIComponent(nickname.trim())}`
+        `${BACKEND_URL}/api/user-lookup?name=${encodeURIComponent(nickname.trim())}`
       );
 
       if (!lookupResponse.ok) {
