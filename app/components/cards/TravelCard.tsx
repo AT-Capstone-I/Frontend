@@ -1,7 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
+
+// 스켈레톤 애니메이션
+const shimmer = keyframes`
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+`;
 
 // Figma Design: 여행 추천 카드
 const Card = styled(Link)`
@@ -27,12 +37,23 @@ const Card = styled(Link)`
   }
 `;
 
-const CardImageWrapper = styled.div`
+const CardImageWrapper = styled.div<{ $isLoading?: boolean }>`
   width: 100%;
   height: 212px;
   border-radius: 12px;
   overflow: hidden;
-  background-color: var(--greyscale-500);
+  background-color: var(--greyscale-200, #e8e7e9);
+  
+  ${({ $isLoading }) => $isLoading && `
+    background: linear-gradient(
+      90deg,
+      var(--greyscale-200, #e8e7e9) 25%,
+      var(--greyscale-100, #f7f7f7) 50%,
+      var(--greyscale-200, #e8e7e9) 75%
+    );
+    background-size: 200% 100%;
+    animation: ${shimmer} 1.5s infinite;
+  `}
 
   @media (min-width: 768px) {
     height: 260px;
@@ -102,10 +123,12 @@ interface TravelCardProps {
 }
 
 export default function TravelCard({ id = "1", title, description, image }: TravelCardProps) {
+  const isLoading = !image;
+
   return (
     <Card href={`/travel/${id}`}>
-      <CardImageWrapper>
-        <CardImage src={image} alt={title} />
+      <CardImageWrapper $isLoading={isLoading}>
+        {image && <CardImage src={image} alt={title} />}
       </CardImageWrapper>
       <CardInfo>
         <CardTitle>{title}</CardTitle>

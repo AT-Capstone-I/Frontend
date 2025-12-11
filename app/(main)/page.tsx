@@ -19,6 +19,7 @@ import {
   getTravelNotes,
   getUserId,
   getUserName,
+  getStoryImages,
   PlaceRecommendation,
   PopularPlace,
   ContentRecommendation,
@@ -490,35 +491,8 @@ const AddNoteText = styled.p`
   }
 `;
 
-// 기본 이미지 (사진이 없을 때 사용)
-const DEFAULT_PLACE_IMAGE =
-  "https://images.unsplash.com/photo-1518005020951-eccb494ad742?w=400&h=300&fit=crop";
-
-// 여행 노트 기본 이미지 (도시별)
-const TRAVEL_NOTE_DEFAULT_IMAGES: Record<string, string> = {
-  여수: "https://images.unsplash.com/photo-1596402184320-417e7178b2cd?w=400&h=400&fit=crop",
-  전주: "https://images.unsplash.com/photo-1534274867514-d5b47ef89ed7?w=400&h=400&fit=crop",
-  제주: "https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=400&h=400&fit=crop",
-  부산: "https://images.unsplash.com/photo-1538485399081-7191377e8241?w=400&h=400&fit=crop",
-  서울: "https://images.unsplash.com/photo-1534274867514-d5b47ef89ed7?w=400&h=400&fit=crop",
-  경주: "https://images.unsplash.com/photo-1596402184320-417e7178b2cd?w=400&h=400&fit=crop",
-  강릉: "https://images.unsplash.com/photo-1596402184320-417e7178b2cd?w=400&h=400&fit=crop",
-  대전: "https://images.unsplash.com/photo-1534274867514-d5b47ef89ed7?w=400&h=400&fit=crop",
-  default:
-    "https://images.unsplash.com/photo-1488085061387-422e29b40080?w=400&h=400&fit=crop",
-};
-
-// 여행 콘텐츠 기본 이미지 (도시별)
-const TRAVEL_DEFAULT_IMAGES: Record<string, string> = {
-  여수: "https://images.unsplash.com/photo-1596402184320-417e7178b2cd?w=400&h=300&fit=crop",
-  전주: "https://images.unsplash.com/photo-1534274867514-d5b47ef89ed7?w=400&h=300&fit=crop",
-  제주: "https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=400&h=300&fit=crop",
-  부산: "https://images.unsplash.com/photo-1538485399081-7191377e8241?w=400&h=300&fit=crop",
-  서울: "https://images.unsplash.com/photo-1534274867514-d5b47ef89ed7?w=400&h=300&fit=crop",
-  경주: "https://images.unsplash.com/photo-1596402184320-417e7178b2cd?w=400&h=300&fit=crop",
-  default:
-    "https://images.unsplash.com/photo-1488085061387-422e29b40080?w=400&h=300&fit=crop",
-};
+// 기본 이미지 (사진이 없을 때 사용) - 폴백 제거, 스켈레톤으로 대체
+const DEFAULT_PLACE_IMAGE = "";
 
 // 여행 이벤트 카드 데이터
 type TravelEventCard = {
@@ -631,6 +605,9 @@ export default function HomePage() {
   const [isLoadingContents, setIsLoadingContents] = useState(true);
   const [isLoadingNotes, setIsLoadingNotes] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // 도시별 이미지 캐시 (여러 이미지 배열)
+  const [cityImageCache, setCityImageCache] = useState<Record<string, string[]>>({});
 
   // 맞춤 추천 장소 가져오기 (새로고침 버튼용)
   const fetchRecommendedPlaces = useCallback(
@@ -871,20 +848,71 @@ export default function HomePage() {
     return place.address || place.city || "";
   };
 
-  // 콘텐츠 이미지 가져오기 (도시별 기본 이미지)
-  const getContentImage = (content: ContentRecommendation): string => {
+  // 도시 이미지 가져오기 (API에서 여러 장, 캐시 사용)
+  const fetchCityImages = useCallback(async (cityName: string, count: number = 5) => {
+    if (!cityName || cityImageCache[cityName]?.length >= count) return;
+    
+    try {
+      const data = await getStoryImages(cityName, { shuffle: true, limit: count });
+      if (data.images && data.images.length > 0) {
+        setCityImageCache(prev => ({
+          ...prev,
+          [cityName]: data.images
+        }));
+      }
+    } catch (err) {
+      console.log(`이미지 로드 실패 (${cityName}):`, err);
+      // 실패 시 기본 이미지 사용
+    }
+  }, [cityImageCache]);
+
+  // 콘텐츠 이미지 가져오기 (캐시에서 인덱스 기반 선택, 없으면 빈 문자열)
+  const getContentImage = (content: ContentRecommendation, index: number): string => {
     const cityName = content.city_name || "";
-    return TRAVEL_DEFAULT_IMAGES[cityName] || TRAVEL_DEFAULT_IMAGES["default"];
+    const images = cityImageCache[cityName];
+    if (images && images.length > 0) {
+      return images[index % images.length];
+    }
+    return ""; // 폴백 없음 - 스켈레톤 유지
   };
 
-  // 여행 노트 이미지 가져오기 (도시별 기본 이미지)
-  const getTravelNoteImage = (note: TravelNote): string => {
+  // 여행 노트 이미지 가져오기 (캐시에서 인덱스 기반 선택, 없으면 빈 문자열)
+  const getTravelNoteImage = (note: TravelNote, index: number): string => {
     const cityName = note.final_city || note.selected_city || "";
-    return (
-      TRAVEL_NOTE_DEFAULT_IMAGES[cityName] ||
-      TRAVEL_NOTE_DEFAULT_IMAGES["default"]
-    );
+    const images = cityImageCache[cityName];
+    if (images && images.length > 0) {
+      return images[index % images.length];
+    }
+    return ""; // 폴백 없음 - 스켈레톤 유지
   };
+
+  // 콘텐츠/노트 로드 시 이미지 미리 가져오기
+  useEffect(() => {
+    const cityCount: Record<string, number> = {};
+    
+    // 여행 콘텐츠의 도시별 개수 계산
+    travelContents.forEach(content => {
+      if (content.city_name) {
+        cityCount[content.city_name] = (cityCount[content.city_name] || 0) + 1;
+      }
+    });
+    
+    // 여행 노트의 도시별 개수 계산
+    planningNotes.forEach(note => {
+      const city = note.final_city || note.selected_city;
+      if (city) {
+        cityCount[city] = (cityCount[city] || 0) + 1;
+      }
+    });
+    
+    // 각 도시의 이미지 가져오기 (필요한 개수만큼)
+    Object.entries(cityCount).forEach(([city, count]) => {
+      const currentCount = cityImageCache[city]?.length || 0;
+      if (currentCount < count) {
+        fetchCityImages(city, Math.max(count, 5)); // 최소 5장
+      }
+    });
+  }, [travelContents, planningNotes, cityImageCache, fetchCityImages]);
 
   // 여행 노트 제목 가져오기
   const getTravelNoteTitle = (note: TravelNote): string => {
@@ -1048,12 +1076,12 @@ export default function HomePage() {
                   </>
                 ) : (
                   <>
-                    {planningNotes.map((note) => (
+                    {planningNotes.map((note, index) => (
                       <TravelNoteCard
                         key={note.trip_id}
                         tripId={note.trip_id}
                         title={getTravelNoteTitle(note)}
-                        image={getTravelNoteImage(note)}
+                        image={getTravelNoteImage(note, index)}
                       />
                     ))}
                     <AddNoteCard onClick={handleAddNewTrip}>
@@ -1091,13 +1119,13 @@ export default function HomePage() {
                     <p>추천 여행이 없습니다.</p>
                   </EmptyState>
                 ) : (
-                  travelContents.map((content) => (
+                  travelContents.map((content, index) => (
                     <TravelCard
                       key={content.content_id}
                       id={content.content_id}
                       title={content.theme_phrase}
                       description={content.city_name}
-                      image={getContentImage(content)}
+                      image={getContentImage(content, index)}
                     />
                   ))
                 )}

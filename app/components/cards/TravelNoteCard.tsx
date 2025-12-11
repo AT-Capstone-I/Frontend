@@ -1,7 +1,17 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import styled from "styled-components";
+import styled, { keyframes, css } from "styled-components";
+
+// 스켈레톤 애니메이션
+const shimmer = keyframes`
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+`;
 
 // Figma Design: 작성 중인 여행 노트 카드
 const Card = styled.div`
@@ -22,12 +32,23 @@ const Card = styled.div`
   }
 `;
 
-const CardImageWrapper = styled.div`
+const CardImageWrapper = styled.div<{ $isLoading?: boolean }>`
   width: 100%;
   aspect-ratio: 1;
   border-radius: 12px;
   overflow: hidden;
-  background-color: var(--greyscale-200);
+  background-color: var(--greyscale-200, #e8e7e9);
+  
+  ${({ $isLoading }) => $isLoading && css`
+    background: linear-gradient(
+      90deg,
+      var(--greyscale-200, #e8e7e9) 25%,
+      var(--greyscale-100, #f7f7f7) 50%,
+      var(--greyscale-200, #e8e7e9) 75%
+    );
+    background-size: 200% 100%;
+    animation: ${shimmer} 1.5s infinite;
+  `}
 `;
 
 const CardImage = styled.img`
@@ -67,6 +88,7 @@ interface TravelNoteCardProps {
 
 export default function TravelNoteCard({ tripId, title, image }: TravelNoteCardProps) {
   const router = useRouter();
+  const isLoading = !image;
 
   const handleClick = () => {
     if (tripId) {
@@ -77,8 +99,8 @@ export default function TravelNoteCard({ tripId, title, image }: TravelNoteCardP
 
   return (
     <Card onClick={handleClick}>
-      <CardImageWrapper>
-        <CardImage src={image} alt={title} />
+      <CardImageWrapper $isLoading={isLoading}>
+        {image && <CardImage src={image} alt={title} />}
       </CardImageWrapper>
       <CardTitle>{title}</CardTitle>
     </Card>

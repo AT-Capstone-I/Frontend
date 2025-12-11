@@ -893,3 +893,44 @@ export async function getStoryCard(
 
   return response.json();
 }
+
+// ============ Story Images API (도시명 기반) ============
+
+export interface StoryImagesResponse {
+  city: string;
+  city_en: string | null;
+  images: string[];
+  image_count: number;
+}
+
+export interface StoryImagesOptions {
+  shuffle?: boolean;
+  limit?: number;
+}
+
+/**
+ * Story Images API
+ * 도시명으로 스토리 이미지 조회 (trip_id 불필요)
+ */
+export async function getStoryImages(
+  city: string,
+  options?: StoryImagesOptions
+): Promise<StoryImagesResponse> {
+  const params = new URLSearchParams();
+  params.append("city", city);
+  if (options?.shuffle) params.append("shuffle", "true");
+  if (options?.limit) params.append("limit", options.limit.toString());
+
+  const url = `${API_BASE_URL}/api/story-images?${params.toString()}`;
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error(`이미지를 찾을 수 없습니다: ${city}`);
+    }
+    const error = await response.json();
+    throw new Error(error.detail || "이미지 조회 실패");
+  }
+
+  return response.json();
+}

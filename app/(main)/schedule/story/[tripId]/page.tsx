@@ -7,13 +7,29 @@ import styled, { keyframes, css } from "styled-components";
 import * as htmlToImage from "html-to-image";
 import { getStoryCard, StoryCardResponse } from "@/app/lib/api";
 
+// 폰트를 Base64로 변환하는 유틸리티
+const fontToBase64 = async (url: string): Promise<string> => {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return "";
+  }
+};
+
 // ============ Story 데이터 인터페이스 ============
 interface StoryInfo {
   id: string;
   name: string;
   nameEn: string;
   description: string;
-  images: string[];           // 이미지 배열
+  images: string[]; // 이미지 배열
   date: string;
   dayOfWeek: string;
   subtitle: string;
@@ -86,10 +102,29 @@ const BackgroundImage = styled.div<{ $imageUrl: string }>`
   right: 0;
   bottom: 0;
   background-color: #1a1a2e;
-  background-image: ${({ $imageUrl }) => $imageUrl ? `url(${$imageUrl})` : "none"};
+  background-image: ${({ $imageUrl }) =>
+    $imageUrl ? `url(${$imageUrl})` : "none"};
   background-size: cover;
   background-position: center;
   z-index: 0;
+
+  /* 어두운 그라데이션 오버레이 (흰색 글씨 가독성) */
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.3) 0%,
+      rgba(0, 0, 0, 0.1) 30%,
+      rgba(0, 0, 0, 0.1) 70%,
+      rgba(0, 0, 0, 0.3) 100%
+    );
+    pointer-events: none;
+  }
 `;
 
 const ClickArea = styled.div`
@@ -100,6 +135,35 @@ const ClickArea = styled.div`
   bottom: 101px; /* 하단 네비게이션 영역 제외 */
   z-index: 15;
   cursor: pointer;
+`;
+
+// 이미지 인디케이터 (스와이프 안내)
+const ImageIndicator = styled.div`
+  position: absolute;
+  bottom: 120px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 20;
+`;
+
+const IndicatorDot = styled.button<{ $active: boolean }>`
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  background-color: ${({ $active }) =>
+    $active ? "#ffffff" : "rgba(255, 255, 255, 0.4)"};
+  transition: background-color 0.2s ease, transform 0.2s ease;
+
+  ${({ $active }) =>
+    $active &&
+    `
+    transform: scale(1.2);
+  `}
 `;
 
 // 로딩/에러 상태 컴포넌트
@@ -177,14 +241,21 @@ const TopControlBar = styled.div<{ $visible: boolean }>`
   justify-content: space-between;
   align-items: center;
   z-index: 20;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3) 0%, transparent 100%);
-  
-  ${({ $visible }) => $visible ? css`
-    animation: ${fadeIn} 0.3s ease-out forwards;
-  ` : css`
-    animation: ${fadeOut} 0.3s ease-out forwards;
-    pointer-events: none;
-  `}
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.3) 0%,
+    transparent 100%
+  );
+
+  ${({ $visible }) =>
+    $visible
+      ? css`
+          animation: ${fadeIn} 0.3s ease-out forwards;
+        `
+      : css`
+          animation: ${fadeOut} 0.3s ease-out forwards;
+          pointer-events: none;
+        `}
 `;
 
 const ControlButton = styled.button`
@@ -240,7 +311,7 @@ const Layout1TitleContainer = styled.div`
 `;
 
 const Layout1KoreanTitle = styled.h1`
-  font-family: 'GmarketSans', sans-serif;
+  font-family: "GmarketSans", sans-serif;
   font-weight: 700;
   font-size: 24px;
   line-height: 1.1;
@@ -251,7 +322,7 @@ const Layout1KoreanTitle = styled.h1`
 `;
 
 const Layout1EnglishTitle = styled.h2`
-  font-family: 'GmarketSans', sans-serif;
+  font-family: "GmarketSans", sans-serif;
   font-weight: 700;
   font-size: 36px;
   line-height: 1.1;
@@ -268,10 +339,10 @@ const VerticalDivider = styled.div`
 `;
 
 const Layout1Description = styled.div`
-  font-family: 'GmarketSans', sans-serif;
+  font-family: "GmarketSans", sans-serif;
   font-weight: 500;
   font-size: 14px;
-  line-height: 1.8;
+  line-height: 1.1;
   letter-spacing: -0.6px;
   color: #ffffff;
   text-align: right;
@@ -279,7 +350,7 @@ const Layout1Description = styled.div`
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 `;
 
-// 레이아웃 2: 한강 공원 스타일 - 좌측 상단, 밝은 배경 (Hakgyoansim Santteutbatang M, Hakgyoansim RikodeoOTF R)
+// 레이아웃 2: 한강 공원 스타일 - 좌측 상단, 어두운 그라데이션 (Hakgyoansim Santteutbatang M, Hakgyoansim RikodeoOTF R)
 const Layout2GradientOverlay = styled.div`
   position: absolute;
   top: 0;
@@ -288,8 +359,8 @@ const Layout2GradientOverlay = styled.div`
   bottom: 0;
   background: linear-gradient(
     to bottom,
-    rgba(255, 255, 255, 0.7) 0%,
-    rgba(255, 255, 255, 0) 45%
+    rgba(0, 0, 0, 0.6) 0%,
+    rgba(0, 0, 0, 0) 50%
   );
   z-index: 1;
   pointer-events: none;
@@ -309,29 +380,31 @@ const Layout2DateRow = styled.div`
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 52px;
+  margin-bottom: 24px;
 `;
 
 const Layout2Date = styled.span`
-  font-family: 'Hakgyoansim Santteutbatang', 'HakgyoansimSantteutbatang', serif;
+  font-family: "Hakgyoansim Santteutbatang", "HakgyoansimSantteutbatang", serif;
   font-size: 20px;
   line-height: 1.1;
   letter-spacing: -0.6px;
-  color: #111111;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 `;
 
 const HorizontalDivider = styled.div`
   width: 1px;
   height: 15px;
-  background-color: #111111;
+  background-color: #ffffff;
 `;
 
 const Layout2DayOfWeek = styled.span`
-  font-family: 'Hakgyoansim Santteutbatang', 'HakgyoansimSantteutbatang', serif;
+  font-family: "Hakgyoansim Santteutbatang", "HakgyoansimSantteutbatang", serif;
   font-size: 20px;
   line-height: 1.1;
   letter-spacing: -0.6px;
-  color: #111111;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 `;
 
 const Layout2TextContainer = styled.div`
@@ -341,19 +414,21 @@ const Layout2TextContainer = styled.div`
 `;
 
 const Layout2Subtitle = styled.p`
-  font-family: 'Hakgyoansim Santteutbatang', 'HakgyoansimSantteutbatang', serif;
+  font-family: "Hakgyoansim Santteutbatang", "HakgyoansimSantteutbatang", serif;
   font-size: 14px;
   line-height: 1.1;
   letter-spacing: -0.6px;
-  color: #2b2a2c;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 `;
 
 const Layout2Title = styled.h1`
-  font-family: 'Hakgyoansim Rikodeo', 'HakgyoansimRikodeo', serif;
+  font-family: "Hakgyoansim Rikodeo", "HakgyoansimRikodeo", serif;
   font-size: 40px;
   line-height: 1.1;
   letter-spacing: -0.6px;
-  color: #111111;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 `;
 
 // 레이아웃 3: 망리단길 스타일 - 하단, 어두운 그라데이션 (Hakgyoansim RikodeoOTF R, KOHINanumOTF Light)
@@ -385,7 +460,7 @@ const Layout3Content = styled.div`
 `;
 
 const Layout3Title = styled.h1`
-  font-family: 'Hakgyoansim Rikodeo', 'HakgyoansimRikodeo', serif;
+  font-family: "Hakgyoansim Rikodeo", "HakgyoansimRikodeo", serif;
   font-size: 34px;
   line-height: 1.1;
   letter-spacing: -0.6px;
@@ -400,7 +475,7 @@ const Layout3Divider = styled.div`
 `;
 
 const Layout3Description = styled.p`
-  font-family: 'KOHINanum', sans-serif;
+  font-family: "KOHINanum", sans-serif;
   font-weight: 300;
   font-size: 16px;
   line-height: 1.5;
@@ -424,8 +499,8 @@ const Layout4Content = styled.div`
 const Layout4Logo = styled.img<{ $isDark: boolean }>`
   height: 24px;
   width: auto;
-  filter: ${({ $isDark }) => $isDark ? 'brightness(0) invert(1)' : 'none'};
-  ${({ $isDark }) => $isDark && 'drop-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);'}
+  filter: ${({ $isDark }) => ($isDark ? "brightness(0) invert(1)" : "none")};
+  ${({ $isDark }) => $isDark && "drop-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);"}
 `;
 
 // 레이아웃 5: 상세 설명 - 중앙 하단
@@ -458,7 +533,7 @@ const Layout5Content = styled.div`
 `;
 
 const Layout5Title = styled.h1`
-  font-family: 'GmarketSans', sans-serif;
+  font-family: "GmarketSans", sans-serif;
   font-weight: 700;
   font-size: 28px;
   line-height: 1.2;
@@ -469,7 +544,7 @@ const Layout5Title = styled.h1`
 `;
 
 const Layout5Description = styled.p`
-  font-family: 'Pretendard', sans-serif;
+  font-family: "Pretendard", sans-serif;
   font-weight: 400;
   font-size: 15px;
   line-height: 1.6;
@@ -532,7 +607,7 @@ const Layout6Divider = styled.div`
 `;
 
 const Layout6Slogan = styled.p`
-  font-family: 'GmarketSans', sans-serif;
+  font-family: "GmarketSans", sans-serif;
   font-weight: 500;
   font-size: 16px;
   line-height: 1.6;
@@ -543,7 +618,7 @@ const Layout6Slogan = styled.p`
 `;
 
 const Layout6Footer = styled.p`
-  font-family: 'Pretendard', sans-serif;
+  font-family: "Pretendard", sans-serif;
   font-weight: 400;
   font-size: 13px;
   color: rgba(255, 255, 255, 0.7);
@@ -572,10 +647,10 @@ const PageButton = styled.button<{ $active: boolean }>`
   flex: 1;
   height: 43px;
   border-radius: 12px;
-  border: ${({ $active }) => $active ? "none" : "1px solid #c4c2c6"};
-  background-color: ${({ $active }) => $active ? "#66b2fe" : "#ffffff"};
-  color: ${({ $active }) => $active ? "#ffffff" : "#aaa8ad"};
-  font-family: 'Pretendard', sans-serif;
+  border: ${({ $active }) => ($active ? "none" : "1px solid #c4c2c6")};
+  background-color: ${({ $active }) => ($active ? "#66b2fe" : "#ffffff")};
+  color: ${({ $active }) => ($active ? "#ffffff" : "#aaa8ad")};
+  font-family: "Pretendard", sans-serif;
   font-weight: 500;
   font-size: 16px;
   line-height: 1.4;
@@ -584,7 +659,7 @@ const PageButton = styled.button<{ $active: boolean }>`
   transition: all 0.2s ease;
 
   &:hover {
-    background-color: ${({ $active }) => $active ? "#66b2fe" : "#f5f5f5"};
+    background-color: ${({ $active }) => ($active ? "#66b2fe" : "#f5f5f5")};
   }
 `;
 
@@ -594,13 +669,27 @@ const AnimatedContent = styled.div`
 
 // ============ 아이콘 컴포넌트 ============
 const BackIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <path d="M15 18l-6-6 6-6" />
   </svg>
 );
 
 const DownloadIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
     <polyline points="7,10 12,15 17,10" />
     <line x1="12" y1="15" x2="12" y2="3" />
@@ -608,7 +697,14 @@ const DownloadIcon = () => (
 );
 
 const ShareIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <circle cx="18" cy="5" r="3" />
     <circle cx="6" cy="12" r="3" />
     <circle cx="18" cy="19" r="3" />
@@ -629,7 +725,16 @@ const Layout1 = ({ storyInfo }: LayoutProps) => (
         <Layout1KoreanTitle>{storyInfo.name}</Layout1KoreanTitle>
         <Layout1EnglishTitle>{storyInfo.nameEn}</Layout1EnglishTitle>
       </Layout1TitleContainer>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '28px' }}>
+      {/* 세로선과 설명 - 영문 제목과의 간격을 위해 margin-top 추가 */}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "20px",
+          marginTop: "20px",
+        }}
+      >
         <VerticalDivider />
         <Layout1Description>{storyInfo.description}</Layout1Description>
       </div>
@@ -672,9 +777,9 @@ const Layout3 = ({ storyInfo }: LayoutProps) => (
 const Layout4 = ({ storyInfo }: LayoutProps) => (
   <Layout4Content>
     <AnimatedContent>
-      <Layout4Logo 
-        src="/assets/icons/icon.svg" 
-        alt="MoodTrip" 
+      <Layout4Logo
+        src="/assets/icons/icon.svg"
+        alt="MoodTrip"
         $isDark={storyInfo.isDarkBackground}
       />
     </AnimatedContent>
@@ -697,7 +802,14 @@ const Layout6 = () => (
   <>
     <Layout6Overlay />
     <Layout6Content>
-      <AnimatedContent style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '32px' }}>
+      <AnimatedContent
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "32px",
+        }}
+      >
         <Layout6LogoContainer>
           <Layout6Logo src="/assets/icons/icon.svg" alt="MoodTrip" />
         </Layout6LogoContainer>
@@ -715,8 +827,9 @@ export default function StoryPage() {
   const router = useRouter();
   const tripId = params.tripId as string;
   const captureRef = useRef<HTMLDivElement>(null);
-  
+
   const [currentLayout, setCurrentLayout] = useState(1);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0); // 이미지 인덱스 (스와이프용)
   const [storyInfo, setStoryInfo] = useState<StoryInfo | null>(null);
   const [showControls, setShowControls] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
@@ -724,11 +837,19 @@ export default function StoryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // 스와이프 제스처 상태
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const minSwipeDistance = 50; // 최소 스와이프 거리
+
   // 날짜 포맷 헬퍼 함수
   const formatDateForDisplay = (dateStr: string | null): string => {
     if (!dateStr) return "";
     const date = new Date(dateStr);
-    return `${(date.getMonth() + 1).toString().padStart(2, "0")}.${date.getDate().toString().padStart(2, "0")}`;
+    return `${(date.getMonth() + 1).toString().padStart(2, "0")}.${date
+      .getDate()
+      .toString()
+      .padStart(2, "0")}`;
   };
 
   const getDayOfWeek = (dateStr: string | null): string => {
@@ -773,7 +894,8 @@ export default function StoryPage() {
           date: formatDateForDisplay(card.start_date),
           dayOfWeek: getDayOfWeek(card.start_date),
           subtitle: "너의 취향 그대로, 맞춤 여행 시작",
-          detailDescription: card.summary || card.theme_phrase || "새로운 추억을 만들어보세요",
+          detailDescription:
+            card.summary || card.theme_phrase || "새로운 추억을 만들어보세요",
           isDarkBackground: true,
         });
       } catch (err) {
@@ -787,21 +909,66 @@ export default function StoryPage() {
     fetchStoryCard();
   }, [tripId]);
 
-  // 레이아웃별 배경 이미지 선택
-  const getBackgroundForLayout = (layoutNum: number): string => {
+  // 현재 선택된 배경 이미지 (스와이프로 변경)
+  const getCurrentBackgroundImage = useCallback((): string => {
     if (!storyInfo?.images?.length) {
       console.log("❌ 이미지 배열이 비어있음");
       return "";
     }
-    const index = (layoutNum - 1) % storyInfo.images.length;
-    const imageUrl = storyInfo.images[index];
-    console.log(`📷 레이아웃 ${layoutNum} 이미지:`, imageUrl);
+    const imageUrl = storyInfo.images[currentImageIndex];
     return imageUrl;
-  };
+  }, [storyInfo, currentImageIndex]);
+
+  // 이전 이미지
+  const handlePrevImage = useCallback(() => {
+    if (!storyInfo?.images?.length) return;
+    setCurrentImageIndex((prev) =>
+      prev === 0 ? storyInfo.images.length - 1 : prev - 1
+    );
+  }, [storyInfo]);
+
+  // 다음 이미지
+  const handleNextImage = useCallback(() => {
+    if (!storyInfo?.images?.length) return;
+    setCurrentImageIndex((prev) =>
+      prev === storyInfo.images.length - 1 ? 0 : prev + 1
+    );
+  }, [storyInfo]);
+
+  // 스와이프 시작
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  }, []);
+
+  // 스와이프 이동
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  }, []);
+
+  // 스와이프 종료
+  const onTouchEnd = useCallback(() => {
+    if (!touchStart || !touchEnd) return;
+
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe) {
+      handleNextImage();
+    } else if (isRightSwipe) {
+      handlePrevImage();
+    }
+  }, [touchStart, touchEnd, handleNextImage, handlePrevImage]);
+
+  // 레이아웃별 배경 이미지 (캡처용 - 현재 이미지 사용)
+  const getBackgroundForLayout = useCallback((): string => {
+    return getCurrentBackgroundImage();
+  }, [getCurrentBackgroundImage]);
 
   const handleImageClick = useCallback(() => {
     setHasInteracted(true);
-    setShowControls(prev => !prev);
+    setShowControls((prev) => !prev);
   }, []);
 
   const handleBack = useCallback(() => {
@@ -811,55 +978,131 @@ export default function StoryPage() {
   // 화면 캡처 함수
   const captureStory = useCallback(async (): Promise<Blob | null> => {
     if (!captureRef.current || !storyInfo) return null;
-    
+
     setIsCapturing(true);
-    
+
     try {
+      // 폰트 로딩 대기 (충분한 시간)
+      await document.fonts.ready;
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // 배경 이미지 로딩 대기
+      const bgImage = getBackgroundForLayout();
+      if (bgImage) {
+        await new Promise<void>((resolve) => {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+          img.src = bgImage;
+        });
+      }
+
       // 폰트 로딩 대기
       await document.fonts.ready;
-      
+
+      // 로컬 폰트를 Base64로 임베드
+      const [fontLight, fontMedium, fontBold] = await Promise.all([
+        fontToBase64("/fonts/GmarketSansLight.otf"),
+        fontToBase64("/fonts/GmarketSansMedium.otf"),
+        fontToBase64("/fonts/GmarketSansBold.otf"),
+      ]);
+
+      // Base64 폰트가 로드되었으면 @font-face 생성
+      const fontEmbedCSS = fontBold
+        ? `
+        @font-face {
+          font-family: 'GmarketSans';
+          src: url(${fontLight}) format('opentype');
+          font-weight: 300;
+          font-style: normal;
+        }
+        @font-face {
+          font-family: 'GmarketSans';
+          src: url(${fontMedium}) format('opentype');
+          font-weight: 500;
+          font-style: normal;
+        }
+        @font-face {
+          font-family: 'GmarketSans';
+          src: url(${fontBold}) format('opentype');
+          font-weight: 700;
+          font-style: normal;
+        }
+      `
+        : "";
+
       const dataUrl = await htmlToImage.toPng(captureRef.current, {
         quality: 1,
-        pixelRatio: 2, // 고해상도
+        pixelRatio: 3,
         cacheBust: true,
-        skipFonts: true, // CORS 문제 방지 - 외부 폰트 스타일시트 건너뛰기
+        skipFonts: true, // CORS 에러 방지
+        includeQueryParams: true,
+        backgroundColor: "#1a1a2e",
+        fontEmbedCSS,
         style: {
-          // 폰트를 명시적으로 지정하여 시스템 폰트로 대체
+          transform: "scale(1)",
+          transformOrigin: "top left",
         },
         filter: (node: Node) => {
-          // 클릭 영역은 캡처에서 제외
-          if (node instanceof HTMLElement && node.dataset.captureIgnore === 'true') {
+          if (
+            node instanceof HTMLElement &&
+            node.dataset.captureIgnore === "true"
+          ) {
             return false;
           }
           return true;
         },
       });
-      
+
       // dataUrl을 Blob으로 변환
       const response = await fetch(dataUrl);
       const blob = await response.blob();
-      
+
       return blob;
     } catch (error) {
-      console.error('캡처 실패:', error);
-      return null;
+      console.error("캡처 실패:", error);
+
+      // 폴백: 폰트 스킵하고 재시도
+      try {
+        const dataUrl = await htmlToImage.toPng(captureRef.current!, {
+          quality: 1,
+          pixelRatio: 2,
+          skipFonts: true,
+          cacheBust: true,
+          filter: (node: Node) => {
+            if (
+              node instanceof HTMLElement &&
+              node.dataset.captureIgnore === "true"
+            ) {
+              return false;
+            }
+            return true;
+          },
+        });
+        const response = await fetch(dataUrl);
+        return await response.blob();
+      } catch (fallbackError) {
+        console.error("폴백 캡처도 실패:", fallbackError);
+        return null;
+      }
     } finally {
       setIsCapturing(false);
     }
-  }, [storyInfo]);
+  }, [storyInfo, getBackgroundForLayout]);
 
   const handleDownload = useCallback(async () => {
     if (!storyInfo) return;
-    
+
     const blob = await captureStory();
     if (!blob) {
-      alert('이미지 생성에 실패했습니다.');
+      alert("이미지 생성에 실패했습니다.");
       return;
     }
-    
+
     // 다운로드
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `moodtrip-${storyInfo.name}-${currentLayout}.png`;
     document.body.appendChild(a);
@@ -870,37 +1113,43 @@ export default function StoryPage() {
 
   const handleShare = useCallback(async () => {
     if (!storyInfo) return;
-    
+
     const blob = await captureStory();
     if (!blob) {
-      alert('이미지 생성에 실패했습니다.');
+      alert("이미지 생성에 실패했습니다.");
       return;
     }
-    
-    const file = new File([blob], `moodtrip-${storyInfo.name}.png`, { type: 'image/png' });
-    
+
+    const file = new File([blob], `moodtrip-${storyInfo.name}.png`, {
+      type: "image/png",
+    });
+
     // Web Share API로 이미지 공유
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+    if (
+      navigator.share &&
+      navigator.canShare &&
+      navigator.canShare({ files: [file] })
+    ) {
       try {
         await navigator.share({
           files: [file],
           title: `MoodTrip - ${storyInfo.name}`,
-          text: storyInfo.description.replace('\n', ' '),
+          text: storyInfo.description.replace("\n", " "),
         });
       } catch (error) {
-        console.log('공유 취소됨');
+        console.log("공유 취소됨");
       }
     } else {
       // 공유 API가 지원되지 않으면 다운로드
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = `moodtrip-${storyInfo.name}.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-      alert('이미지가 다운로드되었습니다!');
+      alert("이미지가 다운로드되었습니다!");
     }
   }, [storyInfo, captureStory]);
 
@@ -957,16 +1206,20 @@ export default function StoryPage() {
   };
 
   return (
-    <StoryWrapper>
+    <StoryWrapper
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
       {/* 캡처 영역 - 배경 + 콘텐츠 */}
       <CaptureArea ref={captureRef}>
-        <BackgroundImage $imageUrl={getBackgroundForLayout(currentLayout)} />
+        <BackgroundImage $imageUrl={getBackgroundForLayout()} />
         {renderLayout()}
       </CaptureArea>
-      
+
       {/* 클릭 감지 영역 (캡처에서 제외) */}
       <ClickArea onClick={handleImageClick} data-capture-ignore="true" />
-      
+
       {/* 상단 컨트롤 바 - 클릭시 페이드인/아웃 */}
       {hasInteracted && (
         <TopControlBar $visible={showControls} data-capture-ignore="true">
@@ -983,7 +1236,20 @@ export default function StoryPage() {
           </RightControls>
         </TopControlBar>
       )}
-      
+
+      {/* 이미지 인디케이터 (좌우 스와이프 안내) */}
+      {storyInfo && storyInfo.images.length > 1 && (
+        <ImageIndicator data-capture-ignore="true">
+          {storyInfo.images.map((_, idx) => (
+            <IndicatorDot
+              key={idx}
+              $active={idx === currentImageIndex}
+              onClick={() => setCurrentImageIndex(idx)}
+            />
+          ))}
+        </ImageIndicator>
+      )}
+
       <BottomNavigation>
         <PageButtonsContainer>
           {[1, 2, 3, 4, 5, 6].map((num) => (

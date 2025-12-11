@@ -30,20 +30,7 @@ export default function RootLayout({
           rel="stylesheet"
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
         />
-        {/* Gmarket Sans - 울릉도 스타일 스토리용 */}
-        <link
-          rel="stylesheet"
-          href="https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansMedium.css"
-        />
-        <link
-          rel="stylesheet"
-          href="https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansBold.css"
-        />
-        {/* 학교안심 산뜻바탕, 리코데오 - 한강공원/망리단길 스타일 스토리용 */}
-        <link
-          rel="stylesheet"
-          href="https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2307-2@1.0/HakgyoansimSantteutbatangB.woff2"
-        />
+        {/* Gmarket Sans - 로컬 폰트 사용 (globals.css에서 @font-face 정의) */}
         {/* 나눔손글씨 */}
         <link
           rel="stylesheet"
