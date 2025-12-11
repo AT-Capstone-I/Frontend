@@ -127,10 +127,10 @@ const MapContent: React.FC<GoogleMapViewProps> = ({
 
       // 약간의 딜레이로 너무 빈번한 호출 방지
       fitBoundsTimeoutRef.current = setTimeout(() => {
-        const bounds = new window.google.maps.LatLngBounds();
-        places.forEach((place) => {
-          bounds.extend(place.location);
-        });
+      const bounds = new window.google.maps.LatLngBounds();
+      places.forEach((place) => {
+        bounds.extend(place.location);
+      });
 
         // 바텀시트 높이에 따른 동적 패딩
         // 상단: 80px (뒤로가기 버튼 여유), 하단: bottomPadding + 여유
@@ -141,13 +141,13 @@ const MapContent: React.FC<GoogleMapViewProps> = ({
           left: 40 
         });
 
-        // 장소가 1개일 때만 줌 레벨 조정
-        if (places.length === 1) {
-          const listener = map.addListener("idle", () => {
-            map.setZoom(14);
-            window.google.maps.event.removeListener(listener);
-          });
-        }
+      // 장소가 1개일 때만 줌 레벨 조정
+      if (places.length === 1) {
+        const listener = map.addListener("idle", () => {
+          map.setZoom(14);
+          window.google.maps.event.removeListener(listener);
+        });
+      }
       }, 150); // 150ms debounce
     }
 

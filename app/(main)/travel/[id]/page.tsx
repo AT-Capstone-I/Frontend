@@ -830,13 +830,13 @@ export default function TravelDetailPage() {
 
       {/* 하단 고정 버튼 - 채팅에서 접근한 경우에만 표시 */}
       {tripIdFromQuery && (
-        <BottomButtonWrapper>
-          <BottomButton
+      <BottomButtonWrapper>
+        <BottomButton
             onClick={() => router.push(`/chat?trip_id=${tripIdFromQuery}&confirm=1`)}
-          >
-            여기로 결정하기
-          </BottomButton>
-        </BottomButtonWrapper>
+        >
+          여기로 결정하기
+        </BottomButton>
+      </BottomButtonWrapper>
       )}
     </PageWrapper>
   );

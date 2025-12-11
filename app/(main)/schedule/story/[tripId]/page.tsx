@@ -5,78 +5,15 @@ import { useParams, useRouter } from "next/navigation";
 import styled, { keyframes, css } from "styled-components";
 // @ts-ignore - html-to-image 타입 정의 없음
 import * as htmlToImage from "html-to-image";
+import { getStoryCard, StoryCardResponse } from "@/app/lib/api";
 
-// ============ 테스트용 하드코딩 데이터 ============
-// TODO: 실제 서버에서 데이터를 받아오는 API로 교체 필요
-const REGION_DATA: Record<string, RegionInfo> = {
-  ulleungdo: {
-    id: "ulleungdo",
-    name: "울릉도",
-    nameEn: "Ulleung-gun",
-    description: "천혜의 비경을 간직한\n동해 유일의 도서 지역-울릉도",
-    backgroundImage: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&h=1200&fit=crop",
-    date: "12.04",
-    dayOfWeek: "Thursday",
-    subtitle: "너의 취향 그대로, 맞춤 여행 시작",
-    detailDescription: "청정 자연과 해산물의 천국,\n울릉도의 매력에 빠져보세요",
-    isDarkBackground: true,
-  },
-  hangang: {
-    id: "hangang",
-    name: "한강 공원",
-    nameEn: "Hangang Park",
-    description: "서울의 휴식처,\n한강에서 즐기는 여유로운 시간",
-    backgroundImage: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&h=1200&fit=crop",
-    date: "12.04",
-    dayOfWeek: "Thursday",
-    subtitle: "너의 취향 그대로, 맞춤 여행 시작",
-    detailDescription: "자전거 타기, 피크닉, 야경까지\n한강에서의 완벽한 하루",
-    isDarkBackground: false,
-  },
-  mangridangil: {
-    id: "mangridangil",
-    name: "망리단길",
-    nameEn: "Mangni-dangil",
-    description: "망리단길: 망원동 감성 카페, 소품샵, 편집숍,\n작은 음식점이 모여 있는 골목 산책길",
-    backgroundImage: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&h=1200&fit=crop",
-    date: "12.04",
-    dayOfWeek: "Thursday",
-    subtitle: "너의 취향 그대로, 맞춤 여행 시작",
-    detailDescription: "힙스터들의 성지,\n망원동의 숨겨진 보석을 찾아서",
-    isDarkBackground: true,
-  },
-  yeosu: {
-    id: "yeosu",
-    name: "여수",
-    nameEn: "Yeosu",
-    description: "낭만의 도시, 여수\n밤바다와 낭만포차의 추억",
-    backgroundImage: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&h=1200&fit=crop",
-    date: "11.12",
-    dayOfWeek: "Tuesday",
-    subtitle: "바다와 함께하는 특별한 여행",
-    detailDescription: "오동도, 향일암, 여수 밤바다까지\n낭만이 가득한 남도 여행",
-    isDarkBackground: true,
-  },
-  jeju: {
-    id: "jeju",
-    name: "제주도",
-    nameEn: "Jeju Island",
-    description: "자연이 선물한 섬,\n제주에서 만나는 특별한 순간들",
-    backgroundImage: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&h=1200&fit=crop",
-    date: "12.10",
-    dayOfWeek: "Monday",
-    subtitle: "힐링이 필요한 당신을 위한 여행",
-    detailDescription: "한라산부터 올레길까지,\n제주의 모든 것을 담아가세요",
-    isDarkBackground: false,
-  },
-};
-
-interface RegionInfo {
+// ============ Story 데이터 인터페이스 ============
+interface StoryInfo {
   id: string;
   name: string;
   nameEn: string;
   description: string;
-  backgroundImage: string;
+  images: string[];           // 이미지 배열
   date: string;
   dayOfWeek: string;
   subtitle: string;
@@ -148,7 +85,8 @@ const BackgroundImage = styled.div<{ $imageUrl: string }>`
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: url(${({ $imageUrl }) => $imageUrl});
+  background-color: #1a1a2e;
+  background-image: ${({ $imageUrl }) => $imageUrl ? `url(${$imageUrl})` : "none"};
   background-size: cover;
   background-position: center;
   z-index: 0;
@@ -162,6 +100,70 @@ const ClickArea = styled.div`
   bottom: 101px; /* 하단 네비게이션 영역 제외 */
   z-index: 15;
   cursor: pointer;
+`;
+
+// 로딩/에러 상태 컴포넌트
+const LoadingContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+`;
+
+const spin = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+`;
+
+const LoadingSpinner = styled.div`
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: ${spin} 1s linear infinite;
+`;
+
+const LoadingText = styled.p`
+  font-family: "Pretendard", sans-serif;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+`;
+
+const ErrorContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+  padding: 20px;
+`;
+
+const ErrorText = styled.p`
+  font-family: "Pretendard", sans-serif;
+  font-size: 16px;
+  color: #ffffff;
+  text-align: center;
+`;
+
+const RetryButton = styled.button`
+  padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  color: #ffffff;
+  font-family: "Pretendard", sans-serif;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
 `;
 
 // 상단 컨트롤 바
@@ -617,75 +619,75 @@ const ShareIcon = () => (
 
 // ============ 레이아웃 컴포넌트들 ============
 interface LayoutProps {
-  regionInfo: RegionInfo;
+  storyInfo: StoryInfo;
 }
 
-const Layout1 = ({ regionInfo }: LayoutProps) => (
+const Layout1 = ({ storyInfo }: LayoutProps) => (
   <Layout1Overlay>
     <AnimatedContent>
       <Layout1TitleContainer>
-        <Layout1KoreanTitle>{regionInfo.name}</Layout1KoreanTitle>
-        <Layout1EnglishTitle>{regionInfo.nameEn}</Layout1EnglishTitle>
+        <Layout1KoreanTitle>{storyInfo.name}</Layout1KoreanTitle>
+        <Layout1EnglishTitle>{storyInfo.nameEn}</Layout1EnglishTitle>
       </Layout1TitleContainer>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '28px' }}>
         <VerticalDivider />
-        <Layout1Description>{regionInfo.description}</Layout1Description>
+        <Layout1Description>{storyInfo.description}</Layout1Description>
       </div>
     </AnimatedContent>
   </Layout1Overlay>
 );
 
-const Layout2 = ({ regionInfo }: LayoutProps) => (
+const Layout2 = ({ storyInfo }: LayoutProps) => (
   <>
     <Layout2GradientOverlay />
     <Layout2Content>
       <AnimatedContent>
         <Layout2DateRow>
-          <Layout2Date>{regionInfo.date}</Layout2Date>
+          <Layout2Date>{storyInfo.date}</Layout2Date>
           <HorizontalDivider />
-          <Layout2DayOfWeek>{regionInfo.dayOfWeek}</Layout2DayOfWeek>
+          <Layout2DayOfWeek>{storyInfo.dayOfWeek}</Layout2DayOfWeek>
         </Layout2DateRow>
         <Layout2TextContainer>
-          <Layout2Subtitle>{regionInfo.subtitle}</Layout2Subtitle>
-          <Layout2Title>{regionInfo.name}</Layout2Title>
+          <Layout2Subtitle>{storyInfo.subtitle}</Layout2Subtitle>
+          <Layout2Title>{storyInfo.name}</Layout2Title>
         </Layout2TextContainer>
       </AnimatedContent>
     </Layout2Content>
   </>
 );
 
-const Layout3 = ({ regionInfo }: LayoutProps) => (
+const Layout3 = ({ storyInfo }: LayoutProps) => (
   <>
     <Layout3GradientOverlay />
     <Layout3Content>
       <AnimatedContent>
-        <Layout3Title>{regionInfo.name}</Layout3Title>
+        <Layout3Title>{storyInfo.name}</Layout3Title>
         <Layout3Divider />
-        <Layout3Description>{regionInfo.description}</Layout3Description>
+        <Layout3Description>{storyInfo.description}</Layout3Description>
       </AnimatedContent>
     </Layout3Content>
   </>
 );
 
-const Layout4 = ({ regionInfo }: LayoutProps) => (
+const Layout4 = ({ storyInfo }: LayoutProps) => (
   <Layout4Content>
     <AnimatedContent>
       <Layout4Logo 
         src="/assets/icons/icon.svg" 
         alt="MoodTrip" 
-        $isDark={regionInfo.isDarkBackground}
+        $isDark={storyInfo.isDarkBackground}
       />
     </AnimatedContent>
   </Layout4Content>
 );
 
-const Layout5 = ({ regionInfo }: LayoutProps) => (
+const Layout5 = ({ storyInfo }: LayoutProps) => (
   <>
     <Layout5GradientOverlay />
     <Layout5Content>
       <AnimatedContent>
-        <Layout5Title>{regionInfo.name}</Layout5Title>
-        <Layout5Description>{regionInfo.detailDescription}</Layout5Description>
+        <Layout5Title>{storyInfo.name}</Layout5Title>
+        <Layout5Description>{storyInfo.detailDescription}</Layout5Description>
       </AnimatedContent>
     </Layout5Content>
   </>
@@ -711,36 +713,91 @@ const Layout6 = () => (
 export default function StoryPage() {
   const params = useParams();
   const router = useRouter();
-  const region = params.region as string;
+  const tripId = params.tripId as string;
   const captureRef = useRef<HTMLDivElement>(null);
   
   const [currentLayout, setCurrentLayout] = useState(1);
-  const [regionInfo, setRegionInfo] = useState<RegionInfo | null>(null);
+  const [storyInfo, setStoryInfo] = useState<StoryInfo | null>(null);
   const [showControls, setShowControls] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+  // 날짜 포맷 헬퍼 함수
+  const formatDateForDisplay = (dateStr: string | null): string => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    return `${(date.getMonth() + 1).toString().padStart(2, "0")}.${date.getDate().toString().padStart(2, "0")}`;
+  };
+
+  const getDayOfWeek = (dateStr: string | null): string => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("en-US", { weekday: "long" });
+  };
+
+  // Story Card API 호출
   useEffect(() => {
-    // 테스트용 하드코딩 데이터 사용
-    const info = REGION_DATA[region];
-    if (info) {
-      setRegionInfo(info);
-    } else {
-      // 기본값 설정 (알 수 없는 지역인 경우)
-      setRegionInfo({
-        id: region,
-        name: region,
-        nameEn: region,
-        description: "아름다운 여행지",
-        backgroundImage: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=1200&fit=crop",
-        date: new Date().toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' }).replace('. ', '.').replace('.', ''),
-        dayOfWeek: new Date().toLocaleDateString('en-US', { weekday: 'long' }),
-        subtitle: "당신만을 위한 특별한 여행",
-        detailDescription: "새로운 추억을 만들어보세요",
-        isDarkBackground: true,
-      });
+    const fetchStoryCard = async () => {
+      if (!tripId) return;
+
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const card = await getStoryCard(tripId, {
+          shuffle: true,
+          limit: 6, // 6개 레이아웃용 이미지
+        });
+
+        console.log("📸 Story Card API 응답:", card);
+        console.log("📸 이미지 배열:", card.images);
+        console.log("📸 이미지 개수:", card.image_count);
+
+        // 이미지 배열이 비어있으면 기본 이미지 사용
+        let images = card.images || [];
+        if (images.length === 0 && card.image_count > 0) {
+          // API에서 이미지 URL이 안 왔지만 이미지가 있다고 했을 때
+          // 도시명 기반으로 이미지 URL 생성 시도
+          console.log("⚠️ 이미지 배열이 비어있어 기본 이미지 사용");
+        }
+
+        // API 응답을 StoryInfo로 변환
+        setStoryInfo({
+          id: card.trip_id,
+          name: card.city,
+          nameEn: card.city_en || card.city,
+          description: card.theme_phrase || "특별한 여행이 시작됩니다",
+          images: images,
+          date: formatDateForDisplay(card.start_date),
+          dayOfWeek: getDayOfWeek(card.start_date),
+          subtitle: "너의 취향 그대로, 맞춤 여행 시작",
+          detailDescription: card.summary || card.theme_phrase || "새로운 추억을 만들어보세요",
+          isDarkBackground: true,
+        });
+      } catch (err) {
+        console.error("Story card fetch error:", err);
+        setError("스토리 카드를 불러올 수 없습니다");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStoryCard();
+  }, [tripId]);
+
+  // 레이아웃별 배경 이미지 선택
+  const getBackgroundForLayout = (layoutNum: number): string => {
+    if (!storyInfo?.images?.length) {
+      console.log("❌ 이미지 배열이 비어있음");
+      return "";
     }
-  }, [region]);
+    const index = (layoutNum - 1) % storyInfo.images.length;
+    const imageUrl = storyInfo.images[index];
+    console.log(`📷 레이아웃 ${layoutNum} 이미지:`, imageUrl);
+    return imageUrl;
+  };
 
   const handleImageClick = useCallback(() => {
     setHasInteracted(true);
@@ -753,7 +810,7 @@ export default function StoryPage() {
 
   // 화면 캡처 함수
   const captureStory = useCallback(async (): Promise<Blob | null> => {
-    if (!captureRef.current || !regionInfo) return null;
+    if (!captureRef.current || !storyInfo) return null;
     
     setIsCapturing(true);
     
@@ -789,10 +846,10 @@ export default function StoryPage() {
     } finally {
       setIsCapturing(false);
     }
-  }, [regionInfo]);
+  }, [storyInfo]);
 
   const handleDownload = useCallback(async () => {
-    if (!regionInfo) return;
+    if (!storyInfo) return;
     
     const blob = await captureStory();
     if (!blob) {
@@ -804,15 +861,15 @@ export default function StoryPage() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `moodtrip-${regionInfo.name}-${currentLayout}.png`;
+    a.download = `moodtrip-${storyInfo.name}-${currentLayout}.png`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
-  }, [regionInfo, captureStory, currentLayout]);
+  }, [storyInfo, captureStory, currentLayout]);
 
   const handleShare = useCallback(async () => {
-    if (!regionInfo) return;
+    if (!storyInfo) return;
     
     const blob = await captureStory();
     if (!blob) {
@@ -820,15 +877,15 @@ export default function StoryPage() {
       return;
     }
     
-    const file = new File([blob], `moodtrip-${regionInfo.name}.png`, { type: 'image/png' });
+    const file = new File([blob], `moodtrip-${storyInfo.name}.png`, { type: 'image/png' });
     
     // Web Share API로 이미지 공유
     if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
       try {
         await navigator.share({
           files: [file],
-          title: `MoodTrip - ${regionInfo.name}`,
-          text: regionInfo.description.replace('\n', ' '),
+          title: `MoodTrip - ${storyInfo.name}`,
+          text: storyInfo.description.replace('\n', ' '),
         });
       } catch (error) {
         console.log('공유 취소됨');
@@ -838,39 +895,64 @@ export default function StoryPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `moodtrip-${regionInfo.name}.png`;
+      a.download = `moodtrip-${storyInfo.name}.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
       alert('이미지가 다운로드되었습니다!');
     }
-  }, [regionInfo, captureStory]);
+  }, [storyInfo, captureStory]);
 
   const handleLayoutChange = useCallback((layout: number) => {
     setCurrentLayout(layout);
   }, []);
 
-  if (!regionInfo) {
+  // 로딩 중
+  if (isLoading) {
+    return (
+      <StoryWrapper>
+        <LoadingContainer>
+          <LoadingSpinner />
+          <LoadingText>스토리를 불러오는 중...</LoadingText>
+        </LoadingContainer>
+      </StoryWrapper>
+    );
+  }
+
+  // 에러 발생
+  if (error) {
+    return (
+      <StoryWrapper>
+        <ErrorContainer>
+          <ErrorText>{error}</ErrorText>
+          <RetryButton onClick={() => router.back()}>돌아가기</RetryButton>
+        </ErrorContainer>
+      </StoryWrapper>
+    );
+  }
+
+  // 데이터 없음
+  if (!storyInfo) {
     return null;
   }
 
   const renderLayout = () => {
     switch (currentLayout) {
       case 1:
-        return <Layout1 regionInfo={regionInfo} />;
+        return <Layout1 storyInfo={storyInfo} />;
       case 2:
-        return <Layout2 regionInfo={regionInfo} />;
+        return <Layout2 storyInfo={storyInfo} />;
       case 3:
-        return <Layout3 regionInfo={regionInfo} />;
+        return <Layout3 storyInfo={storyInfo} />;
       case 4:
-        return <Layout4 regionInfo={regionInfo} />;
+        return <Layout4 storyInfo={storyInfo} />;
       case 5:
-        return <Layout5 regionInfo={regionInfo} />;
+        return <Layout5 storyInfo={storyInfo} />;
       case 6:
         return <Layout6 />;
       default:
-        return <Layout1 regionInfo={regionInfo} />;
+        return <Layout1 storyInfo={storyInfo} />;
     }
   };
 
@@ -878,7 +960,7 @@ export default function StoryPage() {
     <StoryWrapper>
       {/* 캡처 영역 - 배경 + 콘텐츠 */}
       <CaptureArea ref={captureRef}>
-        <BackgroundImage $imageUrl={regionInfo.backgroundImage} />
+        <BackgroundImage $imageUrl={getBackgroundForLayout(currentLayout)} />
         {renderLayout()}
       </CaptureArea>
       

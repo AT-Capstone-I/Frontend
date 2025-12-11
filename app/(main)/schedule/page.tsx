@@ -1150,14 +1150,13 @@ export default function SchedulePage() {
     };
   }, [routeData]);
 
-  // 여행지 ID (실제로는 서버에서 받아오거나 상태로 관리)
-  const currentTripRegion = selectedTrip?.final_city || selectedTrip?.selected_city || "travel";
-
+  // 스토리 페이지로 이동
   const handleTripEndClick = () => {
+    if (!selectedTrip?.trip_id) return;
     // 새 탭으로 설문 링크 열기
     window.open(SURVEY_URL, "_blank");
-    // 스토리 페이지로 이동 (지역별 URL)
-    router.push(`/schedule/story/${currentTripRegion}`);
+    // 스토리 페이지로 이동 (tripId 기반)
+    router.push(`/schedule/story/${selectedTrip.trip_id}`);
   };
 
   // 광고 배너 자동 슬라이드

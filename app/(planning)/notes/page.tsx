@@ -432,19 +432,19 @@ export default function NotesPage() {
               
               return (
                 <NoteCard key={note.trip_id} onClick={() => handleNoteClick(note.trip_id)}>
-                  <NoteInfo>
-                    <NoteTextGroup>
+                <NoteInfo>
+                  <NoteTextGroup>
                       <NoteName>{displayName}</NoteName>
                       {displayAddress && <NoteAddress>{displayAddress}</NoteAddress>}
-                    </NoteTextGroup>
+                  </NoteTextGroup>
                     {note.start_date && note.end_date ? (
                       <NoteDate>{startDateFormatted} ~ {endDateFormatted}</NoteDate>
                     ) : (
                       <NoteDate>날짜 미정</NoteDate>
                     )}
-                  </NoteInfo>
+                </NoteInfo>
                   <StatusBadge $status={uiStatus}>{statusLabel[uiStatus]}</StatusBadge>
-                </NoteCard>
+              </NoteCard>
               );
             })}
           </NoteList>

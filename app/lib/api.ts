@@ -845,3 +845,51 @@ export async function getActivePlan(
 
   return response.json();
 }
+
+// ============ Story Card API ============
+
+export interface StoryCardResponse {
+  trip_id: string;
+  city: string;
+  city_en: string | null;
+  theme_phrase: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  images: string[];
+  image_count: number;
+  summary: string | null;
+}
+
+export interface StoryCardOptions {
+  includeSummary?: boolean;
+  shuffle?: boolean;
+  limit?: number;
+}
+
+/**
+ * Story Card API
+ * trip_id로 여행 스토리 카드 데이터 조회
+ */
+export async function getStoryCard(
+  tripId: string,
+  options?: StoryCardOptions
+): Promise<StoryCardResponse> {
+  const params = new URLSearchParams();
+  if (options?.includeSummary) params.append("include_summary", "true");
+  if (options?.shuffle) params.append("shuffle", "true");
+  if (options?.limit) params.append("limit", options.limit.toString());
+
+  const queryString = params.toString();
+  const url = `${API_BASE_URL}/api/story-cards/${tripId}${queryString ? `?${queryString}` : ""}`;
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error("스토리 카드를 찾을 수 없습니다");
+    }
+    const error = await response.json();
+    throw new Error(error.detail || "스토리 카드 조회 실패");
+  }
+
+  return response.json();
+}
