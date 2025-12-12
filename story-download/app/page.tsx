@@ -1,32 +1,32 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { createClient } from "@supabase/supabase-js";
-
-// Supabase 클라이언트 (환경변수에서)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Backend API URL
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   "https://moodtrip-production.up.railway.app";
 
-interface StoryCard {
-  name: string;
-  publicUrl: string;
-  createdAt: string;
+// API 응답 타입
+interface User {
+  user_id: string;
+  username: string;
+  created_at: string;
+  story_image_url: string | null;
+}
+
+interface LookupResponse {
+  count: number;
+  users: User[];
 }
 
 export default function Home() {
   const [nickname, setNickname] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [storyCards, setStoryCards] = useState<StoryCard[]>([]);
-  const [userName, setUserName] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
 
-  // 닉네임으로 user_id 조회 및 스토리 카드 가져오기
+  // 닉네임으로 사용자 조회
   const handleSearch = useCallback(async () => {
     if (!nickname.trim()) {
       setError("닉네임을 입력해주세요");
@@ -35,88 +35,37 @@ export default function Home() {
 
     setIsLoading(true);
     setError(null);
-    setStoryCards([]);
-    setUserName(null);
+    setUser(null);
 
     try {
-      // 1. 백엔드 API로 user_id 조회
-      const lookupResponse = await fetch(
+      const response = await fetch(
         `${BACKEND_URL}/api/user-lookup?name=${encodeURIComponent(nickname.trim())}`
       );
 
-      if (!lookupResponse.ok) {
-        if (lookupResponse.status === 404) {
+      if (!response.ok) {
+        if (response.status === 404) {
           setError("해당 닉네임을 찾을 수 없습니다");
         } else {
           setError("사용자 조회 중 오류가 발생했습니다");
         }
-        setIsLoading(false);
         return;
       }
 
-      // API 응답: { count: number, users: [{ user_id, username, created_at }] }
-      const userData = await lookupResponse.json();
+      const data: LookupResponse = await response.json();
 
-      if (!userData.users || userData.users.length === 0) {
+      if (!data.users || data.users.length === 0) {
         setError("사용자를 찾을 수 없습니다");
-        setIsLoading(false);
         return;
       }
 
-      const firstUser = userData.users[0];
-      const userId = firstUser.user_id;
+      const foundUser = data.users[0];
 
-      if (!userId) {
-        setError("사용자 정보를 가져올 수 없습니다");
-        setIsLoading(false);
-        return;
-      }
-
-      setUserName(firstUser.username || nickname);
-
-      // 2. Supabase Storage에서 사용자의 스토리 카드 조회
-      const { data: files, error: storageError } = await supabase.storage
-        .from("user-story")
-        .list(userId, {
-          limit: 100,
-          sortBy: { column: "created_at", order: "desc" },
-        });
-
-      if (storageError) {
-        console.error("Storage 조회 오류:", storageError);
-        setError("스토리 카드를 불러오는 중 오류가 발생했습니다");
-        setIsLoading(false);
-        return;
-      }
-
-      if (!files || files.length === 0) {
+      if (!foundUser.story_image_url) {
         setError("저장된 스토리 카드가 없습니다");
-        setIsLoading(false);
         return;
       }
 
-      // PNG 파일만 필터링 및 URL 생성
-      const cards: StoryCard[] = files
-        .filter((file) => file.name.endsWith(".png"))
-        .map((file) => {
-          const { data: urlData } = supabase.storage
-            .from("user-story")
-            .getPublicUrl(`${userId}/${file.name}`);
-
-          return {
-            name: file.name,
-            publicUrl: urlData.publicUrl,
-            createdAt: file.created_at || new Date().toISOString(),
-          };
-        });
-
-      if (cards.length === 0) {
-        setError("저장된 스토리 카드가 없습니다");
-        setIsLoading(false);
-        return;
-      }
-
-      setStoryCards(cards);
+      setUser(foundUser);
     } catch (err) {
       console.error("검색 오류:", err);
       setError("검색 중 오류가 발생했습니다. 다시 시도해주세요.");
@@ -126,14 +75,16 @@ export default function Home() {
   }, [nickname]);
 
   // 이미지 다운로드
-  const handleDownload = useCallback(async (card: StoryCard) => {
+  const handleDownload = useCallback(async () => {
+    if (!user?.story_image_url) return;
+
     try {
-      const response = await fetch(card.publicUrl);
+      const response = await fetch(user.story_image_url);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = card.name;
+      a.download = `${user.username}_moodtrip_story.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -142,7 +93,7 @@ export default function Home() {
       console.error("다운로드 오류:", err);
       alert("다운로드 중 오류가 발생했습니다");
     }
-  }, []);
+  }, [user]);
 
   // Enter 키 처리
   const handleKeyDown = useCallback(
@@ -194,29 +145,25 @@ export default function Home() {
         </section>
 
         {/* 결과 섹션 */}
-        {storyCards.length > 0 && (
+        {user && user.story_image_url && (
           <section style={styles.resultSection}>
             <h2 style={styles.resultTitle}>
-              {userName}님의 스토리 카드 ({storyCards.length}개)
+              {user.username}님의 스토리 카드
             </h2>
-            <div style={styles.cardGrid}>
-              {storyCards.map((card, index) => (
-                <div key={index} style={styles.card}>
-                  <div style={styles.cardImageWrapper}>
-                    <img
-                      src={card.publicUrl}
-                      alt={`스토리 카드 ${index + 1}`}
-                      style={styles.cardImage}
-                    />
-                  </div>
-                  <button
-                    onClick={() => handleDownload(card)}
-                    style={styles.downloadButton}
-                  >
-                    다운로드
-                  </button>
-                </div>
-              ))}
+            <div style={styles.cardContainer}>
+              <div style={styles.cardImageWrapper}>
+                <img
+                  src={user.story_image_url}
+                  alt={`${user.username}의 여행 스토리`}
+                  style={styles.cardImage}
+                />
+              </div>
+              <button
+                onClick={handleDownload}
+                style={styles.downloadButton}
+              >
+                다운로드
+              </button>
             </div>
           </section>
         )}
@@ -237,6 +184,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     flexDirection: "column",
     alignItems: "center",
     padding: "20px",
+    background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)",
   },
   container: {
     width: "100%",
@@ -306,33 +254,30 @@ const styles: { [key: string]: React.CSSProperties } = {
     width: "100%",
     display: "flex",
     flexDirection: "column",
+    alignItems: "center",
     gap: "20px",
   },
   resultTitle: {
     fontSize: "18px",
     fontWeight: "600",
     color: "#ffffff",
+    textAlign: "center",
   },
-  cardGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(2, 1fr)",
-    gap: "16px",
-    width: "100%",
-  },
-  card: {
+  cardContainer: {
     display: "flex",
     flexDirection: "column",
-    gap: "12px",
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    borderRadius: "12px",
-    padding: "12px",
+    alignItems: "center",
+    gap: "16px",
+    width: "100%",
+    maxWidth: "300px",
   },
   cardImageWrapper: {
     width: "100%",
     aspectRatio: "9/16",
-    borderRadius: "8px",
+    borderRadius: "12px",
     overflow: "hidden",
     backgroundColor: "rgba(0, 0, 0, 0.2)",
+    boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
   },
   cardImage: {
     width: "100%",
@@ -340,10 +285,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     objectFit: "cover",
   },
   downloadButton: {
-    padding: "10px 16px",
-    fontSize: "14px",
+    width: "100%",
+    padding: "14px 24px",
+    fontSize: "16px",
     fontWeight: "600",
-    borderRadius: "8px",
+    borderRadius: "12px",
     border: "none",
     backgroundColor: "#4A90D9",
     color: "#ffffff",
