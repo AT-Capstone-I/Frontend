@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import styled, { keyframes } from "styled-components";
+import styled, { keyframes, css } from "styled-components";
 
 // 스켈레톤 애니메이션
 const shimmer = keyframes`
@@ -44,7 +44,7 @@ const CardImageWrapper = styled.div<{ $isLoading?: boolean }>`
   overflow: hidden;
   background-color: var(--greyscale-200, #e8e7e9);
   
-  ${({ $isLoading }) => $isLoading && `
+  ${({ $isLoading }) => $isLoading && css`
     background: linear-gradient(
       90deg,
       var(--greyscale-200, #e8e7e9) 25%,
