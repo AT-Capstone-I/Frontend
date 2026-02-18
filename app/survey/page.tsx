@@ -86,6 +86,16 @@ const Title = styled.h1`
   margin-bottom: 28px;
 `;
 
+const MultiSelectHint = styled.p`
+  font-family: ${({ theme }) => theme.typography.body};
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: ${({ theme }) => theme.colors.primary500};
+  margin-top: -16px;
+  margin-bottom: 12px;
+`;
+
 const OptionsList = styled.div`
   display: flex;
   flex-direction: column;
@@ -171,8 +181,19 @@ const SubmitButton = styled.button<{ $isActive: boolean }>`
   }
 `;
 
-// 5개 질문 데이터 (API 양식에 맞춤)
-const SURVEY_QUESTIONS = [
+// 질문 타입 정의
+interface SurveyQuestion {
+  question_id: number;
+  title: string;
+  multiSelect?: boolean;
+  maxSelect?: number;
+  options: { id: number; text: string }[];
+}
+
+type AnswerValue = number | number[] | null;
+
+// 6개 질문 데이터 (API 양식에 맞춤)
+const SURVEY_QUESTIONS: SurveyQuestion[] = [
   {
     question_id: 0,
     title: '✈️ 드디어 여행 첫날 아침! 당신은?',
@@ -203,6 +224,8 @@ const SURVEY_QUESTIONS = [
   {
     question_id: 3,
     title: '☕ 오후 3시, 자유시간 2시간이 생겼다!',
+    multiSelect: true,
+    maxSelect: 2,
     options: [
       { id: 0, text: '🫖 예쁜 카페에서 여유롭게' },
       { id: 1, text: '🎿 근처 체험/액티비티 찾아보기' },
@@ -212,11 +235,22 @@ const SURVEY_QUESTIONS = [
   },
   {
     question_id: 4,
-    title: '📸 여행 중 사진은?',
+    title: '🌿 여행에서 가장 끌리는 분위기는?',
     options: [
-      { id: 0, text: '📷 인생샷 스팟은 꼭 찾아가야지' },
-      { id: 1, text: '👁️ 눈으로 보는 게 더 좋아, 가끔만' },
-      { id: 2, text: '🍔 음식 사진이 제일 많음' },
+      { id: 0, text: '🏡 한적하고 여유로운 곳이 좋아요' },
+      { id: 1, text: '✨ 감성적이고 특별한 곳이 좋아요' },
+      { id: 2, text: '🎉 활기차고 북적이는 곳이 좋아요' },
+      { id: 3, text: '🌳 자연 속에서 힐링하는 곳이 좋아요' },
+    ],
+  },
+  {
+    question_id: 5,
+    title: '👥 주로 누구와 여행하세요?',
+    options: [
+      { id: 0, text: '👤 혼자서 자유롭게' },
+      { id: 1, text: '👫 연인/배우자와 함께' },
+      { id: 2, text: '👨‍👩‍👧‍👦 가족과 함께' },
+      { id: 3, text: '👥 친구들과 함께' },
     ],
   },
 ];
@@ -224,7 +258,7 @@ const SURVEY_QUESTIONS = [
 export default function SurveyPage() {
   const router = useRouter();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<(number | null)[]>(
+  const [answers, setAnswers] = useState<AnswerValue[]>(
     new Array(SURVEY_QUESTIONS.length).fill(null)
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -296,7 +330,8 @@ export default function SurveyPage() {
   const currentQuestion = SURVEY_QUESTIONS[currentQuestionIndex];
   const currentAnswer = answers[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === SURVEY_QUESTIONS.length - 1;
-  const isOptionSelected = currentAnswer !== null;
+  const isOptionSelected = currentAnswer !== null &&
+    (Array.isArray(currentAnswer) ? currentAnswer.length > 0 : true);
 
   const handleBack = () => {
     if (currentQuestionIndex > 0) {
@@ -308,7 +343,24 @@ export default function SurveyPage() {
 
   const handleOptionSelect = (optionId: number) => {
     const newAnswers = [...answers];
-    newAnswers[currentQuestionIndex] = optionId;
+    const question = SURVEY_QUESTIONS[currentQuestionIndex];
+
+    if (question.multiSelect) {
+      const maxSelect = question.maxSelect ?? 2;
+      const currentSelection = Array.isArray(newAnswers[currentQuestionIndex])
+        ? (newAnswers[currentQuestionIndex] as number[])
+        : [];
+
+      if (currentSelection.includes(optionId)) {
+        const updated = currentSelection.filter(id => id !== optionId);
+        newAnswers[currentQuestionIndex] = updated.length > 0 ? updated : null;
+      } else if (currentSelection.length < maxSelect) {
+        newAnswers[currentQuestionIndex] = [...currentSelection, optionId];
+      }
+    } else {
+      newAnswers[currentQuestionIndex] = optionId;
+    }
+
     setAnswers(newAnswers);
   };
 
@@ -382,14 +434,26 @@ export default function SurveyPage() {
         <QuestionNumber>질문 {currentQuestionIndex + 1}/{SURVEY_QUESTIONS.length}</QuestionNumber>
         <Title>{currentQuestion.title}</Title>
 
+        {currentQuestion.multiSelect && (
+          <MultiSelectHint>최대 {currentQuestion.maxSelect ?? 2}개 선택</MultiSelectHint>
+        )}
+
         <OptionsList>
           {currentQuestion.options.map((option) => (
             <OptionButton
               key={option.id}
-              $isSelected={currentAnswer === option.id}
+              $isSelected={
+                Array.isArray(currentAnswer)
+                  ? currentAnswer.includes(option.id)
+                  : currentAnswer === option.id
+              }
               onClick={() => handleOptionSelect(option.id)}
             >
-              <OptionText $isSelected={currentAnswer === option.id}>
+              <OptionText $isSelected={
+                Array.isArray(currentAnswer)
+                  ? currentAnswer.includes(option.id)
+                  : currentAnswer === option.id
+              }>
                 {option.text}
               </OptionText>
             </OptionButton>

@@ -5,7 +5,7 @@ const API_BASE_URL = "https://moodtrip-production.up.railway.app";
 
 export interface OnboardingAnswer {
   question_id: number;
-  selected_option: number;
+  selected_option: number | number[];
 }
 
 export interface OnboardingRequest {
