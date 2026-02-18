@@ -19,12 +19,13 @@ import {
   getTravelNotes,
   getUserId,
   getUserName,
-  getStoryImages,
   PlaceRecommendation,
   PopularPlace,
   ContentRecommendation,
   TravelNote,
+  StoryImageEntry,
 } from "@/app/lib/api";
+import { useGeolocation } from "@/app/hooks/useGeolocation";
 
 // ============ sessionStorage 헬퍼 함수 ============
 const STORAGE_KEYS = {
@@ -34,6 +35,7 @@ const STORAGE_KEYS = {
   CACHED_RECOMMENDED: "moodtrip_cached_recommended",
   CACHED_POPULAR: "moodtrip_cached_popular",
   CACHED_CONTENTS: "moodtrip_cached_contents",
+  CACHED_STORY_IMAGES: "moodtrip_cached_story_images",
 };
 
 // seen IDs 가져오기
@@ -104,6 +106,23 @@ const getCachedContents = (key: string): ContentRecommendation[] | null => {
 const cacheContents = (key: string, contents: ContentRecommendation[]) => {
   if (typeof window === "undefined") return;
   sessionStorage.setItem(key, JSON.stringify(contents));
+};
+
+// 캐시된 스토리 이미지 가져오기
+const getCachedStoryImages = (key: string): Record<string, StoryImageEntry> | null => {
+  if (typeof window === "undefined") return null;
+  try {
+    const saved = sessionStorage.getItem(key);
+    return saved ? JSON.parse(saved) : null;
+  } catch {
+    return null;
+  }
+};
+
+// 스토리 이미지 캐시하기
+const cacheStoryImages = (key: string, images: Record<string, StoryImageEntry>) => {
+  if (typeof window === "undefined") return;
+  sessionStorage.setItem(key, JSON.stringify(images));
 };
 
 // seen IDs 초기화
@@ -590,6 +609,7 @@ const PlusIcon = () => (
 
 export default function HomePage() {
   const router = useRouter();
+  const { latitude, longitude, loading: geoLoading } = useGeolocation();
   const [activeTab, setActiveTab] = useState<"place" | "travel">("place");
   const [userName, setUserName] = useState<string | null>(null);
   const [recommendedPlaces, setRecommendedPlaces] = useState<
@@ -606,8 +626,8 @@ export default function HomePage() {
   const [isLoadingNotes, setIsLoadingNotes] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // 도시별 이미지 캐시 (여러 이미지 배열)
-  const [cityImageCache, setCityImageCache] = useState<Record<string, string[]>>({});
+  // 콘텐츠 API 응답에서 받은 도시별 스토리 이미지
+  const [storyImages, setStoryImages] = useState<Record<string, StoryImageEntry>>({});
 
   // 맞춤 추천 장소 가져오기 (새로고침 버튼용)
   const fetchRecommendedPlaces = useCallback(
@@ -632,7 +652,9 @@ export default function HomePage() {
       try {
         // 더 많은 결과를 요청해서 이전에 본 장소 필터링
         const maxResults = isRefresh ? 15 : 5;
-        const result = await getRecommendedPlaces(userId, "경기 안성시", {
+        const result = await getRecommendedPlaces(userId, {
+          latitude,
+          longitude,
           domain: "unified",
           maxResults: maxResults,
           useRerank: true,
@@ -647,9 +669,10 @@ export default function HomePage() {
             (place) => !seenIds.has(place.place_id)
           );
 
-          // 필터링 후 장소가 없으면 캐시 초기화하고 전체 반환
-          if (newPlaces.length === 0) {
+          // 새로운 장소가 부족하면 seenIds 초기화 후 전체 반환
+          if (newPlaces.length < 3) {
             clearSeenIds(STORAGE_KEYS.SEEN_RECOMMENDED);
+            seenIds.clear();
             newPlaces = result.places;
           }
         }
@@ -672,7 +695,7 @@ export default function HomePage() {
         setIsLoadingRecommend(false);
       }
     },
-    []
+    [latitude, longitude]
   );
 
   // 인기 장소 가져오기 (새로고침 버튼용) - 새 API 사용
@@ -692,7 +715,8 @@ export default function HomePage() {
     try {
       const limit = isRefresh ? 30 : 20;
       const result = await getPopularPlaces({
-        city: "안성",
+        latitude: latitude ?? undefined,
+        longitude: longitude ?? undefined,
         limit: limit,
       });
 
@@ -705,8 +729,10 @@ export default function HomePage() {
           (place) => !seenIds.has(place.place_id)
         );
 
-        if (newPlaces.length === 0) {
+        // 새로운 장소가 부족하면 seenIds 초기화 후 전체 반환
+        if (newPlaces.length < 5) {
           clearSeenIds(STORAGE_KEYS.SEEN_POPULAR);
+          seenIds.clear();
           newPlaces = result.places;
         }
       }
@@ -725,7 +751,7 @@ export default function HomePage() {
     } finally {
       setIsLoadingPopular(false);
     }
-  }, []);
+  }, [latitude, longitude]);
 
   // 여행 콘텐츠 가져오기 (새로고침 버튼용)
   const fetchTravelContents = useCallback(
@@ -738,6 +764,11 @@ export default function HomePage() {
         const cached = getCachedContents(STORAGE_KEYS.CACHED_CONTENTS);
         if (cached && cached.length > 0) {
           setTravelContents(cached);
+          // 캐시된 스토리 이미지도 복원
+          const cachedImages = getCachedStoryImages(STORAGE_KEYS.CACHED_STORY_IMAGES);
+          if (cachedImages) {
+            setStoryImages(cachedImages);
+          }
           setIsLoadingContents(false);
           return;
         }
@@ -761,8 +792,10 @@ export default function HomePage() {
             (content) => !seenIds.has(content.content_id)
           );
 
-          if (newContents.length === 0) {
+          // 새로운 콘텐츠가 부족하면 seenIds 초기화 후 전체 반환
+          if (newContents.length < 3) {
             clearSeenIds(STORAGE_KEYS.SEEN_CONTENTS);
+            seenIds.clear();
             newContents = result.contents;
           }
         }
@@ -776,6 +809,12 @@ export default function HomePage() {
         cacheContents(STORAGE_KEYS.CACHED_CONTENTS, newContents);
 
         setTravelContents(newContents);
+
+        // 응답에 포함된 story_images 저장 및 캐시
+        if (result.story_images) {
+          setStoryImages(result.story_images);
+          cacheStoryImages(STORAGE_KEYS.CACHED_STORY_IMAGES, result.story_images);
+        }
       } catch (err) {
         console.error("여행 콘텐츠 로딩 실패:", err);
       } finally {
@@ -806,21 +845,21 @@ export default function HomePage() {
     }
   }, []);
 
-  // 초기 로딩
+  // 초기 로딩 (위치 무관한 데이터)
   useEffect(() => {
     const name = getUserName();
     setUserName(name);
 
-    fetchRecommendedPlaces(false);
-    fetchPopularPlaces(false);
     fetchTravelContents(false);
     fetchPlanningNotes();
-  }, [
-    fetchRecommendedPlaces,
-    fetchPopularPlaces,
-    fetchTravelContents,
-    fetchPlanningNotes,
-  ]);
+  }, [fetchTravelContents, fetchPlanningNotes]);
+
+  // 위치 기반 장소 추천 (위치 로딩 완료 후 호출)
+  useEffect(() => {
+    if (geoLoading) return;
+    fetchRecommendedPlaces(false);
+    fetchPopularPlaces(false);
+  }, [geoLoading, fetchRecommendedPlaces, fetchPopularPlaces]);
 
   const greeting = getGreeting(userName);
 
@@ -848,71 +887,25 @@ export default function HomePage() {
     return place.address || place.city || "";
   };
 
-  // 도시 이미지 가져오기 (API에서 여러 장, 캐시 사용)
-  const fetchCityImages = useCallback(async (cityName: string, count: number = 5) => {
-    if (!cityName || cityImageCache[cityName]?.length >= count) return;
-    
-    try {
-      const data = await getStoryImages(cityName, { shuffle: true, limit: count });
-      if (data.images && data.images.length > 0) {
-        setCityImageCache(prev => ({
-          ...prev,
-          [cityName]: data.images
-        }));
-      }
-    } catch (err) {
-      console.log(`이미지 로드 실패 (${cityName}):`, err);
-      // 실패 시 기본 이미지 사용
-    }
-  }, [cityImageCache]);
-
-  // 콘텐츠 이미지 가져오기 (캐시에서 인덱스 기반 선택, 없으면 빈 문자열)
+  // 콘텐츠 이미지 가져오기 (story_images에서 인덱스 기반 선택)
   const getContentImage = (content: ContentRecommendation, index: number): string => {
     const cityName = content.city_name || "";
-    const images = cityImageCache[cityName];
-    if (images && images.length > 0) {
-      return images[index % images.length];
+    const entry = storyImages[cityName];
+    if (entry && entry.images.length > 0) {
+      return entry.images[index % entry.images.length];
     }
-    return ""; // 폴백 없음 - 스켈레톤 유지
+    return "";
   };
 
-  // 여행 노트 이미지 가져오기 (캐시에서 인덱스 기반 선택, 없으면 빈 문자열)
+  // 여행 노트 이미지 가져오기 (story_images에서 인덱스 기반 선택)
   const getTravelNoteImage = (note: TravelNote, index: number): string => {
     const cityName = note.final_city || note.selected_city || "";
-    const images = cityImageCache[cityName];
-    if (images && images.length > 0) {
-      return images[index % images.length];
+    const entry = storyImages[cityName];
+    if (entry && entry.images.length > 0) {
+      return entry.images[index % entry.images.length];
     }
-    return ""; // 폴백 없음 - 스켈레톤 유지
+    return "";
   };
-
-  // 콘텐츠/노트 로드 시 이미지 미리 가져오기
-  useEffect(() => {
-    const cityCount: Record<string, number> = {};
-    
-    // 여행 콘텐츠의 도시별 개수 계산
-    travelContents.forEach(content => {
-      if (content.city_name) {
-        cityCount[content.city_name] = (cityCount[content.city_name] || 0) + 1;
-      }
-    });
-    
-    // 여행 노트의 도시별 개수 계산
-    planningNotes.forEach(note => {
-      const city = note.final_city || note.selected_city;
-      if (city) {
-        cityCount[city] = (cityCount[city] || 0) + 1;
-      }
-    });
-    
-    // 각 도시의 이미지 가져오기 (필요한 개수만큼)
-    Object.entries(cityCount).forEach(([city, count]) => {
-      const currentCount = cityImageCache[city]?.length || 0;
-      if (currentCount < count) {
-        fetchCityImages(city, Math.max(count, 5)); // 최소 5장
-      }
-    });
-  }, [travelContents, planningNotes, cityImageCache, fetchCityImages]);
 
   // 여행 노트 제목 가져오기
   const getTravelNoteTitle = (note: TravelNote): string => {

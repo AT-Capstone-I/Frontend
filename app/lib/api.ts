@@ -39,6 +39,9 @@ export interface PlaceRecommendation {
 export interface RecommendPlacesRequest {
   user_id: string;
   city?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  radius_km?: number;
   domain?: "place" | "food" | "activity" | "unified";
   max_results?: number;
   use_rerank?: boolean;
@@ -92,14 +95,16 @@ export async function submitOnboarding(
 /**
  * 개인화 장소 추천 API 호출
  * @param userId 사용자 ID
- * @param city 도시명 (한글)
- * @param options 추가 옵션
+ * @param options 추가 옵션 (좌표 기반 또는 도시명 기반)
  * @returns 추천 장소 목록
  */
 export async function getRecommendedPlaces(
   userId: string,
-  city?: string | null,
   options?: {
+    city?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+    radiusKm?: number;
     domain?: "place" | "food" | "activity" | "unified";
     maxResults?: number;
     useRerank?: boolean;
@@ -111,7 +116,10 @@ export async function getRecommendedPlaces(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       user_id: userId,
-      city: city || null,
+      city: options?.city || null,
+      latitude: options?.latitude || null,
+      longitude: options?.longitude || null,
+      radius_km: options?.radiusKm ?? 30,
       domain: options?.domain || "unified",
       max_results: options?.maxResults || 5,
       use_rerank: options?.useRerank ?? true,
@@ -368,6 +376,11 @@ export interface RecommendContentsRequest {
   use_rerank?: boolean;
 }
 
+export interface StoryImageEntry {
+  images: string[];
+  city_en: string | null;
+}
+
 export interface RecommendContentsResponse {
   contents: ContentRecommendation[];
   total: number;
@@ -378,6 +391,7 @@ export interface RecommendContentsResponse {
     city: string | null;
     query: string | null;
   };
+  story_images: Record<string, StoryImageEntry>;
 }
 
 /**
@@ -443,19 +457,26 @@ export interface PopularPlacesResponse {
 }
 
 export interface PopularPlacesParams {
-  city: string;
+  city?: string;
+  latitude?: number;
+  longitude?: number;
+  radiusKm?: number;
   limit?: number;
   category?: string;
 }
 
 /**
  * 인기 장소 추천 API
- * 도시별 인기 장소를 가중 점수 기반으로 추천
+ * 좌표 기반 또는 도시명 기반으로 인기 장소를 가중 점수 기반으로 추천
  */
 export async function getPopularPlaces(
   params: PopularPlacesParams
 ): Promise<PopularPlacesResponse> {
-  const searchParams = new URLSearchParams({ city: params.city });
+  const searchParams = new URLSearchParams();
+  if (params.city) searchParams.append("city", params.city);
+  if (params.latitude != null) searchParams.append("latitude", String(params.latitude));
+  if (params.longitude != null) searchParams.append("longitude", String(params.longitude));
+  searchParams.append("radius_km", String(params.radiusKm ?? 30));
   if (params.limit) searchParams.append("limit", String(params.limit));
   if (params.category) searchParams.append("category", params.category);
 
