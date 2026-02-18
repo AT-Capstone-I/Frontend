@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import styled, { keyframes, css } from 'styled-components';
-import Image from 'next/image';
 
 // 애니메이션 정의
 const fadeIn = keyframes`
@@ -86,7 +85,7 @@ const LogoWrapper = styled.div<{ $isLoaded: boolean }>`
   `}
 `;
 
-const LogoImage = styled(Image)`
+const LogoImage = styled.img`
   width: 200px;
   height: auto;
 `;
@@ -149,13 +148,9 @@ const SplashScreen: React.FC<SplashScreenProps> = ({
     <SplashContainer $isExiting={isExiting} $isLoaded={isLoaded}>
       <ContentWrapper>
         <LogoWrapper $isLoaded={isLoaded}>
-          <LogoImage 
-            src="/assets/icons/icon.svg" 
+          <LogoImage
+            src="/assets/icons/icon.svg"
             alt="MoodTrip"
-            width={200}
-            height={40}
-            priority
-            style={{ width: '200px', height: 'auto' }}
           />
         </LogoWrapper>
         <TaglineText $isVisible={isLoaded}>

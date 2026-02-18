@@ -629,14 +629,18 @@ export function getUserName(): string | null {
 }
 
 /**
- * 로그아웃 (모든 사용자 데이터 삭제)
+ * 로그아웃 (모든 사용자 데이터 및 캐시 삭제)
  */
 export function logout(): void {
   if (typeof window === "undefined") return;
+  // 사용자 인증 정보 삭제
   localStorage.removeItem(STORAGE_KEYS.USER_ID);
   localStorage.removeItem(STORAGE_KEYS.USER_NAME);
   localStorage.removeItem(STORAGE_KEYS.SIGNUP_COMPLETED);
-  sessionStorage.removeItem(STORAGE_KEYS.SPLASH_SHOWN);
+  // 위치 캐시 삭제
+  localStorage.removeItem("moodtrip_user_location");
+  // 세션 데이터 전체 초기화 (추천/인기/콘텐츠/스토리 캐시 포함)
+  sessionStorage.clear();
 }
 
 /**

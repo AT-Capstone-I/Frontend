@@ -2,7 +2,6 @@
 
 import styled from "styled-components";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { logout } from "@/app/lib/api";
 
 // Figma Design: Top bar (헤더)
@@ -63,12 +62,11 @@ export default function Header({ showLogout = true }: HeaderProps) {
   return (
     <HeaderWrapper>
       <LogoContainer>
-        <Image
+        <img
           src="/assets/icons/icon.svg"
           alt="MoodTrip"
           width={94}
           height={18}
-          priority
         />
       </LogoContainer>
       {showLogout && (
